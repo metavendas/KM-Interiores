@@ -520,11 +520,12 @@
   // ===== Admin de Produtos (imagem + vídeo + estoque + ranking) =====
   function brl(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
   function slugSku(nome){ return 'KM-'+(nome||'PROD').toUpperCase().normalize('NFD').replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,16)+'-'+Math.random().toString(36).slice(2,5).toUpperCase(); }
+  var prodEditId=null, prodById={};
   function renderProdutos(){
     var host=$('mod-produtos'); if(!host) return;
     if(host.dataset.built){ loadProdutos(); return; } host.dataset.built='1';
     host.innerHTML='<div class="panel">'
-      +'<div class="modbar"><h3>Novo produto</h3><span class="modmsg" id="msg-prod"></span></div>'
+      +'<div class="modbar"><h3 id="prodFormTitle">Novo produto</h3><span class="modmsg" id="msg-prod"></span></div>'
       +'<div class="modform" id="form-prod">'
       +'<div class="f full"><label>Nome *</label><input data-k="nome"></div>'
       +'<div class="f"><label>Categoria</label><input data-k="categoria"></div>'
@@ -540,25 +541,33 @@
       +'<div class="f full"><label>Descrição</label><textarea data-k="descricao" rows="2"></textarea></div>'
       +'<div class="f full" style="text-align:right"><button class="btn" id="save-prod">Salvar produto</button></div>'
       +'</div>'
-      +'<table><thead><tr><th>Img</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Rank</th><th>Trilha</th></tr></thead>'
-      +'<tbody id="body-prod"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody></table>'
+      +'<table><thead><tr><th>Img</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Rank</th><th>Trilha</th><th style="text-align:right">Ações</th></tr></thead>'
+      +'<tbody id="body-prod"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody></table>'
       +'</div>';
     $('save-prod').addEventListener('click', saveProduto);
+    $('body-prod').addEventListener('click', function(e){
+      var b=e.target.closest?e.target.closest('button[data-act]'):null; if(!b) return;
+      var id=b.getAttribute('data-id'), act=b.getAttribute('data-act');
+      if(act==='edit') editProduto(id); else if(act==='del') delProduto(id);
+    });
+    $('msg-prod').addEventListener('click', function(e){ if(e.target && e.target.id==='prodCancelEdit') resetProdForm(); });
     loadProdutos();
   }
   function loadProdutos(){
     var tok=localStorage.getItem(TOKKEY);
-    fetch(SB+'/rest/v1/produtos?select=id,nome,categoria,preco,estoque_disponivel,ranking,trilha,foto_url&order=ranking.asc.nullslast,nome.asc&limit=300',{headers:authHeaders(tok)})
+    fetch(SB+'/rest/v1/produtos?select=id,nome,categoria,sku,preco,estoque_disponivel,ranking,trilha,destaque,video_url,descricao,foto_url&order=ranking.asc.nullslast,nome.asc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
-      var tb=$('body-prod');
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="7" class="empty">Nenhum produto. Cadastre acima.</td></tr>'; return; }
+      var tb=$('body-prod'); prodById={};
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhum produto. Cadastre acima.</td></tr>'; return; }
       tb.innerHTML=rows.map(function(p){
+        prodById[p.id]=p;
         var img=p.foto_url?('<img src="'+esc(p.foto_url)+'" style="width:44px;height:44px;object-fit:cover;border-radius:3px;border:1px solid var(--line)">'):'<span style="color:var(--ouro)">—</span>';
-        return '<tr><td>'+img+'</td><td style="color:var(--text)">'+esc(p.nome||'')+'</td><td><span class="badge">'+esc(p.categoria||'—')+'</span></td><td>'+brl(p.preco)+'</td><td>'+(p.estoque_disponivel==null?'—':p.estoque_disponivel)+'</td><td>'+(p.ranking==null?'—':p.ranking)+'</td><td>'+esc(p.trilha||'—')+'</td></tr>';
+        return '<tr><td>'+img+'</td><td style="color:var(--text)">'+esc(p.nome||'')+'</td><td><span class="badge">'+esc(p.categoria||'—')+'</span></td><td>'+brl(p.preco)+'</td><td>'+(p.estoque_disponivel==null?'—':p.estoque_disponivel)+'</td><td>'+(p.ranking==null?'—':p.ranking)+'</td><td>'+esc(p.trilha||'—')+'</td>'
+          +'<td style="text-align:right;white-space:nowrap"><button class="ia-btn" data-act="edit" data-id="'+p.id+'">Editar</button> <button class="ia-btn" data-act="del" data-id="'+p.id+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Deletar</button></td></tr>';
       }).join('');
     })
-    .catch(function(e){ $('body-prod').innerHTML='<tr><td colspan="7" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; console.error(e); });
+    .catch(function(e){ $('body-prod').innerHTML='<tr><td colspan="8" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; console.error(e); });
   }
   function saveProduto(){
     var tok=localStorage.getItem(TOKKEY); var form=$('form-prod');
@@ -571,11 +580,14 @@
         preco:get('preco')?Number(get('preco')):null, estoque_disponivel:get('estoque_disponivel')?Number(get('estoque_disponivel')):0,
         ranking:get('ranking')?Number(get('ranking')):null, trilha:get('trilha')||'A', destaque:get('destaque')==='true',
         video_url:get('video_url')||null, descricao:get('descricao')||null, foto_url:foto||get('foto_url')||null, ativo:true };
-      fetch(SB+'/rest/v1/produtos',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
-      .then(function(r){ btn.disabled=false; btn.textContent='Salvar produto';
-        if(r.ok){ $('msg-prod').textContent='Produto salvo ✓'; form.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; }); loadProdutos(); setTimeout(function(){ $('msg-prod').textContent=''; },2500); }
+      var editing=prodEditId;
+      var method=editing?'PATCH':'POST';
+      var url=SB+'/rest/v1/produtos'+(editing?'?id=eq.'+editing:'');
+      fetch(url,{method:method,headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
+      .then(function(r){ btn.disabled=false; btn.textContent=editing?'Atualizar produto':'Salvar produto';
+        if(r.ok){ resetProdForm(); $('msg-prod').textContent=editing?'Produto atualizado ✓':'Produto salvo ✓'; loadProdutos(); setTimeout(function(){ if($('msg-prod'))$('msg-prod').textContent=''; },2500); }
         else r.text().then(function(t){ $('msg-prod').textContent='Erro: '+t.slice(0,90); }); })
-      .catch(function(){ btn.disabled=false; btn.textContent='Salvar produto'; $('msg-prod').textContent='Erro de conexão.'; });
+      .catch(function(){ btn.disabled=false; btn.textContent=editing?'Atualizar produto':'Salvar produto'; $('msg-prod').textContent='Erro de conexão.'; });
     }
     if(file){
       var path='img/'+Date.now()+'_'+file.name.replace(/[^\w.\-]/g,'_');
@@ -584,6 +596,37 @@
       .then(function(r){ if(!r.ok) throw new Error('upload'); doInsert(SB+'/storage/v1/object/public/produtos/'+path); })
       .catch(function(){ btn.disabled=false; btn.textContent='Salvar produto'; $('msg-prod').textContent='Falha ao enviar a imagem.'; });
     } else doInsert(null);
+  }
+  function resetProdForm(){
+    prodEditId=null;
+    var f=$('form-prod'); if(f) f.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; });
+    if($('prodFormTitle')) $('prodFormTitle').textContent='Novo produto';
+    if($('save-prod')) $('save-prod').textContent='Salvar produto';
+    if($('msg-prod')) $('msg-prod').textContent='';
+  }
+  function editProduto(id){
+    var p=prodById[id]; if(!p) return;
+    var form=$('form-prod'); if(!form) return;
+    var set=function(k,v){ var el=form.querySelector('[data-k="'+k+'"]'); if(el) el.value=(v==null?'':v); };
+    set('nome',p.nome); set('categoria',p.categoria); set('sku',p.sku); set('preco',p.preco);
+    set('estoque_disponivel',p.estoque_disponivel); set('ranking',p.ranking);
+    var tr=form.querySelector('[data-k="trilha"]'); if(tr) tr.value=p.trilha||'A';
+    var de=form.querySelector('[data-k="destaque"]'); if(de) de.value=(p.destaque?'true':'false');
+    set('video_url',p.video_url); set('foto_url',p.foto_url); set('descricao',p.descricao);
+    var fi=$('prod_img'); if(fi) fi.value='';
+    prodEditId=id;
+    if($('prodFormTitle')) $('prodFormTitle').textContent='Editando: '+(p.nome||'');
+    if($('save-prod')) $('save-prod').textContent='Atualizar produto';
+    if($('msg-prod')) $('msg-prod').innerHTML='<a id="prodCancelEdit" style="color:var(--ouro);cursor:pointer;text-decoration:underline">cancelar edição</a>';
+    var c=document.querySelector('.content'); if(c) c.scrollTop=0;
+  }
+  function delProduto(id){
+    var p=prodById[id]||{};
+    if(!confirm('Deletar o produto "'+(p.nome||'')+'" do catálogo?\n\nEsta ação remove a peça da loja e do CRM e não pode ser desfeita.')) return;
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/produtos?id=eq.'+id,{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); if(prodEditId===id) resetProdForm(); if($('msg-prod')){ $('msg-prod').textContent='Produto deletado ✓'; setTimeout(function(){ if($('msg-prod'))$('msg-prod').textContent=''; },2500); } loadProdutos(); })
+    .catch(function(e){ alert('Não foi possível deletar (sem permissão de equipe ou erro de conexão).'); console.error(e); });
   }
   // ===== Kanban arrastável (funil) =====
   function initFunil(){
