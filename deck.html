@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KM Interiores · Apresentação da Plataforma Digital</title>
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080807;--bg2:#0f0e0c;--text:#F1E9D2;--muted:rgba(241,233,210,.72);--accent:#CB984C;--champagne:#F1E4C9;--ouro:#9D7D31;--line:rgba(203,152,76,.18);
+    --serif:'Playfair Display',Georgia,serif;--serif-accent:'Cormorant Garamond',Georgia,serif;--sans:'Inter',system-ui,sans-serif;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;color:var(--text);font-family:var(--sans);font-weight:300;-webkit-font-smoothing:antialiased;overflow:hidden}
+  .deck{position:relative;width:100vw;height:100vh;overflow:hidden}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;padding:7vh 9vw;background:var(--bg);opacity:0;transition:opacity .5s}
+  .slide.active{display:flex;opacity:1}
+  .slide::after{content:'';position:absolute;inset:0;pointer-events:none;background:
+    radial-gradient(120% 90% at 85% 12%,rgba(203,152,76,.10),transparent 55%),
+    radial-gradient(90% 80% at 10% 95%,rgba(94,61,18,.22),transparent 60%);}
+  .slide > *{position:relative;z-index:2}
+  .eyebrow{font-size:13px;letter-spacing:.4em;text-transform:uppercase;color:var(--accent);font-weight:500}
+  .rule{width:60px;height:1px;background:linear-gradient(90deg,var(--accent),transparent);margin:22px 0}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(36px,5.5vw,76px);line-height:1.05}
+  h1 em{font-style:italic;color:var(--accent)}
+  h2{font-family:var(--serif);font-weight:500;font-size:clamp(30px,4.2vw,54px);line-height:1.1;margin-bottom:8px}
+  .lead{font-family:var(--serif-accent);font-size:clamp(18px,2.1vw,26px);color:var(--champagne);max-width:60ch;line-height:1.5;margin-top:14px}
+  ul{list-style:none;margin-top:30px;max-width:70ch}
+  li{font-size:clamp(15px,1.5vw,20px);color:var(--muted);padding:11px 0;display:flex;gap:14px;line-height:1.5}
+  li::before{content:'✦';color:var(--accent);flex-shrink:0}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:30px}
+  .card{border:1px solid var(--line);padding:26px 28px;background:var(--bg2)}
+  .card h3{font-family:var(--serif);font-weight:500;font-size:22px;color:var(--text);margin-bottom:8px}
+  .card h3 .n{font-style:italic;color:var(--ouro);font-size:16px;margin-right:8px}
+  .card p{font-size:14.5px;color:var(--muted);line-height:1.6}
+  .big{font-family:var(--serif);font-size:clamp(40px,7vw,96px);color:var(--accent);line-height:1}
+  .stack{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
+  .chip{border:1px solid var(--line);background:var(--bg2);padding:16px 18px}
+  .chip b{font-family:var(--serif);color:var(--champagne);font-size:16px;display:block}
+  .chip span{font-size:12px;color:var(--muted)}
+  .phases{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:34px}
+  .ph{border:1px solid var(--line);padding:16px 12px;text-align:center;background:var(--bg2);position:relative}
+  .ph .num{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:18px}
+  .ph .t{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.35}
+  .ph.live{border-color:var(--accent)}
+  .ph.live::before{content:'no ar';position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:8px;letter-spacing:.12em;text-transform:uppercase;background:var(--accent);color:#080807;padding:2px 8px;border-radius:2px}
+  .url{display:inline-block;margin-top:26px;font-family:var(--serif-accent);font-size:clamp(22px,3vw,40px);color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:6px}
+  .cover{align-items:center;text-align:center}
+  .cover img{height:170px;margin-bottom:10px}
+  .cover .sub{font-family:var(--serif-accent);font-size:clamp(18px,2vw,24px);color:var(--champagne);margin-top:8px}
+  .cover .foot{position:absolute;bottom:5vh;left:0;right:0;text-align:center;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--ouro)}
+  .kpi-row{display:flex;gap:50px;margin-top:34px;flex-wrap:wrap}
+  .kpi .v{font-family:var(--serif);font-size:clamp(30px,4vw,52px);color:var(--accent)}
+  .kpi .l{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+
+  /* nav */
+  .ctrl{position:fixed;bottom:22px;right:28px;display:flex;align-items:center;gap:16px;z-index:50}
+  .ctrl button{background:rgba(15,14,12,.8);border:1px solid var(--line);color:var(--accent);width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:18px;transition:.2s}
+  .ctrl button:hover{background:var(--accent);color:#080807}
+  .counter{position:fixed;bottom:30px;left:28px;font-size:12px;letter-spacing:.2em;color:var(--ouro);z-index:50}
+  .dots{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);display:flex;gap:9px;z-index:50}
+  .dots i{width:8px;height:8px;border-radius:50%;background:rgba(203,152,76,.3);cursor:pointer;transition:.2s}
+  .dots i.on{background:var(--accent);transform:scale(1.25)}
+  .hint{position:fixed;top:20px;right:28px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ouro);opacity:.7;z-index:50}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 Capa -->
+  <section class="slide cover active">
+    <img src="logo.png" alt="KM Interiores">
+    <h1>A Plataforma Digital<br>da <em>KM Interiores</em></h1>
+    <p class="sub">E-commerce de alto luxo · CRM próprio · Automação com IA</p>
+    <div class="foot">Apresentação · Junho 2026 · kminteriores.com.br</div>
+  </section>
+
+  <!-- 2 Problema -->
+  <section class="slide">
+    <span class="eyebrow">O Cenário</span><div class="rule"></div>
+    <h2>O software de prateleira<br>não serve ao luxo.</h2>
+    <ul>
+      <li>Plataformas genéricas (tipo Bitrix24) cobram <b>mensalidade em dólar</b> — sangria recorrente que não vira patrimônio.</li>
+      <li>O <b>dado do cliente A/A+</b> fica na nuvem de terceiros, fora do nosso controle.</li>
+      <li>A IA delas <b>não conhece a KM</b> — não fala o tom da marca nem o catálogo real.</li>
+      <li>Forçar "carrinho" numa peça de R$ 40 mil <b>destrói a percepção de exclusividade</b>.</li>
+    </ul>
+  </section>
+
+  <!-- 3 Solução -->
+  <section class="slide">
+    <span class="eyebrow">A Tese</span><div class="rule"></div>
+    <h2>Prompt é commodity.<br><em>Contexto</em> é vantagem competitiva.</h2>
+    <p class="lead">Construímos uma plataforma proprietária sob medida — com a identidade, o catálogo e as regras da KM — sobre uma stack validada em produção. O resultado é um "Bitrix24 da KM": ferramenta da empresa <em>e</em> patrimônio digital.</p>
+    <ul>
+      <li>Loja de luxo + CRM completo + automação WhatsApp/Instagram + IA própria</li>
+      <li>Dado 100% da KM · custo de infraestrutura próximo de zero</li>
+      <li>Reaproveita ~60% de engenharia já em produção (projeto Rede Global)</li>
+    </ul>
+  </section>
+
+  <!-- 4 Demo -->
+  <section class="slide cover">
+    <span class="eyebrow">Demonstração ao vivo</span><div class="rule" style="margin:22px auto"></div>
+    <h2>Já está no ar.</h2>
+    <p class="lead" style="margin-left:auto;margin-right:auto">Não é maquete — é o site real, navegável agora, no notebook e no celular.</p>
+    <a class="url" href="https://km-interiores.vercel.app" target="_blank">km-interiores.vercel.app</a>
+  </section>
+
+  <!-- 5 O que já existe -->
+  <section class="slide">
+    <span class="eyebrow">Entregue nesta fase</span><div class="rule"></div>
+    <h2>Um site que já vende e capta.</h2>
+    <div class="cols" style="grid-template-columns:repeat(3,1fr)">
+      <div class="card"><h3>Vitrine editorial</h3><p>Home, catálogo por ambiente e página de produto com acabamentos.</p></div>
+      <div class="card"><h3>Duas trilhas</h3><p>Compra direta (itens carry) e "Solicitar curadoria" (alto valor → vira lead).</p></div>
+      <div class="card"><h3>Área do cliente</h3><p>Pedidos, propostas e projetos — o espelho do CRM.</p></div>
+      <div class="card"><h3>Painel CRM</h3><p>Funil Kanban, ficha 360°, caixa omnichannel, agentes de IA.</p></div>
+      <div class="card"><h3>Identidade</h3><p>Brand book aplicado: ébano + dourado, serifa de alto contraste.</p></div>
+      <div class="card"><h3>Catálogo real</h3><p>Peças oficiais (Milano, Zarath, Vitória...) já no site.</p></div>
+    </div>
+  </section>
+
+  <!-- 6 Pilares -->
+  <section class="slide">
+    <span class="eyebrow">Modelo de negócio</span><div class="rule"></div>
+    <h2>Três pilares, uma plataforma.</h2>
+    <div class="cols" style="grid-template-columns:repeat(3,1fr)">
+      <div class="card"><h3><span class="n">i.</span>Venda</h3><p>Mobiliário autoral de alto luxo, personalização sob medida.</p></div>
+      <div class="card"><h3><span class="n">ii.</span>Locação Premium</h3><p>Eventos, home staging e ambientações corporativas.</p></div>
+      <div class="card"><h3><span class="n">iii.</span>Atelier 3D</h3><p>Peças exclusivas de decoração, impressas sob demanda.</p></div>
+    </div>
+    <p class="lead">As três trilhas alimentam o mesmo funil. Não há venda fora do CRM.</p>
+  </section>
+
+  <!-- 7 CRM -->
+  <section class="slide">
+    <span class="eyebrow">O coração do projeto</span><div class="rule"></div>
+    <h2>Um CRM <em>Bitrix24-like</em>, sob medida.</h2>
+    <div class="kpi-row">
+      <div class="kpi"><div class="v">12</div><div class="l">Módulos</div></div>
+      <div class="kpi"><div class="v">360°</div><div class="l">Ficha do cliente</div></div>
+      <div class="kpi"><div class="v">5</div><div class="l">Agentes de IA</div></div>
+      <div class="kpi"><div class="v">3</div><div class="l">Canais (Whats/IG/E-mail)</div></div>
+    </div>
+    <ul>
+      <li>Cadastros, funil multi-pipeline, propostas, pedidos, financeiro, permissões por papel.</li>
+      <li>IA atende, qualifica e resume — sempre no padrão <b>propõe → admin aprova</b>.</li>
+    </ul>
+  </section>
+
+  <!-- 8 Stack & Custo -->
+  <section class="slide">
+    <span class="eyebrow">Arquitetura & Custo</span><div class="rule"></div>
+    <h2>Tecnologia de ponta,<br>custo próximo de <em>zero</em>.</h2>
+    <div class="stack">
+      <div class="chip"><b>Vercel + GitHub</b><span>Hospedagem e deploy</span></div>
+      <div class="chip"><b>Supabase</b><span>Banco · Auth · CRM</span></div>
+      <div class="chip"><b>Cloudflare</b><span>DNS · CDN · Segurança</span></div>
+      <div class="chip"><b>Mercado Pago + PayPal</b><span>Pagamentos</span></div>
+      <div class="chip"><b>Brevo</b><span>E-mail / réguas</span></div>
+      <div class="chip"><b>Groq (IA)</b><span>Agentes proprietários</span></div>
+    </div>
+    <p class="lead">Infraestrutura: <b style="color:var(--accent)">~R$ 0/mês</b> + domínio (~R$ 40/ano) + taxas só por venda.</p>
+  </section>
+
+  <!-- 9 Fases -->
+  <section class="slide">
+    <span class="eyebrow">Roteiro de construção</span><div class="rule"></div>
+    <h2>Sete fases — valor cedo.</h2>
+    <div class="phases">
+      <div class="ph live"><div class="num">0</div><div class="t">Fundação + identidade</div></div>
+      <div class="ph live"><div class="num">1</div><div class="t">Catálogo + vitrine</div></div>
+      <div class="ph"><div class="num">2</div><div class="t">E-commerce A+B</div></div>
+      <div class="ph"><div class="num">3</div><div class="t">Núcleo do CRM</div></div>
+      <div class="ph"><div class="num">4</div><div class="t">Financeiro + BI</div></div>
+      <div class="ph"><div class="num">5</div><div class="t">Automação IA</div></div>
+      <div class="ph"><div class="num">6</div><div class="t">Relacionamento</div></div>
+    </div>
+    <p class="lead">Plataforma completa em ~3,5 a 4 meses — mas <b>vendendo já na fase 2</b>. As fases 0 e 1 já estão no ar.</p>
+  </section>
+
+  <!-- 10 ROI / Governança -->
+  <section class="slide">
+    <span class="eyebrow">Por que é decisão de CEO</span><div class="rule"></div>
+    <h2>Construímos <em>patrimônio</em>,<br>não alugamos software.</h2>
+    <div class="cols">
+      <div class="card"><h3>Ativo da empresa</h3><p>Código, banco e dado são da KM. Cada hora investida vira patrimônio — não mensalidade perdida.</p></div>
+      <div class="card"><h3>Governança</h3><p>IA propõe → Edson aprova. Nada vai ao ar, nenhum e-mail dispara e nenhuma verba é gasta sem aprovação.</p></div>
+    </div>
+    <p class="lead">E a própria plataforma vira o maior <em>case</em> da assessoria de IA.</p>
+  </section>
+
+  <!-- 11 Fechamento -->
+  <section class="slide cover">
+    <img src="logo.png" alt="KM Interiores" style="height:150px">
+    <h1>A arte de habitar<br>o <em>extraordinário</em>.</h1>
+    <a class="url" href="https://km-interiores.vercel.app" target="_blank">km-interiores.vercel.app</a>
+    <div class="foot">Design que inspira. Sofisticação que permanece.</div>
+  </section>
+
+</div>
+
+<div class="hint">← → para navegar · F11 tela cheia</div>
+<div class="counter"><span id="cur">1</span> / <span id="tot">11</span></div>
+<div class="dots" id="dots"></div>
+<div class="ctrl"><button id="prev">‹</button><button id="next">›</button></div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];let i=0;
+  const dots=document.getElementById('dots');
+  slides.forEach((_,k)=>{const d=document.createElement('i');d.onclick=()=>go(k);dots.appendChild(d);});
+  document.getElementById('tot').textContent=slides.length;
+  function go(n){i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===i));
+    document.getElementById('cur').textContent=i+1;}
+  document.getElementById('next').onclick=()=>go(i+1);
+  document.getElementById('prev').onclick=()=>go(i-1);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ')go(i+1);
+    if(e.key==='ArrowLeft'||e.key==='PageUp')go(i-1);
+    if(e.key==='Home')go(0);if(e.key==='End')go(slides.length-1);
+  });
+  go(0);
+</script>
+</body>
+</html>
