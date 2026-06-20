@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sofá Milano · KM Interiores</title>
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080807;--bg2:#0f0e0c;--text:#F1E9D2;--muted:rgba(241,233,210,.72);
+    --accent:#CB984C;--champagne:#F1E4C9;--ouro-antigo:#9D7D31;--line:rgba(203,152,76,.16);--card-bg:#F1E9D2;
+    --serif:'Playfair Display',Georgia,serif;--serif-accent:'Cormorant Garamond',Georgia,serif;--sans:'Inter',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 40px}
+  .eyebrow{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--accent);font-weight:500}
+
+  .announce{background:var(--bg2);border-bottom:1px solid var(--line);text-align:center;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding:10px 0}
+  header{position:sticky;top:0;z-index:50;background:rgba(8,8,7,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:92px}
+  .brand-logo{height:72px;width:auto;display:block}
+  nav.menu{display:flex;gap:30px}
+  nav.menu a{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text);opacity:.85;transition:.3s;padding:6px 0}
+  nav.menu a:hover{opacity:1;color:var(--accent)}
+  .icons{display:flex;gap:20px;align-items:center}
+  .icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85;cursor:pointer;transition:.3s}
+  .icons svg:hover{stroke:var(--accent)}
+
+  .crumbs{padding:26px 0 0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ouro-antigo)}
+  .pdp{display:grid;grid-template-columns:1.15fr 1fr;gap:56px;padding:34px 0 100px;align-items:start}
+  .gallery .main{border:1px solid var(--line);overflow:hidden;background:var(--card-bg)}
+  .gallery .main img{width:100%;display:block}
+  .thumbs{display:flex;gap:12px;margin-top:14px}
+  .thumbs div{flex:1;height:90px;border:1px solid var(--line);overflow:hidden;cursor:pointer;opacity:.7;transition:.3s;background-size:cover;background-position:center}
+  .thumbs div:hover,.thumbs div.active{opacity:1;border-color:var(--accent)}
+
+  .info{padding-top:6px}
+  .info .eyebrow{color:var(--ouro-antigo)}
+  .info h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,4vw,52px);color:var(--text);margin:12px 0 6px;line-height:1.05}
+  .info .sub{font-family:var(--serif-accent);font-size:21px;color:var(--champagne);font-style:italic}
+  .price-row{display:flex;align-items:baseline;gap:14px;margin:26px 0 6px}
+  .price-row .price{font-family:var(--serif);font-size:30px;color:var(--accent)}
+  .price-row .note{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .desc{font-size:15px;color:var(--muted);line-height:1.8;margin:22px 0;border-top:1px solid var(--line);padding-top:22px}
+  .opt-label{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin:22px 0 12px}
+  .swatches{display:flex;gap:12px}
+  .sw{width:42px;height:42px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.25s;position:relative}
+  .sw.active{border-color:var(--accent)}
+  .sw1{background:#5E3D12}.sw2{background:#15130f}.sw3{background:#9D7D31}.sw4{background:#7a5a3a}
+  .cta-row{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;padding:17px 30px;cursor:pointer;border:1px solid transparent;transition:.3s}
+  .btn-primary{background:var(--accent);color:#080807}.btn-primary:hover{background:var(--champagne)}
+  .btn-ghost{border-color:var(--accent);color:var(--text)}.btn-ghost:hover{background:var(--accent);color:#080807}
+  .specs{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
+  .specs h3{font-family:var(--serif);font-size:18px;color:var(--text);margin-bottom:14px}
+  .specs table{width:100%;border-collapse:collapse}
+  .specs td{padding:9px 0;font-size:13.5px;border-bottom:1px solid var(--line);color:var(--muted)}
+  .specs td:first-child{color:var(--champagne);width:42%;letter-spacing:.04em}
+  .assur{display:flex;gap:22px;margin-top:24px;flex-wrap:wrap}
+  .assur div{font-size:11px;letter-spacing:.1em;color:var(--ouro-antigo)}
+
+  footer{background:var(--bg2);border-top:1px solid var(--line);padding:50px 0;text-align:center}
+  footer p{font-size:12px;color:var(--muted)}
+  footer .tag{font-family:var(--serif-accent);font-size:16px;color:var(--accent);margin-top:8px}
+
+  @media(max-width:960px){.wrap{padding:0 22px}nav.menu{display:none}.pdp{grid-template-columns:1fr;gap:30px}}
+</style>
+</head>
+<body>
+
+<div class="announce">Design que inspira · Sofisticação que permanece · Atendimento sob medida em todo o Brasil</div>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="home_comparador.html"><img class="brand-logo" src="logo.png" alt="KM Interiores"></a>
+    <nav class="menu">
+      <a href="#">Ambientes</a><a href="catalogo.html">Coleções</a><a href="#">Locação</a><a href="#">Atelier 3D</a><a href="#">A Marca</a>
+    </nav>
+    <div class="icons">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+    </div>
+  </div>
+</header>
+
+<div class="wrap"><div class="crumbs">Início · Coleções · Sofás · Milano</div></div>
+
+<section class="wrap pdp">
+  <div class="gallery">
+    <div class="main"><img id="mainimg" src="cat-milano.png" alt="Sofá Milano"></div>
+    <div class="thumbs">
+      <div class="active" style="background-image:url('cat-milano.png')" data-img="cat-milano.png"></div>
+      <div style="background-image:url('wood-dark.jpg')" data-img="wood-dark.jpg"></div>
+      <div style="background-image:url('cat-clark.png')" data-img="cat-clark.png"></div>
+      <div style="background-image:url('hero.jpg')" data-img="hero.jpg"></div>
+    </div>
+  </div>
+
+  <div class="info">
+    <span class="eyebrow">Coleção Milano · Autoral</span>
+    <h1>Sofá Milano</h1>
+    <div class="sub">O equilíbrio entre estrutura e aconchego.</div>
+
+    <div class="price-row">
+      <span class="price">Sob consulta</span>
+      <span class="note">Curadoria personalizada</span>
+    </div>
+
+    <p class="desc">Estrutura em madeira maciça com encaixes reforçados; assento em espuma de alta resiliência envolta em pluma siliconada. Revestimento em tecido nobre à prova d'água, com acabamento de costura artesanal. Uma peça pensada para durar gerações — e para receber com elegância.</p>
+
+    <div class="opt-label">Acabamento</div>
+    <div class="swatches">
+      <div class="sw sw1 active" title="Marrom Madeira"></div>
+      <div class="sw sw2" title="Preto Ébano"></div>
+      <div class="sw sw3" title="Ouro Antigo"></div>
+      <div class="sw sw4" title="Nogueira"></div>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn btn-primary">Adicionar ao carrinho</button>
+      <button class="btn btn-ghost">Solicitar curadoria</button>
+    </div>
+
+    <div class="assur">
+      <div>✦ Entrega assegurada</div>
+      <div>✦ Garantia KM Care</div>
+      <div>✦ Sob medida</div>
+    </div>
+
+    <div class="specs">
+      <h3>Ficha técnica</h3>
+      <table>
+        <tr><td>Material da estrutura</td><td>Madeira maciça de reflorestamento</td></tr>
+        <tr><td>Revestimento</td><td>Tecido nobre à prova d'água (linho premium)</td></tr>
+        <tr><td>Enchimento</td><td>Espuma D33 + pluma siliconada</td></tr>
+        <tr><td>Dimensões</td><td>2,40 m (L) × 1,00 m (P) × 0,85 m (A)</td></tr>
+        <tr><td>Acabamentos</td><td>4 opções de tecido e base</td></tr>
+        <tr><td>Prazo de produção</td><td>Sob medida — definido na curadoria</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p>
+    <p class="tag">Design que inspira. Sofisticação que permanece.</p>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.thumbs div').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.thumbs div').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');document.getElementById('mainimg').src=t.dataset.img;
+  }));
+  document.querySelectorAll('.sw').forEach(s=>s.addEventListener('click',()=>{
+    document.querySelectorAll('.sw').forEach(x=>x.classList.remove('active'));s.classList.add('active');
+  }));
+</script>
+</body>
+</html>

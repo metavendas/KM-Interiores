@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Área do Cliente · KM Interiores</title>
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080807;--bg2:#0f0e0c;--text:#F1E9D2;--muted:rgba(241,233,210,.72);--accent:#CB984C;--champagne:#F1E4C9;--ouro-antigo:#9D7D31;--line:rgba(203,152,76,.16);
+    --serif:'Playfair Display',Georgia,serif;--serif-accent:'Cormorant Garamond',Georgia,serif;--sans:'Inter',system-ui,sans-serif;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}.wrap{max-width:1280px;margin:0 auto;padding:0 40px}
+  .eyebrow{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--accent);font-weight:500}
+  .announce{background:var(--bg2);border-bottom:1px solid var(--line);text-align:center;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding:10px 0}
+  header{position:sticky;top:0;z-index:50;background:rgba(8,8,7,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:92px}
+  .brand-logo{height:72px;width:auto;display:block}
+  nav.menu{display:flex;gap:30px}nav.menu a{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text);opacity:.85}nav.menu a:hover{opacity:1;color:var(--accent)}
+  .icons{display:flex;gap:20px;align-items:center}.icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85}
+
+  .greet{padding:54px 0 30px}
+  .greet .eyebrow{color:var(--ouro-antigo)}
+  .greet h1{font-family:var(--serif);font-weight:500;font-size:clamp(30px,4vw,46px);margin-top:12px}
+  .greet p{font-family:var(--serif-accent);font-size:19px;color:var(--champagne);margin-top:6px}
+
+  .dash{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;padding-bottom:30px}
+  .stat{background:var(--bg2);border:1px solid var(--line);padding:26px}
+  .stat .n{font-family:var(--serif);font-size:34px;color:var(--accent)}
+  .stat .l{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+
+  .panel{background:var(--bg2);border:1px solid var(--line);margin-bottom:24px}
+  .panel h3{font-family:var(--serif);font-weight:500;font-size:20px;padding:22px 26px;border-bottom:1px solid var(--line)}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:16px 26px;font-size:13.5px;border-bottom:1px solid var(--line)}
+  th{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ouro-antigo);font-weight:500}
+  td{color:var(--muted)}
+  .tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:2px}
+  .t-prod{background:rgba(203,152,76,.16);color:var(--accent)}
+  .t-ok{background:rgba(120,160,90,.18);color:#bcd39a}
+  .t-open{background:rgba(241,228,201,.12);color:var(--champagne)}
+  .linkrow td a{color:var(--accent);font-size:12px;letter-spacing:.08em}
+
+  footer{background:var(--bg2);border-top:1px solid var(--line);padding:44px 0;text-align:center;margin-top:40px}
+  footer p{font-size:12px;color:var(--muted)}footer .tag2{font-family:var(--serif-accent);font-size:16px;color:var(--accent);margin-top:8px}
+  @media(max-width:960px){.wrap{padding:0 18px}nav.menu{display:none}.dash{grid-template-columns:1fr}th:nth-child(3),td:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+<div class="announce">Área do Cliente · Acesso exclusivo KM</div>
+<header><div class="wrap nav">
+  <a class="brand" href="home_comparador.html"><img class="brand-logo" src="logo.png" alt="KM Interiores"></a>
+  <nav class="menu"><a href="#">Ambientes</a><a href="catalogo.html">Coleções</a><a href="institucional.html#locacao">Locação</a><a href="institucional.html#atelier">Atelier 3D</a><a href="institucional.html">A Marca</a></nav>
+  <div class="icons"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+</div></header>
+
+<section class="wrap greet">
+  <span class="eyebrow">Área do Cliente</span>
+  <h1>Bem-vindo, Sr. Eduardo.</h1>
+  <p>Acompanhe seus pedidos, propostas e projetos em um só lugar.</p>
+</section>
+
+<section class="wrap">
+  <div class="dash">
+    <div class="stat"><div class="n">2</div><div class="l">Pedidos ativos</div></div>
+    <div class="stat"><div class="n">1</div><div class="l">Proposta em aberto</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">Projetos no histórico</div></div>
+  </div>
+
+  <div class="panel">
+    <h3>Meus Pedidos</h3>
+    <table>
+      <tr><th>Peça</th><th>Pedido</th><th>Data</th><th>Status</th></tr>
+      <tr><td>Sofá Milano — acab. Nogueira</td><td>#KM-2041</td><td>12/06/2026</td><td><span class="tag t-prod">Em produção</span></td></tr>
+      <tr><td>Cabeceira Vitória — Marfim</td><td>#KM-2038</td><td>28/05/2026</td><td><span class="tag t-ok">Entregue</span></td></tr>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3>Propostas</h3>
+    <table>
+      <tr><th>Descrição</th><th>Proposta</th><th>Valor</th><th>Status</th></tr>
+      <tr class="linkrow"><td>Curadoria sala de estar — projeto Arq. Marina</td><td>#PROP-318</td><td>R$ 86.400</td><td><span class="tag t-open">Aguardando</span> &nbsp;<a href="#">Ver →</a></td></tr>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3>Meus Projetos</h3>
+    <table>
+      <tr><th>Projeto</th><th>Arquiteto(a)</th><th>Ano</th><th></th></tr>
+      <tr class="linkrow"><td>Cobertura Jardins</td><td>Marina Alvarez</td><td>2026</td><td><a href="#">Documentos →</a></td></tr>
+      <tr class="linkrow"><td>Casa de Campo Itaipava</td><td>Studio Lumière</td><td>2025</td><td><a href="#">Documentos →</a></td></tr>
+    </table>
+  </div>
+</section>
+
+<footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p><p class="tag2">Design que inspira. Sofisticação que permanece.</p></div></footer>
+</body>
+</html>

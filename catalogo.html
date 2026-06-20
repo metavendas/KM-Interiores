@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo · KM Interiores</title>
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080807;--bg2:#0f0e0c;--text:#F1E9D2;--muted:rgba(241,233,210,.72);
+    --accent:#CB984C;--champagne:#F1E4C9;--ouro-antigo:#9D7D31;--line:rgba(203,152,76,.16);--card-bg:#F1E9D2;
+    --serif:'Playfair Display',Georgia,serif;--serif-accent:'Cormorant Garamond',Georgia,serif;--sans:'Inter',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 40px}
+  .eyebrow{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--accent);font-weight:500}
+  .gold-rule{width:54px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:18px auto}
+
+  .announce{background:var(--bg2);border-bottom:1px solid var(--line);text-align:center;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding:10px 0}
+  header{position:sticky;top:0;z-index:50;background:rgba(8,8,7,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:92px}
+  .brand-logo{height:72px;width:auto;display:block}
+  nav.menu{display:flex;gap:30px}
+  nav.menu a{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text);opacity:.85;transition:.3s;padding:6px 0}
+  nav.menu a:hover,nav.menu a.active{opacity:1;color:var(--accent)}
+  .icons{display:flex;gap:20px;align-items:center}
+  .icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85;cursor:pointer;transition:.3s}
+  .icons svg:hover{stroke:var(--accent)}
+
+  .page-hero{position:relative;padding:80px 0 56px;text-align:center;background:linear-gradient(160deg,#100e0b,#080807)}
+  .page-hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5vw,56px);color:var(--text);margin-top:14px}
+  .page-hero p{font-family:var(--serif-accent);font-size:19px;color:var(--muted);margin-top:12px}
+  .crumbs{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ouro-antigo)}
+
+  .filters{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;padding:36px 0 8px}
+  .chip{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);background:transparent;padding:10px 22px;cursor:pointer;transition:.25s;font-family:var(--sans)}
+  .chip:hover{color:var(--champagne);border-color:var(--accent)}
+  .chip.active{background:var(--accent);color:#080807;border-color:var(--accent);font-weight:600}
+
+  .catalogo{padding:40px 0 110px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+  .card{background:var(--card-bg);border:1px solid var(--line);overflow:hidden;transition:.4s;box-shadow:0 14px 40px rgba(0,0,0,.25);display:flex;flex-direction:column}
+  .card:hover{transform:translateY(-5px)}
+  .card .img{position:relative;overflow:hidden}
+  .card .img img{width:100%;display:block;transition:.6s}
+  .card:hover .img img{transform:scale(1.03)}
+  .card .bar{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:#0f0e0c;border-top:1px solid var(--line)}
+  .card .bar .cat{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ouro-antigo)}
+  .card .bar .cta{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);transition:.3s}
+  .card:hover .bar .cta{color:var(--champagne)}
+
+  footer{background:var(--bg2);border-top:1px solid var(--line);padding:50px 0;text-align:center}
+  footer .gold-rule{margin:0 auto 18px}
+  footer p{font-size:12px;color:var(--muted);letter-spacing:.05em}
+  footer .tag{font-family:var(--serif-accent);font-size:16px;color:var(--accent);margin-top:8px}
+
+  @media(max-width:960px){.wrap{padding:0 22px}nav.menu{display:none}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="announce">Design que inspira · Sofisticação que permanece · Atendimento sob medida em todo o Brasil</div>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="home_comparador.html"><img class="brand-logo" src="logo.png" alt="KM Interiores"></a>
+    <nav class="menu">
+      <a href="#">Ambientes</a><a href="catalogo.html" class="active">Coleções</a><a href="#">Locação</a><a href="#">Atelier 3D</a><a href="#">A Marca</a>
+    </nav>
+    <div class="icons">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+    </div>
+  </div>
+</header>
+
+<section class="page-hero">
+  <div class="wrap">
+    <span class="crumbs">Início · Coleções</span>
+    <h1>O Catálogo</h1>
+    <p>Peças autorais selecionadas pela curadoria KM — acabamentos nobres, sob medida.</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="filters">
+    <button class="chip active" data-f="todos">Todos</button>
+    <button class="chip" data-f="sofas">Sofás</button>
+    <button class="chip" data-f="cabeceiras">Cabeceiras</button>
+    <button class="chip" data-f="banquetas">Banquetas</button>
+  </div>
+</div>
+
+<section class="catalogo">
+  <div class="wrap">
+    <div class="grid" id="grid">
+      <a class="card" href="produto.html" data-cat="sofas"><div class="img"><img src="cat-milano.png" alt="Sofá Milano"></div><div class="bar"><span class="cat">Sofás · Sob curadoria</span><span class="cta">Ver peça →</span></div></a>
+      <a class="card" href="produto.html" data-cat="sofas"><div class="img"><img src="cat-zarath.png" alt="Sofá Zarath"></div><div class="bar"><span class="cat">Sofás · Sob curadoria</span><span class="cta">Ver peça →</span></div></a>
+      <a class="card" href="produto.html" data-cat="sofas"><div class="img"><img src="cat-clark.png" alt="Sofá Clark"></div><div class="bar"><span class="cat">Sofás · Sob curadoria</span><span class="cta">Ver peça →</span></div></a>
+      <a class="card" href="produto.html" data-cat="sofas"><div class="img"><img src="cat-dallas.png" alt="Sofá Dallas"></div><div class="bar"><span class="cat">Sofás · Sob curadoria</span><span class="cta">Ver peça →</span></div></a>
+      <a class="card" href="produto.html" data-cat="sofas"><div class="img"><img src="cat-parma.png" alt="Sofá Parma"></div><div class="bar"><span class="cat">Sofás · Sob curadoria</span><span class="cta">Ver peça →</span></div></a>
+      <a class="card" href="produto.html" data-cat="cabeceiras"><div class="img"><img src="cat-vitoria.png" alt="Cabeceira Vitória"></div><div class="bar"><span class="cat">Cabeceiras · Sob curadoria</span><span class="cta">Ver peça →</span></div></a>
+      <a class="card" href="produto.html" data-cat="cabeceiras"><div class="img"><img src="cat-sevilha.png" alt="Cabeceira Sevilha"></div><div class="bar"><span class="cat">Cabeceiras · Sob curadoria</span><span class="cta">Ver peça →</span></div></a>
+      <a class="card" href="produto.html" data-cat="banquetas"><div class="img"><img src="cat-banqueta-vitoria.png" alt="Banqueta Vitória"></div><div class="bar"><span class="cat">Banquetas · Sob curadoria</span><span class="cta">Ver peça →</span></div></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="gold-rule"></div>
+    <p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p>
+    <p class="tag">Design que inspira. Sofisticação que permanece.</p>
+  </div>
+</footer>
+
+<script>
+  const chips=document.querySelectorAll('.chip');const cards=document.querySelectorAll('#grid .card');
+  chips.forEach(c=>c.addEventListener('click',()=>{
+    chips.forEach(x=>x.classList.remove('active'));c.classList.add('active');
+    const f=c.dataset.f;
+    cards.forEach(card=>{card.style.display=(f==='todos'||card.dataset.cat===f)?'flex':'none';});
+  }));
+</script>
+</body>
+</html>
