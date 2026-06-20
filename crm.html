@@ -11,166 +11,213 @@
   :root{--bg:#080807;--bg2:#0f0e0c;--bg3:#15130f;--text:#F1E9D2;--muted:rgba(241,233,210,.68);--accent:#CB984C;--champagne:#F1E4C9;--ouro:#9D7D31;--line:rgba(203,152,76,.16);
     --serif:'Playfair Display',Georgia,serif;--sans:'Inter',system-ui,sans-serif;}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;-webkit-font-smoothing:antialiased;display:flex;min-height:100vh}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;-webkit-font-smoothing:antialiased}
   ::-webkit-scrollbar{height:8px;width:8px}::-webkit-scrollbar-thumb{background:rgba(203,152,76,.3);border-radius:4px}
-
-  /* Sidebar */
+  #gate{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(90% 80% at 80% 10%,rgba(203,152,76,.10),transparent 55%),linear-gradient(160deg,#100e0b,#080807);padding:24px}
+  .gatecard{width:100%;max-width:400px;background:var(--bg2);border:1px solid var(--line);padding:40px 36px;text-align:center}
+  .gatecard img{height:78px;margin-bottom:6px}
+  .gatecard .ttl{font-family:var(--serif);font-size:20px;color:var(--accent);letter-spacing:.04em}
+  .gatecard .sub{font-size:12px;color:var(--muted);margin:6px 0 26px;letter-spacing:.06em}
+  .gatecard label{display:block;text-align:left;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--champagne);margin:0 0 7px}
+  .gatecard input{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:13px 14px;font-family:var(--sans);font-size:14px;outline:none;margin-bottom:16px}
+  .gatecard input:focus{border-color:var(--accent)}
+  .gatecard button{width:100%;background:var(--accent);color:#080807;border:none;padding:15px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;cursor:pointer;transition:.25s}
+  .gatecard button:hover{background:var(--champagne)}
+  .gatecard .alt{margin-top:16px;font-size:12px;color:var(--muted)}
+  .gatecard .alt a{color:var(--accent);cursor:pointer}
+  .gatecard .msg{margin-top:14px;font-size:12px;color:var(--ouro);min-height:16px;line-height:1.5}
+  #app{display:none;min-height:100vh}
+  .layout{display:flex;min-height:100vh}
   .side{width:230px;background:var(--bg2);border-right:1px solid var(--line);padding:24px 0;flex-shrink:0;position:sticky;top:0;height:100vh}
   .side .brand{display:flex;align-items:center;gap:10px;padding:0 22px 22px;border-bottom:1px solid var(--line);margin-bottom:14px}
-  .side .brand img{height:50px}
-  .side .brand b{font-family:var(--serif);font-weight:600;font-size:15px;letter-spacing:.12em;color:var(--accent)}
-  .nav a{display:flex;align-items:center;gap:12px;padding:13px 24px;font-size:13.5px;color:var(--muted);transition:.2s;border-left:2px solid transparent;text-decoration:none}
+  .side .brand img{height:50px}.side .brand b{font-family:var(--serif);font-weight:600;font-size:15px;letter-spacing:.12em;color:var(--accent)}
+  .nav a{display:flex;align-items:center;gap:12px;padding:13px 24px;font-size:13.5px;color:var(--muted);transition:.2s;border-left:2px solid transparent;cursor:pointer}
   .nav a:hover{color:var(--champagne);background:rgba(203,152,76,.05)}
   .nav a.active{color:var(--accent);border-left-color:var(--accent);background:rgba(203,152,76,.07)}
   .nav .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.7}
   .nav .sec{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ouro);padding:18px 24px 8px}
-
-  /* Main */
   .main{flex:1;min-width:0;display:flex;flex-direction:column}
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 30px;border-bottom:1px solid var(--line);background:var(--bg)}
   .topbar .search{flex:1;max-width:380px;background:var(--bg3);border:1px solid var(--line);border-radius:3px;padding:10px 14px;font-size:13px;color:var(--muted)}
-  .topbar .right{display:flex;align-items:center;gap:18px}
+  .topbar .right{display:flex;align-items:center;gap:16px}
   .topbar .ai{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#080807;background:var(--accent);padding:8px 16px;border-radius:3px;font-weight:600}
-  .topbar .user{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--ouro));display:flex;align-items:center;justify-content:center;font-weight:600;color:#080807;font-size:13px}
-
+  .topbar .who{font-size:12px;color:var(--muted)}
+  .topbar .out{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ouro);border:1px solid var(--line);padding:7px 12px;border-radius:3px;cursor:pointer}
+  .topbar .out:hover{border-color:var(--accent);color:var(--accent)}
   .content{padding:28px 30px;overflow:auto}
-  .h1{font-family:var(--serif);font-weight:500;font-size:26px}
-  .sub{font-size:13px;color:var(--muted);margin:4px 0 24px}
-
+  .h1{font-family:var(--serif);font-weight:500;font-size:26px}.sub{font-size:13px;color:var(--muted);margin:4px 0 24px}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px}
   .kpi{background:var(--bg2);border:1px solid var(--line);padding:20px 22px;border-radius:4px}
   .kpi .l{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ouro)}
   .kpi .n{font-family:var(--serif);font-size:30px;color:var(--text);margin-top:8px}
   .kpi .d{font-size:11px;color:#bcd39a;margin-top:4px}
-  .kpi .d.neg{color:#d39a9a}
-
-  .funnel-title{font-family:var(--serif);font-size:18px;margin-bottom:14px}
-  .kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:30px}
-  .col{background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:12px;min-height:300px}
-  .col h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--champagne);display:flex;justify-content:space-between;padding:6px 6px 12px;border-bottom:1px solid var(--line);margin-bottom:10px}
-  .col h4 span{color:var(--ouro)}
-  .lead{background:var(--bg3);border:1px solid var(--line);border-left:2px solid var(--accent);border-radius:3px;padding:11px 12px;margin-bottom:10px;cursor:grab}
-  .lead .nm{font-size:13px;color:var(--text)}
-  .lead .mt{font-size:11px;color:var(--muted);margin-top:5px}
-  .lead .val{font-size:12px;color:var(--accent);margin-top:7px;font-weight:500}
-  .lead .badge{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:2px;background:rgba(203,152,76,.16);color:var(--accent)}
-
-  .twocol{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
-  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:4px}
-  .panel h3{font-family:var(--serif);font-size:16px;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:4px;margin-bottom:24px}
+  .panel h3{font-family:var(--serif);font-size:16px;padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .panel h3 .tagreal{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#080807;background:#7fbf6a;padding:3px 9px;border-radius:2px}
+  .panel h3 .tagdemo{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);border:1px solid var(--line);padding:3px 9px;border-radius:2px}
   table{width:100%;border-collapse:collapse}
-  th,td{text-align:left;padding:12px 20px;font-size:12.5px;border-bottom:1px solid var(--line)}
+  th,td{text-align:left;padding:13px 20px;font-size:12.5px;border-bottom:1px solid var(--line)}
   th{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);font-weight:500}
   td{color:var(--muted)}
-  /* Ficha 360 */
-  .ficha{padding:20px}
-  .ficha .top{display:flex;align-items:center;gap:14px;padding-bottom:16px;border-bottom:1px solid var(--line)}
-  .ficha .av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--ouro));display:flex;align-items:center;justify-content:center;color:#080807;font-weight:600}
-  .ficha .top .nm{font-family:var(--serif);font-size:18px}
-  .ficha .top .cl{font-size:11px;color:var(--accent);letter-spacing:.1em;text-transform:uppercase}
-  .ficha .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
-  .ficha .it .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro)}
-  .ficha .it .v{font-size:13px;color:var(--text);margin-top:3px}
-  .ai-box{margin:16px 20px;background:rgba(203,152,76,.06);border:1px solid var(--line);border-radius:4px;padding:14px}
-  .ai-box .t{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
-  .ai-box p{font-size:12.5px;color:var(--muted);line-height:1.6}
-  .ai-box .act{margin-top:10px;display:flex;gap:8px}
-  .ai-box .act button{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:7px 12px;border-radius:3px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
-  .ai-box .act button.p{background:var(--accent);color:#080807}
+  .badge{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:2px;background:rgba(203,152,76,.16);color:var(--accent)}
+  .kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:8px}
+  .col{background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:12px;min-height:120px}
+  .col h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--champagne);display:flex;justify-content:space-between;padding:6px 6px 12px;border-bottom:1px solid var(--line);margin-bottom:10px}
+  .col h4 span{color:var(--ouro)}
+  .lead{background:var(--bg3);border:1px solid var(--line);border-left:2px solid var(--accent);border-radius:3px;padding:11px 12px;margin-bottom:10px}
+  .lead .nm{font-size:13px;color:var(--text)}.lead .mt{font-size:11px;color:var(--muted);margin-top:5px}.lead .val{font-size:12px;color:var(--accent);margin-top:7px;font-weight:500}
+  .funnel-title{font-family:var(--serif);font-size:18px;margin:6px 0 14px}
+  .empty{padding:30px 20px;text-align:center;color:var(--muted);font-size:13px}
   .demo{text-align:center;font-size:10px;letter-spacing:.1em;color:var(--ouro);padding:12px;border-top:1px solid var(--line)}
-  @media(max-width:1000px){.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.kanban{grid-template-columns:repeat(2,1fr)}.twocol{grid-template-columns:1fr}}
+  @media(max-width:1000px){.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.kanban{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-<aside class="side">
-  <div class="brand"><img src="logo.png" alt="KM"><b>KM&nbsp;CRM</b></div>
-  <nav class="nav">
-    <a class="active"><span class="dot"></span> Dashboard</a>
-    <a><span class="dot"></span> Funil de Vendas</a>
-    <a><span class="dot"></span> Clientes</a>
-    <a><span class="dot"></span> Empresas</a>
-    <a><span class="dot"></span> Catálogo</a>
-    <div class="sec">Operação</div>
-    <a><span class="dot"></span> Pedidos</a>
-    <a><span class="dot"></span> Propostas</a>
-    <a><span class="dot"></span> Financeiro</a>
-    <a><span class="dot"></span> Atendimento (WhatsApp/IG)</a>
-    <div class="sec">Inteligência</div>
-    <a><span class="dot"></span> Agentes de IA</a>
-    <a><span class="dot"></span> Relatórios</a>
-  </nav>
-</aside>
 
-<div class="main">
-  <div class="topbar">
-    <input class="search" placeholder="Buscar cliente, pedido, peça...">
-    <div class="right"><span class="ai">✦ Assistente IA</span><div class="user">KM</div></div>
+<div id="gate">
+  <div class="gatecard">
+    <img src="logo.png" alt="KM">
+    <div class="ttl">Painel KM · CRM</div>
+    <div class="sub" id="gsub">Acesso restrito · equipe KM Interiores</div>
+    <label>E-mail</label><input id="g_email" type="email" placeholder="seu@email.com">
+    <label>Senha</label><input id="g_pw" type="password" placeholder="••••••••">
+    <button id="g_btn">Entrar</button>
+    <div class="alt" id="g_alt">Primeiro acesso? <a id="g_toggle">Criar conta de admin</a></div>
+    <div class="msg" id="g_msg"></div>
   </div>
+</div>
 
-  <div class="content">
-    <div class="h1">Dashboard</div>
-    <div class="sub">Visão geral · Junho 2026 · governança IA propõe → admin aprova</div>
-
-    <div class="kpis">
-      <div class="kpi"><div class="l">Faturamento (mês)</div><div class="n">R$ 312.480</div><div class="d">▲ 18% vs. maio</div></div>
-      <div class="kpi"><div class="l">Pipeline ponderado</div><div class="n">R$ 486.000</div><div class="d">▲ 9 oportunidades</div></div>
-      <div class="kpi"><div class="l">Ticket médio</div><div class="n">R$ 28.400</div><div class="d">▲ 4%</div></div>
-      <div class="kpi"><div class="l">Leads (mês)</div><div class="n">37</div><div class="d neg">▼ tempo resposta 2h</div></div>
+<div id="app"><div class="layout">
+  <aside class="side">
+    <div class="brand"><img src="logo.png" alt="KM"><b>KM&nbsp;CRM</b></div>
+    <nav class="nav">
+      <a class="active"><span class="dot"></span> Dashboard</a>
+      <a><span class="dot"></span> Funil de Vendas</a>
+      <a><span class="dot"></span> Clientes</a>
+      <a><span class="dot"></span> Catálogo</a>
+      <div class="sec">Operação</div>
+      <a><span class="dot"></span> Leads & Atendimento</a>
+      <a><span class="dot"></span> Pedidos</a>
+      <a><span class="dot"></span> Financeiro</a>
+      <div class="sec">Inteligência</div>
+      <a><span class="dot"></span> Agentes de IA</a>
+      <a><span class="dot"></span> Relatórios</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <input class="search" placeholder="Buscar cliente, pedido, peça...">
+      <div class="right"><span class="ai">✦ Assistente IA</span><span class="who" id="who"></span><span class="out" id="logout">Sair</span></div>
     </div>
+    <div class="content">
+      <div class="h1">Dashboard</div>
+      <div class="sub">Visão geral · governança IA propõe → admin aprova</div>
 
-    <div class="funnel-title">Funil de Vendas · Pipeline Projeto</div>
-    <div class="kanban">
-      <div class="col"><h4>Novo lead <span>4</span></h4>
-        <div class="lead"><div class="nm">Marina Alvarez (Arq.)</div><div class="mt">Instagram · sala de estar</div><div class="val">R$ 86.400</div></div>
-        <div class="lead"><div class="nm">Hotel Lumière</div><div class="mt">WhatsApp · 12 suítes</div><div class="val">R$ 240.000</div></div>
-        <div class="lead"><div class="nm">Roberto Khoury</div><div class="mt">Site · curadoria</div><div class="val">R$ 38.000</div></div>
-      </div>
-      <div class="col"><h4>Curadoria <span>3</span></h4>
-        <div class="lead"><div class="nm">Família Tavares</div><div class="mt">Indicação A/A+</div><span class="badge">Quente</span><div class="val">R$ 64.200</div></div>
-        <div class="lead"><div class="nm">Studio Lumière</div><div class="mt">Projeto cobertura</div><div class="val">R$ 120.000</div></div>
-      </div>
-      <div class="col"><h4>Proposta <span>2</span></h4>
-        <div class="lead"><div class="nm">Cobertura Jardins</div><div class="mt">Arq. Marina</div><span class="badge">Enviada</span><div class="val">R$ 86.400</div></div>
-      </div>
-      <div class="col"><h4>Negociação <span>2</span></h4>
-        <div class="lead"><div class="nm">Incorp. Vista Real</div><div class="mt">Decorado 3 unid.</div><div class="val">R$ 198.000</div></div>
-      </div>
-      <div class="col"><h4>Ganho <span>5</span></h4>
-        <div class="lead"><div class="nm">Sr. Eduardo M.</div><div class="mt">Sofá Milano + cabeceira</div><div class="val">R$ 51.300</div></div>
-      </div>
-    </div>
-
-    <div class="twocol">
       <div class="panel">
-        <h3>Atendimento omnichannel — caixa de entrada</h3>
+        <h3>Leads recebidos pelo site <span class="tagreal" id="leadsTag">● tempo real</span></h3>
         <table>
-          <tr><th>Cliente</th><th>Canal</th><th>Resumo</th><th>Status</th></tr>
-          <tr><td>Marina Alvarez</td><td>Instagram</td><td>"Esse sofá vem em nogueira?"</td><td><span style="color:var(--accent)">IA propôs resposta</span></td></tr>
-          <tr><td>Hotel Lumière</td><td>WhatsApp</td><td>Pedido de proposta · 12 suítes</td><td>Aguardando admin</td></tr>
-          <tr><td>Roberto Khoury</td><td>Site</td><td>Formulário de curadoria</td><td>Novo</td></tr>
+          <thead><tr><th>Nome</th><th>Contato</th><th>Interesse</th><th>Origem</th><th>Recebido</th></tr></thead>
+          <tbody id="leadsBody"><tr><td colspan="5" class="empty">Carregando leads…</td></tr></tbody>
         </table>
       </div>
 
-      <div class="panel">
-        <h3>Ficha 360°</h3>
-        <div class="ficha">
-          <div class="top"><div class="av">EM</div><div><div class="nm">Sr. Eduardo M.</div><div class="cl">Cliente A+</div></div></div>
-          <div class="grid">
-            <div class="it"><div class="k">Ticket médio</div><div class="v">R$ 51.300</div></div>
-            <div class="it"><div class="k">Arquiteto</div><div class="v">Marina Alvarez</div></div>
-            <div class="it"><div class="k">Preferência</div><div class="v">Madeira nogueira</div></div>
-            <div class="it"><div class="k">Aniversário</div><div class="v">14 de março</div></div>
-          </div>
-        </div>
-        <div class="ai-box">
-          <div class="t">✦ Agente IA · Briefing 360 (rascunho)</div>
-          <p>Sr. Eduardo comprou o Sofá Milano em 06/2026 (acab. nogueira). Cliente A+ com ticket recorrente. Sugestão: oferecer a poltrona da mesma coleção + KM Care anual.</p>
-          <div class="act"><button class="p">Aprovar e enviar</button><button>Editar</button></div>
-        </div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">Leads (total)</div><div class="n" id="kpiLeads">—</div><div class="d" id="kpiLeads7">tempo real</div></div>
+        <div class="kpi"><div class="l">Faturamento (mês)</div><div class="n">R$ 312.480</div><div class="d">ilustrativo</div></div>
+        <div class="kpi"><div class="l">Pipeline ponderado</div><div class="n">R$ 486.000</div><div class="d">ilustrativo</div></div>
+        <div class="kpi"><div class="l">Ticket médio</div><div class="n">R$ 28.400</div><div class="d">ilustrativo</div></div>
+      </div>
+
+      <div class="funnel-title">Funil de Vendas · Pipeline Projeto <span class="tagdemo" style="font-size:9.5px">dados ilustrativos</span></div>
+      <div class="kanban">
+        <div class="col"><h4>Novo lead <span>4</span></h4><div class="lead"><div class="nm">Marina Alvarez (Arq.)</div><div class="mt">Instagram · sala de estar</div><div class="val">R$ 86.400</div></div></div>
+        <div class="col"><h4>Curadoria <span>3</span></h4><div class="lead"><div class="nm">Família Tavares</div><div class="mt">Indicação A/A+</div><div class="val">R$ 64.200</div></div></div>
+        <div class="col"><h4>Proposta <span>2</span></h4><div class="lead"><div class="nm">Cobertura Jardins</div><div class="mt">Arq. Marina</div><div class="val">R$ 86.400</div></div></div>
+        <div class="col"><h4>Negociação <span>2</span></h4><div class="lead"><div class="nm">Incorp. Vista Real</div><div class="mt">Decorado 3 unid.</div><div class="val">R$ 198.000</div></div></div>
+        <div class="col"><h4>Ganho <span>5</span></h4><div class="lead"><div class="nm">Sr. Eduardo M.</div><div class="mt">Sofá Milano</div><div class="val">R$ 51.300</div></div></div>
       </div>
     </div>
+    <div class="demo">Leads em tempo real do banco · KPIs do funil ilustrativos · governança IA propõe → Edson aprova</div>
   </div>
-  <div class="demo">Tela demonstrativa do CRM (Bitrix24-like) · dados ilustrativos · governança IA propõe → Edson aprova</div>
-</div>
+</div></div>
+
+<script>
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var TOKKEY='km_crm_token', STAFF=['admin','gestor','vendas','curadoria','representante'];
+  var mode='login';
+  var $=function(id){return document.getElementById(id);};
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function authHeaders(tok){return {apikey:KEY, Authorization:'Bearer '+tok};}
+  function showApp(email){ $('gate').style.display='none'; $('app').style.display='block'; $('who').textContent=email||''; loadLeads(); }
+  function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
+  function loadLeads(){
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/leads?select=*&order=created_at.desc&limit=50',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(rows){
+      $('kpiLeads').textContent=rows.length;
+      var tb=$('leadsBody');
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Nenhum lead ainda. Quando alguém enviar o formulário de curadoria, aparece aqui.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(l){
+        var contato=[l.telefone,l.email].filter(Boolean).join(' · ');
+        var d=new Date(l.created_at); var dt=isNaN(d)?'':d.toLocaleString('pt-BR');
+        return '<tr><td style="color:var(--text)">'+esc(l.nome||'—')+'</td><td>'+esc(contato)+'</td><td><span class="badge">'+esc(l.interesse||'—')+'</span></td><td>'+esc(l.origem||'—')+'</td><td>'+esc(dt)+'</td></tr>';
+      }).join('');
+    })
+    .catch(function(e){ $('leadsBody').innerHTML='<tr><td colspan="5" class="empty">Sem permissão para ler os leads (seu usuário ainda não é staff) ou erro de conexão.</td></tr>'; console.error(e); });
+  }
+  function checkRole(tok){
+    return fetch(SB+'/auth/v1/user',{headers:authHeaders(tok)})
+      .then(function(r){ return r.ok?r.json():null; })
+      .then(function(u){ if(!u||!u.id) return null;
+        return fetch(SB+'/rest/v1/perfis?select=role&id=eq.'+u.id,{headers:authHeaders(tok)})
+          .then(function(r){return r.json();})
+          .then(function(p){ return {email:u.email, role:(p&&p[0])?p[0].role:'cliente'}; });
+      });
+  }
+  function entrar(){
+    var email=$('g_email').value.trim(), pw=$('g_pw').value;
+    if(!email||!pw){ $('g_msg').textContent='Informe e-mail e senha.'; return; }
+    $('g_btn').disabled=true; $('g_btn').textContent= mode==='login'?'Entrando…':'Criando…';
+    $('g_msg').textContent='';
+    var url = mode==='login' ? SB+'/auth/v1/token?grant_type=password' : SB+'/auth/v1/signup';
+    fetch(url,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pw})})
+    .then(function(r){ return r.json().then(function(j){return {ok:r.ok,j:j};}); })
+    .then(function(res){
+      $('g_btn').disabled=false; $('g_btn').textContent= mode==='login'?'Entrar':'Criar conta de admin';
+      if(!res.ok){ $('g_msg').textContent = res.j.msg||res.j.error_description||res.j.error||'Não foi possível. Verifique os dados.'; return; }
+      if(mode==='signup'){
+        $('g_msg').textContent='Conta criada. Avise o Edson/admin para liberar seu acesso de equipe; depois faça login.';
+        mode='login'; return;
+      }
+      var tok=res.j.access_token;
+      if(!tok){ $('g_msg').textContent='Resposta inesperada.'; return; }
+      localStorage.setItem(TOKKEY,tok);
+      checkRole(tok).then(function(info){
+        if(info && STAFF.indexOf(info.role)>=0){ showApp(info.email); }
+        else { $('g_msg').textContent='Login ok, mas seu usuário ainda não tem acesso de equipe. Peça ao admin para promover.'; }
+      });
+    })
+    .catch(function(e){ $('g_btn').disabled=false; $('g_btn').textContent= mode==='login'?'Entrar':'Criar conta de admin'; $('g_msg').textContent='Erro de conexão.'; console.error(e); });
+  }
+  $('g_btn').addEventListener('click', entrar);
+  $('g_pw').addEventListener('keydown', function(e){ if(e.key==='Enter') entrar(); });
+  $('g_alt').addEventListener('click', function(e){
+    if(!e.target || e.target.id!=='g_toggle') return;
+    mode = mode==='login' ? 'signup' : 'login';
+    $('g_btn').textContent = mode==='login' ? 'Entrar' : 'Criar conta de admin';
+    $('g_alt').innerHTML = mode==='login' ? 'Primeiro acesso? <a id="g_toggle">Criar conta de admin</a>' : 'Já tem conta? <a id="g_toggle">Fazer login</a>';
+    $('g_msg').textContent='';
+  });
+  $('logout').addEventListener('click', function(){ localStorage.removeItem(TOKKEY); showGate('Sessão encerrada.'); });
+  (function(){
+    var tok=localStorage.getItem(TOKKEY);
+    if(!tok){ showGate(); return; }
+    checkRole(tok).then(function(info){
+      if(info && STAFF.indexOf(info.role)>=0) showApp(info.email);
+      else showGate();
+    }).catch(function(){ showGate(); });
+  })();
+</script>
 </body>
 </html>
