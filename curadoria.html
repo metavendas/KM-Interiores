@@ -21,7 +21,6 @@
   .brand-logo{height:72px;width:auto;display:block}
   nav.menu{display:flex;gap:30px}nav.menu a{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text);opacity:.85;transition:.3s}nav.menu a:hover{opacity:1;color:var(--accent)}
   .icons{display:flex;gap:20px;align-items:center}.icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85;cursor:pointer}.icons svg:hover{stroke:var(--accent)}
-
   .layout{display:grid;grid-template-columns:1fr 1fr;min-height:80vh}
   .aside{position:relative;padding:90px 56px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(160deg,rgba(8,8,7,.6),rgba(8,8,7,.86)),url('hero.jpg');background-size:cover;background-position:center;border-right:1px solid var(--line)}
   .aside h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,3.6vw,52px);line-height:1.08;margin:18px 0}
@@ -30,7 +29,6 @@
   .aside ul{list-style:none;margin-top:30px}
   .aside li{font-size:13.5px;color:var(--muted);padding:8px 0;letter-spacing:.03em}
   .aside li::before{content:'✦';color:var(--accent);margin-right:12px}
-
   .formside{padding:80px 56px;background:var(--bg)}
   .formside .eyebrow{color:var(--ouro-antigo)}
   .formside h2{font-family:var(--serif);font-weight:500;font-size:30px;margin:10px 0 6px}
@@ -48,7 +46,6 @@
   .privacy{font-size:11px;color:var(--muted);margin-top:14px;text-align:center}
   .ok{display:none;text-align:center;padding:40px 0}
   .ok h2{color:var(--accent)}.ok p{color:var(--muted);margin-top:10px}
-
   footer{background:var(--bg2);border-top:1px solid var(--line);padding:44px 0;text-align:center}
   footer p{font-size:12px;color:var(--muted)}footer .tag{font-family:var(--serif-accent);font-size:16px;color:var(--accent);margin-top:8px}
   @media(max-width:960px){.wrap{padding:0 22px}nav.menu{display:none}.layout{grid-template-columns:1fr}.aside{padding:60px 28px}.formside{padding:50px 28px}.row{grid-template-columns:1fr}}
@@ -65,7 +62,6 @@
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
   </div>
 </div></header>
-
 <section class="layout">
   <div class="aside">
     <span class="eyebrow">Solicitar curadoria</span>
@@ -78,27 +74,26 @@
       <li>Garantia e relacionamento KM Care</li>
     </ul>
   </div>
-
   <div class="formside">
     <div id="form">
       <span class="eyebrow">Conte sobre o seu projeto</span>
       <h2>Proposta exclusiva</h2>
       <p class="lead">Resposta em até 1 dia útil, por WhatsApp ou e-mail.</p>
       <div class="row">
-        <div class="field"><label>Nome</label><input type="text" placeholder="Seu nome"></div>
-        <div class="field"><label>Telefone / WhatsApp</label><input type="text" placeholder="(00) 00000-0000"></div>
+        <div class="field"><label>Nome</label><input id="f_nome" type="text" placeholder="Seu nome"></div>
+        <div class="field"><label>Telefone / WhatsApp</label><input id="f_tel" type="text" placeholder="(00) 00000-0000"></div>
       </div>
-      <div class="field"><label>E-mail</label><input type="email" placeholder="seu@email.com"></div>
+      <div class="field"><label>E-mail</label><input id="f_email" type="email" placeholder="seu@email.com"></div>
       <div class="row">
-        <div class="field"><label>Cidade</label><input type="text" placeholder="Cidade / UF"></div>
+        <div class="field"><label>Cidade</label><input id="f_cidade" type="text" placeholder="Cidade / UF"></div>
         <div class="field"><label>Interesse</label>
-          <select><option>Mobiliário (venda)</option><option>Locação premium</option><option>Atelier 3D</option><option>Projeto completo</option></select>
+          <select id="f_interesse"><option>Mobiliário (venda)</option><option>Locação premium</option><option>Atelier 3D</option><option>Projeto completo</option></select>
         </div>
       </div>
-      <div class="field"><label>Conte sobre o ambiente / peça</label><textarea placeholder="Ex.: sala de estar de 40m², projeto assinado pela arquiteta..."></textarea></div>
+      <div class="field"><label>Conte sobre o ambiente / peça</label><textarea id="f_msg" placeholder="Ex.: sala de estar de 40m², projeto assinado pela arquiteta..."></textarea></div>
       <div class="turnstile"><span class="box"></span> Verificação de segurança (Cloudflare Turnstile)</div>
-      <button class="btn" onclick="document.getElementById('form').style.display='none';document.getElementById('ok').style.display='block';return false;">Enviar solicitação</button>
-      <p class="privacy">Seus dados são tratados com confidencialidade. Sem spam.</p>
+      <button class="btn" id="f_send">Enviar solicitação</button>
+      <p class="privacy" id="f_privacy">Seus dados são tratados com confidencialidade. Sem spam.</p>
     </div>
     <div id="ok" class="ok">
       <div class="gold-rule" style="margin:0 auto 18px"></div>
@@ -107,7 +102,31 @@
     </div>
   </div>
 </section>
-
 <footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p><p class="tag">Design que inspira. Sofisticação que permanece.</p></div></footer>
+<script>
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var btn=document.getElementById('f_send');
+  function val(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+  btn.addEventListener('click', function(){
+    var nome=val('f_nome');
+    if(!nome){ document.getElementById('f_nome').focus(); return; }
+    btn.disabled=true; btn.textContent='Enviando…';
+    var lead={ nome:nome, telefone:val('f_tel'), email:val('f_email'), cidade:val('f_cidade'),
+      interesse:val('f_interesse'), mensagem:val('f_msg'), origem:'site-curadoria' };
+    fetch(SB+'/rest/v1/leads',{ method:'POST',
+      headers:{apikey:KEY, Authorization:'Bearer '+KEY, 'Content-Type':'application/json', Prefer:'return=minimal'},
+      body: JSON.stringify(lead) })
+    .then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      document.getElementById('form').style.display='none';
+      document.getElementById('ok').style.display='block';
+    })
+    .catch(function(e){
+      btn.disabled=false; btn.textContent='Enviar solicitação';
+      document.getElementById('f_privacy').textContent='Não foi possível enviar agora. Tente novamente ou fale conosco pelo WhatsApp.';
+      console.error(e);
+    });
+  });
+</script>
 </body>
 </html>
