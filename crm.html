@@ -103,6 +103,18 @@
   #funilKanban .lead:active{cursor:grabbing}
   #funilKanban .lead.dragging{opacity:.45;border-style:dashed}
   #funilKanban .col.over{background:rgba(203,152,76,.10);outline:1px dashed var(--accent);outline-offset:-3px}
+  .modbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line)}
+  .modbar h3{font-family:var(--serif);font-weight:500;font-size:16px}
+  .modmsg{font-size:11.5px;color:var(--ouro)}
+  .modform{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);background:var(--bg3)}
+  .modform .f{display:flex;flex-direction:column;gap:5px}
+  .modform .f.full{grid-column:1/-1}
+  .modform label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro)}
+  .modform input,.modform select,.modform textarea{background:var(--bg2);border:1px solid var(--line);color:var(--text);padding:9px 11px;font-family:var(--sans);font-size:12.5px;border-radius:3px;outline:none}
+  .modform input:focus,.modform select:focus,.modform textarea:focus{border-color:var(--accent)}
+  .modform .btn{background:var(--accent);color:#080807;border:none;padding:10px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-radius:3px;cursor:pointer}
+  .modform .btn:hover{background:var(--champagne)}
+  @media(max-width:1000px){.modform{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -126,11 +138,15 @@
     <nav class="nav">
       <a class="active" href="#" data-view="dashboard"><span class="dot"></span> Dashboard</a>
       <a href="#" data-view="funil"><span class="dot"></span> Funil de Vendas</a>
+      <div class="sec">Cadastros</div>
       <a href="#" data-view="clientes"><span class="dot"></span> Clientes</a>
-      <a href="#" data-view="catalogo"><span class="dot"></span> Catálogo</a>
+      <a href="#" data-view="empresas"><span class="dot"></span> Empresas (B2B)</a>
+      <a href="#" data-view="fornecedores"><span class="dot"></span> Fornecedores</a>
+      <a href="#" data-view="vendedores"><span class="dot"></span> Vendedores</a>
       <div class="sec">Operação</div>
       <a href="#" data-view="leads"><span class="dot"></span> Leads & Atendimento</a>
       <a href="#" data-view="pedidos"><span class="dot"></span> Pedidos</a>
+      <a href="#" data-view="catalogo"><span class="dot"></span> Catálogo</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
@@ -216,14 +232,23 @@
       <!-- ===== MÓDULOS EM ATIVAÇÃO ===== -->
       <section class="view" data-v="clientes" hidden>
         <div class="h1">Clientes</div>
-        <div class="sub">Base 360 de clientes · <span style="color:var(--ouro)">módulo em ativação · prévia ilustrativa</span></div>
-        <div class="panel"><h3>Clientes</h3><table>
-          <thead><tr><th>Nome</th><th>Segmento</th><th>Cidade</th><th>LTV estimado</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td style="color:var(--text)">Sr. Eduardo Monteiro</td><td><span class="badge">A+</span></td><td>São Paulo/SP</td><td>R$ 142.000</td><td>Ativo</td></tr>
-            <tr><td style="color:var(--text)">Família Tavares</td><td><span class="badge">A</span></td><td>Campos do Jordão/SP</td><td>R$ 88.000</td><td>Ativo</td></tr>
-            <tr><td style="color:var(--text)">Arq. Marina Alvarez</td><td><span class="badge">Parceiro</span></td><td>São Paulo/SP</td><td>—</td><td>Especificadora</td></tr>
-          </tbody></table></div>
+        <div class="sub">Base 360 de clientes · cadastro real conectado ao banco</div>
+        <div id="mod-clientes"></div>
+      </section>
+      <section class="view" data-v="empresas" hidden>
+        <div class="h1">Empresas (B2B)</div>
+        <div class="sub">Hotéis, incorporadoras, imobiliárias, produtoras e escritórios de arquitetura</div>
+        <div id="mod-empresas"></div>
+      </section>
+      <section class="view" data-v="fornecedores" hidden>
+        <div class="h1">Fornecedores</div>
+        <div class="sub">Cadeia de fornecimento · prazos, condições e avaliação</div>
+        <div id="mod-fornecedores"></div>
+      </section>
+      <section class="view" data-v="vendedores" hidden>
+        <div class="h1">Vendedores</div>
+        <div class="sub">Equipe comercial · metas, regiões e contato</div>
+        <div id="mod-vendedores"></div>
       </section>
       <section class="view" data-v="catalogo" hidden>
         <div class="h1">Catálogo</div>
@@ -389,7 +414,85 @@
     document.querySelectorAll('.nav a[data-view]').forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-view')===v); });
     if(v==='catalogo') loadCatCount();
     if(v==='funil') initFunil();
+    if(typeof MODS!=='undefined' && MODS[v]) renderMod(v);
     var c=document.querySelector('.content'); if(c) c.scrollTop=0;
+  }
+  // ===== Motor de Cadastros (Clientes / Empresas / Fornecedores / Vendedores) =====
+  var MODS={
+    clientes:{ table:'clientes', fields:[
+      {k:'nome',l:'Nome',req:true,full:true},{k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},{k:'cidade',l:'Cidade / UF'},
+      {k:'classificacao',l:'Classificação',type:'select',opts:['','A+','A','B','C']},{k:'origem',l:'Origem'},{k:'ticket_medio',l:'Ticket médio (R$)',type:'number'},
+      {k:'observacoes',l:'Observações',type:'textarea',full:true}],
+      cols:[{k:'nome'},{k:'classificacao',badge:true},{k:'cidade'},{k:'telefone'},{k:'email'}] },
+    empresas:{ table:'empresas', fields:[
+      {k:'nome',l:'Nome / Razão social',req:true,full:true},
+      {k:'tipo',l:'Tipo',type:'select',opts:['','Hotel','Incorporadora','Imobiliária','Produtora de eventos','Escritório de Arquitetura','Construtora','Outro']},
+      {k:'cnpj',l:'CNPJ'},{k:'cidade',l:'Cidade / UF'},{k:'contato_nome',l:'Contato'},{k:'contato_email',l:'E-mail do contato'},{k:'telefone',l:'Telefone'}],
+      cols:[{k:'nome'},{k:'tipo',badge:true},{k:'cidade'},{k:'contato_nome'},{k:'telefone'}] },
+    fornecedores:{ table:'fornecedores', fields:[
+      {k:'nome',l:'Nome',req:true,full:true},{k:'tipo',l:'Tipo'},{k:'fornece',l:'O que fornece'},
+      {k:'prazo_medio_dias',l:'Prazo médio (dias)',type:'number'},{k:'condicoes',l:'Condições'},{k:'avaliacao',l:'Avaliação (1-5)',type:'number'},{k:'contato',l:'Contato'}],
+      cols:[{k:'nome'},{k:'tipo',badge:true},{k:'fornece'},{k:'prazo_medio_dias'},{k:'contato'}] },
+    vendedores:{ table:'vendedores', fields:[
+      {k:'nome',l:'Nome',req:true,full:true},{k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},
+      {k:'regiao',l:'Região'},{k:'meta_mensal',l:'Meta mensal (R$)',type:'number'}],
+      cols:[{k:'nome'},{k:'regiao',badge:true},{k:'meta_mensal',money:true},{k:'email'},{k:'telefone'}] }
+  };
+  function labelFor(cfg,k){ for(var i=0;i<cfg.fields.length;i++){ if(cfg.fields[i].k===k) return cfg.fields[i].l; } return k; }
+  function modMoney(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
+  function renderMod(key){
+    var cfg=MODS[key]; var host=$('mod-'+key); if(!host) return;
+    if(host.dataset.built){ loadMod(key); return; } host.dataset.built='1';
+    var ff=cfg.fields.map(function(f){
+      var inp;
+      if(f.type==='select') inp='<select data-k="'+f.k+'">'+f.opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>';
+      else if(f.type==='textarea') inp='<textarea data-k="'+f.k+'" rows="2"></textarea>';
+      else inp='<input data-k="'+f.k+'" type="'+(f.type||'text')+'">';
+      return '<div class="f'+(f.full?' full':'')+'"><label>'+f.l+(f.req?' *':'')+'</label>'+inp+'</div>';
+    }).join('');
+    var ths=cfg.cols.map(function(c){ return '<th>'+esc(labelFor(cfg,c.k))+'</th>'; }).join('');
+    host.innerHTML='<div class="panel">'
+      +'<div class="modbar"><h3>Novo cadastro</h3><span class="modmsg" id="msg-'+key+'"></span></div>'
+      +'<div class="modform" id="form-'+key+'">'+ff+'<div class="f full" style="text-align:right;justify-content:flex-end"><button class="btn" id="save-'+key+'">Salvar cadastro</button></div></div>'
+      +'<table><thead><tr>'+ths+'</tr></thead><tbody id="body-'+key+'"><tr><td colspan="'+cfg.cols.length+'" class="empty">Carregando…</td></tr></tbody></table>'
+      +'</div>';
+    $('save-'+key).addEventListener('click', function(){ saveMod(key); });
+    loadMod(key);
+  }
+  function loadMod(key){
+    var cfg=MODS[key]; var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/'+cfg.table+'?select=*&order=created_at.desc&limit=200',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(rows){
+      var tb=$('body-'+key);
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="'+cfg.cols.length+'" class="empty">Nenhum cadastro ainda. Use o formulário acima.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(r){
+        return '<tr>'+cfg.cols.map(function(c,i){
+          if(c.badge && r[c.k]) return '<td><span class="badge">'+esc(String(r[c.k]))+'</span></td>';
+          var v=r[c.k]; if(c.money) v=modMoney(v); else if(v==null||v==='') v='—';
+          return '<td'+(i===0?' style="color:var(--text)"':'')+'>'+esc(String(v))+'</td>';
+        }).join('')+'</tr>';
+      }).join('');
+    })
+    .catch(function(e){ $('body-'+key).innerHTML='<tr><td colspan="'+cfg.cols.length+'" class="empty">Sem permissão (precisa ser equipe) ou erro de conexão.</td></tr>'; console.error(e); });
+  }
+  function saveMod(key){
+    var cfg=MODS[key]; var tok=localStorage.getItem(TOKKEY); var form=$('form-'+key);
+    var data={}, ok=true;
+    cfg.fields.forEach(function(f){
+      var el=form.querySelector('[data-k="'+f.k+'"]'); var v=el?el.value.trim():'';
+      if(f.req && !v) ok=false;
+      if(v!=='') data[f.k]=(f.type==='number')?Number(v):v;
+    });
+    if(!ok){ $('msg-'+key).textContent='Preencha os campos obrigatórios (*).'; return; }
+    var btn=$('save-'+key); btn.disabled=true; btn.textContent='Salvando…'; $('msg-'+key).textContent='';
+    fetch(SB+'/rest/v1/'+cfg.table,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
+    .then(function(r){ btn.disabled=false; btn.textContent='Salvar cadastro';
+      if(r.ok){ $('msg-'+key).textContent='Cadastro salvo ✓';
+        cfg.fields.forEach(function(f){ var el=form.querySelector('[data-k="'+f.k+'"]'); if(el && el.tagName!=='SELECT') el.value=''; });
+        loadMod(key); setTimeout(function(){ $('msg-'+key).textContent=''; },2500);
+      } else { r.text().then(function(t){ $('msg-'+key).textContent='Erro ao salvar: '+t.slice(0,90); }); } })
+    .catch(function(e){ btn.disabled=false; btn.textContent='Salvar cadastro'; $('msg-'+key).textContent='Erro de conexão.'; console.error(e); });
   }
   // ===== Kanban arrastável (funil) =====
   function initFunil(){
