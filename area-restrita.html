@@ -296,14 +296,23 @@
   // ===== Ranking =====
   function rankRow(r){ return '<div class="rank"><div class="pos">'+(r.posicao||'')+'</div><div class="nm"><b>'+esc(r.nome)+'</b><span>'+esc(r.detalhe||'')+'</span></div><div class="mt">'+esc(r.metrica||'')+'</div></div>'; }
   function loadRanking(){
-    fetch(SB+'/rest/v1/portal_ranking?select=*&order=posicao.asc',{headers:H(localStorage.getItem(TOKKEY))})
-    .then(function(r){return r.json();}).then(function(rows){
-      var prod=rows.filter(function(r){return r.tipo==='produto';}), vend=rows.filter(function(r){return r.tipo==='vendedor';});
+    var tok=localStorage.getItem(TOKKEY);
+    // Produtos mais vendidos (portal_ranking)
+    fetch(SB+'/rest/v1/portal_ranking?select=*&tipo=eq.produto&order=posicao.asc',{headers:H(tok)})
+    .then(function(r){return r.json();}).then(function(prod){
       $('rankProd').innerHTML = prod.length?prod.map(rankRow).join(''):'<div class="empty">Sem dados.</div>';
-      $('rankVend').innerHTML = vend.length?vend.map(rankRow).join(''):'<div class="empty">Sem dados.</div>';
       if(prod[0]&&prod[0].periodo) $('perProd').textContent=prod[0].periodo;
-      if(vend[0]&&vend[0].periodo) $('perVend').textContent=vend[0].periodo;
     }).catch(function(){ $('rankProd').innerHTML='<div class="empty">Não foi possível carregar.</div>'; });
+    // Vendedores — puxa dos vendedores cadastrados no CRM (função segura)
+    fetch(SB+'/rest/v1/rpc/get_ranking_vendedores',{method:'POST',headers:Object.assign(H(tok),{'Content-Type':'application/json'}),body:'{}'})
+    .then(function(r){return r.json();}).then(function(vs){
+      if(!Array.isArray(vs)||!vs.length){ $('rankVend').innerHTML='<div class="empty">Nenhum vendedor cadastrado ainda. Cadastre na aba Vendedores do CRM.</div>'; $('perVend').textContent=''; return; }
+      $('rankVend').innerHTML = vs.map(function(v,i){
+        var pct=(v.meta&&v.meta>0)?Math.round((Number(v.realizado||0)/Number(v.meta))*100)+'% da meta':'';
+        return rankRow({posicao:i+1, nome:v.nome, detalhe:pct, metrica:'R$ '+Number(v.realizado||0).toLocaleString('pt-BR')});
+      }).join('');
+      $('perVend').textContent='tempo real';
+    }).catch(function(){ $('rankVend').innerHTML='<div class="empty">Não foi possível carregar.</div>'; });
   }
 
   // ===== Auth =====

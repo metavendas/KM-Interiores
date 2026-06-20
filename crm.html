@@ -143,6 +143,7 @@
       <a href="#" data-view="empresas"><span class="dot"></span> Empresas (B2B)</a>
       <a href="#" data-view="fornecedores"><span class="dot"></span> Fornecedores</a>
       <a href="#" data-view="vendedores"><span class="dot"></span> Vendedores</a>
+      <a href="#" data-view="parceiros"><span class="dot"></span> Parceiros</a>
       <div class="sec">Operação</div>
       <a href="#" data-view="leads"><span class="dot"></span> Leads & Atendimento</a>
       <a href="#" data-view="pedidos"><span class="dot"></span> Pedidos</a>
@@ -247,8 +248,13 @@
       </section>
       <section class="view" data-v="vendedores" hidden>
         <div class="h1">Vendedores</div>
-        <div class="sub">Equipe comercial · metas, regiões e contato</div>
+        <div class="sub">Equipe comercial · metas, realizado e regiões · alimenta o ranking do portal</div>
         <div id="mod-vendedores"></div>
+      </section>
+      <section class="view" data-v="parceiros" hidden>
+        <div class="h1">Parceiros</div>
+        <div class="sub">Arquitetos, designers, representantes e indicadores · comissões</div>
+        <div id="mod-parceiros"></div>
       </section>
       <section class="view" data-v="catalogo" hidden>
         <div class="h1">Catálogo</div>
@@ -435,8 +441,13 @@
       cols:[{k:'nome'},{k:'tipo',badge:true},{k:'fornece'},{k:'prazo_medio_dias'},{k:'contato'}] },
     vendedores:{ table:'vendedores', fields:[
       {k:'nome',l:'Nome',req:true,full:true},{k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},
-      {k:'regiao',l:'Região'},{k:'meta_mensal',l:'Meta mensal (R$)',type:'number'}],
-      cols:[{k:'nome'},{k:'regiao',badge:true},{k:'meta_mensal',money:true},{k:'email'},{k:'telefone'}] }
+      {k:'regiao',l:'Região'},{k:'meta_mensal',l:'Meta mensal (R$)',type:'number'},{k:'realizado_mes',l:'Realizado no mês (R$)',type:'number'}],
+      cols:[{k:'nome'},{k:'regiao',badge:true},{k:'realizado_mes',money:true},{k:'meta_mensal',money:true},{k:'telefone'}] },
+    parceiros:{ table:'parceiros', fields:[
+      {k:'nome',l:'Nome',req:true,full:true},
+      {k:'tipo',l:'Tipo',type:'select',opts:['','Arquiteto','Designer de Interiores','Representante','Indicador','Outro']},
+      {k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},{k:'cidade',l:'Cidade / UF'},{k:'comissao_pct',l:'Comissão (%)',type:'number'}],
+      cols:[{k:'nome'},{k:'tipo',badge:true},{k:'cidade'},{k:'comissao_pct'},{k:'telefone'}] }
   };
   function labelFor(cfg,k){ for(var i=0;i<cfg.fields.length;i++){ if(cfg.fields[i].k===k) return cfg.fields[i].l; } return k; }
   function modMoney(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
