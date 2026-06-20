@@ -141,5 +141,6 @@
     .catch(function(e){ document.getElementById('state').textContent='Não foi possível carregar a peça agora.'; console.error(e); });
   (function(){var el=document.getElementById('cartCount');if(!el)return;var n=0;try{n=JSON.parse(localStorage.getItem('km_cart')||'[]').reduce(function(s,i){return s+(i.qtd||1);},0);}catch(e){}el.textContent=n;el.style.display=n>0?'flex':'none';})();
 </script>
+<script defer src="assistente.js"></script>
 </body>
 </html>

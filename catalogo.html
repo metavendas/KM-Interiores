@@ -170,5 +170,6 @@
     .then(function(data){ produtos = data||[]; buildFilters(); render(); updateCartBadge(); })
     .catch(function(e){ state.textContent='Não foi possível carregar o catálogo agora.'; console.error(e); });
 </script>
+<script defer src="assistente.js"></script>
 </body>
 </html>
