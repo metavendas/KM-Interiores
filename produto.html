@@ -61,14 +61,12 @@
     <path d="M100 92 C 82 56 42 40 26 58 C 12 74 28 104 60 110 C 80 114 96 108 100 96"/>
     <path d="M99 100 C 74 108 44 128 50 156 C 54 174 72 172 82 158 C 92 144 100 124 100 104"/>
     <path d="M100 90 L 100 116"/></g></symbol></defs></svg>
-
 <div class="announce">Design que inspira · Sofisticação que permanece · Atendimento sob medida em todo o Brasil</div>
 <header><div class="wrap nav">
   <a class="brand" href="home_comparador.html"><img class="brand-logo" src="logo.png" alt="KM Interiores"></a>
   <nav class="menu"><a href="#">Ambientes</a><a href="catalogo.html">Coleções</a><a href="institucional.html#locacao">Locação</a><a href="institucional.html#atelier">Atelier 3D</a><a href="institucional.html">A Marca</a></nav>
   <div class="icons"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></div>
 </div></header>
-
 <div class="wrap"><div class="crumbs" id="crumbs">Início · Coleções</div></div>
 <div id="state" class="state">Carregando a peça…</div>
 <section class="wrap pdp" id="pdp" style="display:none">
@@ -86,23 +84,47 @@
     <div class="specs"><h3>Ficha técnica</h3><table id="specs"></table></div>
   </div>
 </section>
-
 <footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p><p class="tag">Design que inspira. Sofisticação que permanece.</p></div></footer>
-
 <script>
-  const SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
-  async function sbSelect(qs){
-    const r = await fetch(SB+'/rest/v1/'+qs,{headers:{apikey:KEY, Authorization:'Bearer '+KEY}});
-    if(!r.ok) throw new Error('HTTP '+r.status); return await r.json();
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  function sbSelect(qs){
+    return fetch(SB+'/rest/v1/'+qs,{headers:{apikey:KEY, Authorization:'Bearer '+KEY}})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
   }
-  const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const sku = new URLSearchParams(location.search).get('sku') || 'KM-SOF-MILANO';
-
-  document.querySelectorAll('.sw').forEach(s=>s.addEventListener('click',()=>{document.querySelectorAll('.sw').forEach(x=>x.classList.remove('active'));s.classList.add('active');}));
-
-  (async ()=>{
-    let p=null;
-    try{
-      let arr = await sbSelect('produtos?select=*&sku=eq.'+encodeURIComponent(sku)+'&limit=1');
-      p = arr[0];
-      if(!p){ arr 
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var sku = new URLSearchParams(location.search).get('sku') || 'KM-SOF-MILANO';
+  Array.prototype.forEach.call(document.querySelectorAll('.sw'),function(s){s.addEventListener('click',function(){Array.prototype.forEach.call(document.querySelectorAll('.sw'),function(x){x.classList.remove('active');});s.classList.add('active');});});
+  function nl(v){ try{ return 'R$ '+Number(v).toLocaleString('pt-BR'); }catch(e){ return 'R$ '+v; } }
+  sbSelect('produtos?select=*&sku=eq.'+encodeURIComponent(sku)+'&limit=1')
+    .then(function(arr){ if(arr&&arr[0]) return arr[0]; return sbSelect('produtos?select=*&destaque=eq.true&limit=1').then(function(a){return a[0];}); })
+    .then(function(p){
+      if(!p){ document.getElementById('state').textContent='Peça não encontrada.'; return; }
+      var main = p.foto_url ? '<img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'">'
+        : '<div class="ph"><svg class="bf"><use href="#bf"/></svg><span>'+esc(p.nome)+'</span></div>';
+      document.getElementById('main').innerHTML = main;
+      document.getElementById('ey').textContent = 'Coleção '+(p.colecao||p.categoria)+' · Autoral';
+      document.getElementById('nome').textContent = p.nome;
+      document.getElementById('crumbs').textContent = 'Início · Coleções · '+p.categoria+' · '+(p.colecao||p.nome);
+      document.title = p.nome+' · KM Interiores';
+      var carry = p.trilha==='carry';
+      document.getElementById('price').textContent = (carry && p.preco) ? nl(p.preco) : 'Sob consulta';
+      document.getElementById('pnote').textContent = carry ? 'Pronta-entrega' : 'Curadoria personalizada';
+      document.getElementById('cta1').textContent = carry ? 'Adicionar ao carrinho' : 'Solicitar curadoria';
+      document.getElementById('cta1').onclick = function(){ if(!carry) location.href='curadoria.html'; };
+      document.getElementById('desc').textContent = (p.descricao && p.descricao.length>0) ? p.descricao :
+        'Peça autoral da curadoria KM Interiores, produzida com materiais nobres e acabamento artesanal. Personalizável sob medida — pensada para durar gerações e receber com elegância.';
+      var specs = [
+        ['Coleção', p.colecao||'—'],['Categoria', p.categoria||'—'],
+        ['Material', p.material||'Madeira maciça + revestimento nobre'],
+        ['Dimensões', p.dimensoes||'Sob medida — definidas na curadoria'],
+        ['Acabamentos', (p.acabamentos&&p.acabamentos.length)? p.acabamentos.join(', ') : '4 opções (tecido e base)'],
+        ['Disponibilidade', p.disponibilidade==='estoque'?'Pronta-entrega':'Sob encomenda']
+      ];
+      document.getElementById('specs').innerHTML = specs.map(function(kv){return '<tr><td>'+esc(kv[0])+'</td><td>'+esc(kv[1])+'</td></tr>';}).join('');
+      document.getElementById('state').style.display='none';
+      document.getElementById('pdp').style.display='grid';
+    })
+    .catch(function(e){ document.getElementById('state').textContent='Não foi possível carregar a peça agora.'; console.error(e); });
+</script>
+</body>
+</html>

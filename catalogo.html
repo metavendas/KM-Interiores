@@ -20,8 +20,6 @@
   a{color:inherit;text-decoration:none}
   .wrap{max-width:1280px;margin:0 auto;padding:0 40px}
   .eyebrow{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--accent);font-weight:500}
-  .gold-rule{width:54px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:18px auto}
-
   .announce{background:var(--bg2);border-bottom:1px solid var(--line);text-align:center;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding:10px 0}
   header{position:sticky;top:0;z-index:50;background:rgba(8,8,7,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
   .nav{display:flex;align-items:center;justify-content:space-between;height:92px}
@@ -32,19 +30,16 @@
   .icons{display:flex;gap:20px;align-items:center}
   .icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85;cursor:pointer;transition:.3s}
   .icons svg:hover{stroke:var(--accent)}
-
   .page-hero{position:relative;padding:80px 0 50px;text-align:center;background:linear-gradient(160deg,#100e0b,#080807)}
   .page-hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5vw,56px);color:var(--text);margin-top:14px}
   .page-hero p{font-family:var(--serif-accent);font-size:19px;color:var(--muted);margin-top:12px}
   .crumbs{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ouro-antigo)}
   .live{display:inline-flex;align-items:center;gap:7px;margin-top:16px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ouro-antigo)}
   .live i{width:7px;height:7px;border-radius:50%;background:#7fbf6a;display:inline-block;box-shadow:0 0 8px #7fbf6a}
-
   .filters{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;padding:34px 0 8px}
   .chip{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);background:transparent;padding:10px 22px;cursor:pointer;transition:.25s;font-family:var(--sans)}
   .chip:hover{color:var(--champagne);border-color:var(--accent)}
   .chip.active{background:var(--accent);color:#080807;border-color:var(--accent);font-weight:600}
-
   .catalogo{padding:40px 0 110px;min-height:40vh}
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
   .card{background:var(--card-bg);border:1px solid var(--line);overflow:hidden;transition:.4s;box-shadow:0 14px 40px rgba(0,0,0,.25);display:flex;flex-direction:column}
@@ -52,8 +47,7 @@
   .card .img{position:relative;overflow:hidden;aspect-ratio:16/10;background:#0f0e0c}
   .card .img img{width:100%;height:100%;object-fit:cover;display:block;transition:.6s}
   .card:hover .img img{transform:scale(1.04)}
-  .card .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;
-    background:radial-gradient(80% 90% at 40% 25%,#2a2114,#0c0b09)}
+  .card .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:radial-gradient(80% 90% at 40% 25%,#2a2114,#0c0b09)}
   .card .ph .bf{position:absolute;opacity:.12;width:120px;height:120px}
   .card .ph span{position:relative;z-index:2;font-family:var(--serif);font-size:21px;color:var(--champagne);padding:0 18px}
   .card .bar{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;background:#0f0e0c;border-top:1px solid var(--line)}
@@ -61,9 +55,8 @@
   .card .bar .meta .cat{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ouro-antigo);margin-top:3px}
   .card .bar .cta{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
   .state{text-align:center;color:var(--muted);font-family:var(--serif-accent);font-size:20px;padding:60px 0}
-
   footer{background:var(--bg2);border-top:1px solid var(--line);padding:50px 0;text-align:center}
-  footer .gold-rule{margin:0 auto 18px}
+  footer .gold-rule{width:54px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:0 auto 18px}
   footer p{font-size:12px;color:var(--muted);letter-spacing:.05em}
   footer .tag{font-family:var(--serif-accent);font-size:16px;color:var(--accent);margin-top:8px}
   @media(max-width:960px){.wrap{padding:0 22px}nav.menu{display:none}.grid{grid-template-columns:1fr}}
@@ -81,7 +74,6 @@
     <path d="M99 100 C 74 108 44 128 50 156 C 54 174 72 172 82 158 C 92 144 100 124 100 104"/>
     <path d="M100 90 L 100 116"/></g></symbol>
 </defs></svg>
-
 <div class="announce">Design que inspira · Sofisticação que permanece · Atendimento sob medida em todo o Brasil</div>
 <header><div class="wrap nav">
   <a class="brand" href="home_comparador.html"><img class="brand-logo" src="logo.png" alt="KM Interiores"></a>
@@ -92,42 +84,63 @@
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
   </div>
 </div></header>
-
-<section class="page-hero">
-  <div class="wrap">
-    <span class="crumbs">Início · Coleções</span>
-    <h1>O Catálogo</h1>
-    <p>Peças autorais selecionadas pela curadoria KM — acabamentos nobres, sob medida.</p>
-    <div class="live"><i></i> Catálogo em tempo real</div>
-  </div>
-</section>
-
+<section class="page-hero"><div class="wrap">
+  <span class="crumbs">Início · Coleções</span>
+  <h1>O Catálogo</h1>
+  <p>Peças autorais selecionadas pela curadoria KM — acabamentos nobres, sob medida.</p>
+  <div class="live"><i></i> Catálogo em tempo real</div>
+</div></section>
 <div class="wrap"><div class="filters" id="filters"></div></div>
-
-<section class="catalogo">
-  <div class="wrap">
-    <div class="grid" id="grid"></div>
-    <div class="state" id="state">Carregando o catálogo…</div>
-  </div>
-</section>
-
+<section class="catalogo"><div class="wrap">
+  <div class="grid" id="grid"></div>
+  <div class="state" id="state">Carregando o catálogo…</div>
+</div></section>
 <footer><div class="wrap">
   <div class="gold-rule"></div>
   <p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p>
   <p class="tag">Design que inspira. Sofisticação que permanece.</p>
 </div></footer>
-
 <script>
-  const SUPABASE_URL = 'https://hpbtnlfihbwwawgtesvm.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
-  async function sbSelect(qs){
-    const r = await fetch(SUPABASE_URL+'/rest/v1/'+qs, {headers:{apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY}});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    return await r.json();
+  var SB = 'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  var KEY = 'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var grid = document.getElementById('grid');
+  var state = document.getElementById('state');
+  var filtersEl = document.getElementById('filters');
+  var produtos = [], filtro = 'Todos';
+  var ORDEM = ['Sofás','Cabeceiras','Mesas','Banquetas','Guarda-Roupas','Colchões'];
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function ord(c){var i=ORDEM.indexOf(c);return i<0?99:i;}
+  function card(p){
+    var img = p.foto_url
+      ? '<div class="img"><img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'" loading="lazy"></div>'
+      : '<div class="img"><div class="ph"><svg class="bf"><use href="#bf"/></svg><span>'+esc(p.nome)+'</span></div></div>';
+    var tr = p.trilha==='carry' ? 'Pronta-entrega' : 'Sob curadoria';
+    return '<a class="card" href="produto.html?sku='+encodeURIComponent(p.sku)+'">'+img+
+      '<div class="bar"><div class="meta"><div class="nm">'+esc(p.nome)+'</div><div class="cat">'+esc(p.categoria)+' · '+tr+'</div></div><span class="cta">Ver peça →</span></div></a>';
   }
-
-  const grid = document.getElementById('grid');
-  const state = document.getElementById('state');
-  const filtersEl = document.getElementById('filters');
-  let produtos = [], filtro = 'Todos';
-  const ORDEM = ['Sof�
+  function render(){
+    var lista = filtro==='Todos' ? produtos : produtos.filter(function(p){return p.categoria===filtro;});
+    grid.innerHTML = lista.map(card).join('');
+    state.style.display = lista.length ? 'none' : 'block';
+    if(!lista.length) state.textContent = 'Nenhuma peça nesta categoria.';
+  }
+  function buildFilters(){
+    var cats = Array.from(new Set(produtos.map(function(p){return p.categoria;}).filter(Boolean)));
+    cats.sort(function(a,b){return ord(a)-ord(b);});
+    var all = ['Todos'].concat(cats);
+    filtersEl.innerHTML = all.map(function(c){return '<button class="chip'+(c==='Todos'?' active':'')+'" data-c="'+esc(c)+'">'+esc(c)+'</button>';}).join('');
+    Array.from(filtersEl.querySelectorAll('.chip')).forEach(function(b){
+      b.addEventListener('click', function(){
+        Array.from(filtersEl.querySelectorAll('.chip')).forEach(function(x){x.classList.remove('active');});
+        b.classList.add('active'); filtro=b.dataset.c; render();
+      });
+    });
+  }
+  fetch(SB+'/rest/v1/produtos?select=sku,nome,categoria,colecao,foto_url,trilha,destaque&ativo=eq.true&order=destaque.desc,categoria.asc,nome.asc',
+    {headers:{apikey:KEY, Authorization:'Bearer '+KEY}})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){ produtos = data||[]; buildFilters(); render(); })
+    .catch(function(e){ state.textContent='Não foi possível carregar o catálogo agora.'; console.error(e); });
+</script>
+</body>
+</html>
