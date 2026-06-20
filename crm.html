@@ -146,8 +146,9 @@
       <a href="#" data-view="parceiros"><span class="dot"></span> Parceiros</a>
       <div class="sec">Operação</div>
       <a href="#" data-view="leads"><span class="dot"></span> Leads & Atendimento</a>
+      <a href="#" data-view="produtos"><span class="dot"></span> Produtos</a>
+      <a href="#" data-view="estoque"><span class="dot"></span> Estoque</a>
       <a href="#" data-view="pedidos"><span class="dot"></span> Pedidos</a>
-      <a href="#" data-view="catalogo"><span class="dot"></span> Catálogo</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
@@ -256,10 +257,15 @@
         <div class="sub">Arquitetos, designers, representantes e indicadores · comissões</div>
         <div id="mod-parceiros"></div>
       </section>
-      <section class="view" data-v="catalogo" hidden>
-        <div class="h1">Catálogo</div>
-        <div class="sub">Acervo conectado ao banco · <span id="catCount" style="color:var(--ouro)">consultando…</span></div>
-        <div class="panel"><h3>Coleções</h3><div style="padding:20px"><p style="color:var(--muted);font-size:13.5px;line-height:1.7">O catálogo oficial está publicado e conectado ao banco de dados. A vitrine pública abre em nova aba.</p><a class="ia-btn" href="catalogo.html" target="_blank" style="display:inline-block;margin-top:14px">Abrir catálogo no site →</a></div></div>
+      <section class="view" data-v="produtos" hidden>
+        <div class="h1">Produtos</div>
+        <div class="sub">Cadastro de produtos do e-commerce · imagem, vídeo, preço, estoque e ranking · <a href="catalogo.html" target="_blank" style="color:var(--accent)">ver loja →</a></div>
+        <div id="mod-produtos"></div>
+      </section>
+      <section class="view" data-v="estoque" hidden>
+        <div class="h1">Estoque</div>
+        <div class="sub">Controle de peças · entradas, status e responsáveis</div>
+        <div id="mod-estoque"></div>
       </section>
       <section class="view" data-v="pedidos" hidden>
         <div class="h1">Pedidos</div>
@@ -418,7 +424,7 @@
     document.querySelectorAll('.view').forEach(function(s){ var m=(s.getAttribute('data-v')===v); s.hidden=!m; if(m)found=true; });
     if(!found){ var d=document.querySelector('.view[data-v="dashboard"]'); if(d)d.hidden=false; v='dashboard'; }
     document.querySelectorAll('.nav a[data-view]').forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-view')===v); });
-    if(v==='catalogo') loadCatCount();
+    if(v==='produtos') renderProdutos();
     if(v==='funil') initFunil();
     if(typeof MODS!=='undefined' && MODS[v]) renderMod(v);
     var c=document.querySelector('.content'); if(c) c.scrollTop=0;
@@ -447,7 +453,13 @@
       {k:'nome',l:'Nome',req:true,full:true},
       {k:'tipo',l:'Tipo',type:'select',opts:['','Arquiteto','Designer de Interiores','Representante','Indicador','Outro']},
       {k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},{k:'cidade',l:'Cidade / UF'},{k:'comissao_pct',l:'Comissão (%)',type:'number'}],
-      cols:[{k:'nome'},{k:'tipo',badge:true},{k:'cidade'},{k:'comissao_pct'},{k:'telefone'}] }
+      cols:[{k:'nome'},{k:'tipo',badge:true},{k:'cidade'},{k:'comissao_pct'},{k:'telefone'}] },
+    estoque:{ table:'estoque', fields:[
+      {k:'nome',l:'Nome / Item',req:true,full:true},{k:'documento',l:'Documento'},{k:'tipo',l:'Tipo'},
+      {k:'status',l:'Status',type:'select',opts:['Disponível','Reservado','Em trânsito','Baixo','Esgotado']},
+      {k:'responsavel',l:'Responsável'},{k:'fornecedor',l:'Fornecedor'},
+      {k:'pecas_disponiveis',l:'Peças disponíveis',type:'number'},{k:'total_pecas',l:'Total de peças',type:'number'}],
+      cols:[{k:'nome'},{k:'tipo',badge:true},{k:'status',badge:true},{k:'pecas_disponiveis'},{k:'total_pecas'},{k:'responsavel'},{k:'fornecedor'},{k:'modificado',date:true}] }
   };
   function labelFor(cfg,k){ for(var i=0;i<cfg.fields.length;i++){ if(cfg.fields[i].k===k) return cfg.fields[i].l; } return k; }
   function modMoney(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
@@ -480,7 +492,7 @@
       tb.innerHTML=rows.map(function(r){
         return '<tr>'+cfg.cols.map(function(c,i){
           if(c.badge && r[c.k]) return '<td><span class="badge">'+esc(String(r[c.k]))+'</span></td>';
-          var v=r[c.k]; if(c.money) v=modMoney(v); else if(v==null||v==='') v='—';
+          var v=r[c.k]; if(c.date){ v=r[c.k]?new Date(r[c.k]).toLocaleDateString('pt-BR'):'—'; } else if(c.money) v=modMoney(v); else if(v==null||v==='') v='—';
           return '<td'+(i===0?' style="color:var(--text)"':'')+'>'+esc(String(v))+'</td>';
         }).join('')+'</tr>';
       }).join('');
@@ -504,6 +516,74 @@
         loadMod(key); setTimeout(function(){ $('msg-'+key).textContent=''; },2500);
       } else { r.text().then(function(t){ $('msg-'+key).textContent='Erro ao salvar: '+t.slice(0,90); }); } })
     .catch(function(e){ btn.disabled=false; btn.textContent='Salvar cadastro'; $('msg-'+key).textContent='Erro de conexão.'; console.error(e); });
+  }
+  // ===== Admin de Produtos (imagem + vídeo + estoque + ranking) =====
+  function brl(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
+  function slugSku(nome){ return 'KM-'+(nome||'PROD').toUpperCase().normalize('NFD').replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,16)+'-'+Math.random().toString(36).slice(2,5).toUpperCase(); }
+  function renderProdutos(){
+    var host=$('mod-produtos'); if(!host) return;
+    if(host.dataset.built){ loadProdutos(); return; } host.dataset.built='1';
+    host.innerHTML='<div class="panel">'
+      +'<div class="modbar"><h3>Novo produto</h3><span class="modmsg" id="msg-prod"></span></div>'
+      +'<div class="modform" id="form-prod">'
+      +'<div class="f full"><label>Nome *</label><input data-k="nome"></div>'
+      +'<div class="f"><label>Categoria</label><input data-k="categoria"></div>'
+      +'<div class="f"><label>SKU (opcional)</label><input data-k="sku"></div>'
+      +'<div class="f"><label>Preço varejo (R$)</label><input data-k="preco" type="number"></div>'
+      +'<div class="f"><label>Estoque disponível</label><input data-k="estoque_disponivel" type="number"></div>'
+      +'<div class="f"><label>Ranking (1 = topo)</label><input data-k="ranking" type="number"></div>'
+      +'<div class="f"><label>Trilha</label><select data-k="trilha"><option value="A">A — pronta entrega (loja)</option><option value="B">B — sob consulta (curadoria)</option></select></div>'
+      +'<div class="f"><label>Destaque na home</label><select data-k="destaque"><option value="false">Não</option><option value="true">Sim</option></select></div>'
+      +'<div class="f"><label>Link de vídeo (YouTube)</label><input data-k="video_url"></div>'
+      +'<div class="f"><label>URL da imagem (ou envie ao lado)</label><input data-k="foto_url"></div>'
+      +'<div class="f"><label>Imagem do produto (upload)</label><input type="file" id="prod_img" accept="image/*"></div>'
+      +'<div class="f full"><label>Descrição</label><textarea data-k="descricao" rows="2"></textarea></div>'
+      +'<div class="f full" style="text-align:right"><button class="btn" id="save-prod">Salvar produto</button></div>'
+      +'</div>'
+      +'<table><thead><tr><th>Img</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Rank</th><th>Trilha</th></tr></thead>'
+      +'<tbody id="body-prod"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody></table>'
+      +'</div>';
+    $('save-prod').addEventListener('click', saveProduto);
+    loadProdutos();
+  }
+  function loadProdutos(){
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/produtos?select=id,nome,categoria,preco,estoque_disponivel,ranking,trilha,foto_url&order=ranking.asc.nullslast,nome.asc&limit=300',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(rows){
+      var tb=$('body-prod');
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="7" class="empty">Nenhum produto. Cadastre acima.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(p){
+        var img=p.foto_url?('<img src="'+esc(p.foto_url)+'" style="width:44px;height:44px;object-fit:cover;border-radius:3px;border:1px solid var(--line)">'):'<span style="color:var(--ouro)">—</span>';
+        return '<tr><td>'+img+'</td><td style="color:var(--text)">'+esc(p.nome||'')+'</td><td><span class="badge">'+esc(p.categoria||'—')+'</span></td><td>'+brl(p.preco)+'</td><td>'+(p.estoque_disponivel==null?'—':p.estoque_disponivel)+'</td><td>'+(p.ranking==null?'—':p.ranking)+'</td><td>'+esc(p.trilha||'—')+'</td></tr>';
+      }).join('');
+    })
+    .catch(function(e){ $('body-prod').innerHTML='<tr><td colspan="7" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; console.error(e); });
+  }
+  function saveProduto(){
+    var tok=localStorage.getItem(TOKKEY); var form=$('form-prod');
+    var get=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
+    var nome=get('nome'); if(!nome){ $('msg-prod').textContent='Informe o nome do produto.'; return; }
+    var btn=$('save-prod'); btn.disabled=true; btn.textContent='Salvando…'; $('msg-prod').textContent='';
+    var file=$('prod_img').files[0];
+    function doInsert(foto){
+      var data={ nome:nome, categoria:get('categoria')||null, sku:get('sku')||slugSku(nome),
+        preco:get('preco')?Number(get('preco')):null, estoque_disponivel:get('estoque_disponivel')?Number(get('estoque_disponivel')):0,
+        ranking:get('ranking')?Number(get('ranking')):null, trilha:get('trilha')||'A', destaque:get('destaque')==='true',
+        video_url:get('video_url')||null, descricao:get('descricao')||null, foto_url:foto||get('foto_url')||null, ativo:true };
+      fetch(SB+'/rest/v1/produtos',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
+      .then(function(r){ btn.disabled=false; btn.textContent='Salvar produto';
+        if(r.ok){ $('msg-prod').textContent='Produto salvo ✓'; form.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; }); loadProdutos(); setTimeout(function(){ $('msg-prod').textContent=''; },2500); }
+        else r.text().then(function(t){ $('msg-prod').textContent='Erro: '+t.slice(0,90); }); })
+      .catch(function(){ btn.disabled=false; btn.textContent='Salvar produto'; $('msg-prod').textContent='Erro de conexão.'; });
+    }
+    if(file){
+      var path='img/'+Date.now()+'_'+file.name.replace(/[^\w.\-]/g,'_');
+      $('msg-prod').textContent='Enviando imagem…';
+      fetch(SB+'/storage/v1/object/produtos/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':file.type||'application/octet-stream','x-upsert':'true'}),body:file})
+      .then(function(r){ if(!r.ok) throw new Error('upload'); doInsert(SB+'/storage/v1/object/public/produtos/'+path); })
+      .catch(function(){ btn.disabled=false; btn.textContent='Salvar produto'; $('msg-prod').textContent='Falha ao enviar a imagem.'; });
+    } else doInsert(null);
   }
   // ===== Kanban arrastável (funil) =====
   function initFunil(){

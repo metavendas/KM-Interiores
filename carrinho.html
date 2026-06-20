@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carrinho · KM Interiores</title>
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#14100a;--bg2:#1b160d;--bg3:#221b10;--text:#F1E4C9;--muted:rgba(241,228,201,.74);--accent:#CB984C;--champagne:#F1E4C9;--ouro:#9D7D31;--line:rgba(203,152,76,.26);
+    --serif:'Playfair Display',Georgia,serif;--serif-accent:'Cormorant Garamond',Georgia,serif;--sans:'Inter',system-ui,sans-serif;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}.wrap{max-width:1100px;margin:0 auto;padding:0 40px}
+  .eyebrow{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--ouro);font-weight:500}
+  .announce{background:#0f0c07;border-bottom:1px solid var(--line);text-align:center;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding:10px 0}
+  header{position:sticky;top:0;z-index:50;background:linear-gradient(90deg,#CB984C,#9D7D31);border-bottom:1px solid rgba(20,16,10,.3)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:84px}
+  .brand-logo{height:64px;width:auto;display:block}
+  nav.menu{display:flex;gap:26px}
+  nav.menu a{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#14100a;opacity:.92}
+  nav.menu a:hover{opacity:1;color:#000}
+  .head{padding:46px 0 8px}.head h1{font-family:var(--serif);font-weight:500;font-size:clamp(28px,4vw,42px)}
+  .head p{font-family:var(--serif-accent);font-size:18px;color:var(--champagne);margin-top:4px}
+  .layout{display:grid;grid-template-columns:1.6fr 1fr;gap:26px;padding:28px 0 90px;align-items:start}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .panel h3{font-family:var(--serif);font-weight:500;font-size:17px;padding:18px 22px;border-bottom:1px solid var(--line)}
+  .item{display:flex;gap:16px;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line)}
+  .item img{width:74px;height:74px;object-fit:cover;border-radius:4px;border:1px solid var(--line);flex-shrink:0}
+  .item .ph{width:74px;height:74px;border-radius:4px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ouro);font-family:var(--serif);flex-shrink:0;background:var(--bg3)}
+  .item .m{flex:1;min-width:0}.item .m .nm{font-family:var(--serif);font-size:16px;color:var(--text)}.item .m .pr{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .qty{display:flex;align-items:center;gap:8px}
+  .qty button{width:28px;height:28px;border:1px solid var(--line);background:var(--bg3);color:var(--text);border-radius:3px;cursor:pointer;font-size:15px}
+  .qty button:hover{border-color:var(--accent);color:var(--accent)}
+  .qty span{min-width:26px;text-align:center;font-size:14px}
+  .item .sub{font-size:14.5px;color:var(--accent);min-width:110px;text-align:right}
+  .item .rm{font-size:11px;color:var(--ouro);cursor:pointer;margin-left:10px}.item .rm:hover{color:#e0a0a0}
+  .empty{padding:50px 22px;text-align:center;color:var(--muted)}
+  .empty a{color:var(--accent)}
+  .sumrow{display:flex;justify-content:space-between;padding:12px 22px;font-size:14px;color:var(--muted)}
+  .sumrow.tot{border-top:1px solid var(--line);color:var(--text);font-size:17px;font-family:var(--serif)}
+  .sumrow.tot b{color:var(--accent)}
+  .field{padding:0 22px 14px}.field:first-of-type{padding-top:16px}
+  .field label{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);margin-bottom:6px}
+  .field input{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:12px 14px;font-family:var(--sans);font-size:14px;outline:none;border-radius:3px}
+  .field input:focus{border-color:var(--accent)}
+  .btn{display:block;width:calc(100% - 44px);margin:6px 22px 18px;background:var(--accent);color:#14100a;border:none;padding:16px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:3px;transition:.25s}
+  .btn:hover{background:var(--champagne)}
+  .btn:disabled{opacity:.6;cursor:default}
+  .secure{font-size:11px;color:var(--muted);text-align:center;padding:0 22px 18px;line-height:1.6}
+  .okcard{text-align:center;padding:50px 30px}
+  .okcard .chk{font-size:40px;color:var(--accent)}
+  .okcard h2{font-family:var(--serif);font-weight:500;font-size:26px;margin:10px 0 6px}
+  .okcard p{color:var(--muted);font-size:14px;line-height:1.7}
+  .okcard .num{font-family:var(--serif);color:var(--accent);font-size:20px;margin:14px 0}
+  footer{background:#0f0c07;border-top:1px solid var(--line);padding:34px 0;text-align:center;margin-top:20px}
+  footer p{font-size:12px;color:var(--muted)}
+  @media(max-width:900px){.wrap{padding:0 18px}nav.menu{display:none}.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="announce">Carrinho · Compra segura · Atendimento sob medida em todo o Brasil</div>
+<header><div class="wrap nav">
+  <a class="brand" href="index.html"><img class="brand-logo" src="logo-dourado.png" alt="KM Interiores"></a>
+  <nav class="menu"><a href="index.html">Início</a><a href="catalogo.html">Coleções</a><a href="institucional.html">A Marca</a><a href="area-restrita.html">Área Restrita</a></nav>
+</div></header>
+
+<section class="wrap head"><span class="eyebrow">Seu carrinho</span><h1>Finalizar pedido</h1><p>Revise as peças e conclua com tranquilidade.</p></section>
+
+<section class="wrap"><div class="layout" id="layout">
+  <div class="panel">
+    <h3>Itens</h3>
+    <div id="items"><div class="empty">Carregando…</div></div>
+  </div>
+  <div class="panel" id="checkout">
+    <h3>Resumo & dados</h3>
+    <div id="summary"></div>
+    <div class="field"><label>Nome completo *</label><input id="c_nome" placeholder="Seu nome"></div>
+    <div class="field"><label>E-mail *</label><input id="c_email" type="email" placeholder="seu@email.com"></div>
+    <div class="field"><label>Telefone / WhatsApp</label><input id="c_tel" placeholder="(00) 00000-0000"></div>
+    <div class="field"><label>Cidade / UF</label><input id="c_cidade" placeholder="Cidade / UF"></div>
+    <button class="btn" id="finalizar">Finalizar pedido</button>
+    <div class="secure">✦ Pedido registrado com segurança. Um especialista KM confirma a forma de pagamento e a entrega. <span id="msg" style="color:var(--ouro)"></span></div>
+  </div>
+</div></section>
+
+<footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p></div></footer>
+
+<script>
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var KCART='km_cart';
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function brl(v){ try{return 'R$ '+Number(v||0).toLocaleString('pt-BR');}catch(e){return 'R$ '+v;} }
+  function getCart(){ try{return JSON.parse(localStorage.getItem(KCART)||'[]');}catch(e){return [];} }
+  function setCart(a){ localStorage.setItem(KCART,JSON.stringify(a)); render(); }
+  function total(){ return getCart().reduce(function(s,i){return s+(Number(i.preco)||0)*(i.qtd||1);},0); }
+  function render(){
+    var cart=getCart(), itemsEl=document.getElementById('items'), sumEl=document.getElementById('summary');
+    if(!cart.length){
+      itemsEl.innerHTML='<div class="empty">Seu carrinho está vazio.<br><br><a href="catalogo.html">← Ver o catálogo</a></div>';
+      document.getElementById('checkout').style.display='none';
+      return;
+    }
+    document.getElementById('checkout').style.display='block';
+    itemsEl.innerHTML=cart.map(function(i){
+      var img=i.foto?('<img src="'+esc(i.foto)+'" alt="">'):'<div class="ph">KM</div>';
+      return '<div class="item">'+img
+        +'<div class="m"><div class="nm">'+esc(i.nome)+'</div><div class="pr">'+brl(i.preco)+' / un.</div></div>'
+        +'<div class="qty"><button data-act="dec" data-id="'+esc(i.id)+'">–</button><span>'+(i.qtd||1)+'</span><button data-act="inc" data-id="'+esc(i.id)+'">+</button></div>'
+        +'<div class="sub">'+brl((Number(i.preco)||0)*(i.qtd||1))+'</div>'
+        +'<span class="rm" data-act="rm" data-id="'+esc(i.id)+'">remover</span></div>';
+    }).join('');
+    var t=total();
+    sumEl.innerHTML='<div class="sumrow"><span>Subtotal</span><span>'+brl(t)+'</span></div>'
+      +'<div class="sumrow"><span>Frete</span><span>a combinar</span></div>'
+      +'<div class="sumrow tot"><span>Total</span><b>'+brl(t)+'</b></div>';
+  }
+  document.getElementById('items').addEventListener('click',function(e){
+    var b=e.target.closest('[data-act]'); if(!b) return;
+    var id=b.getAttribute('data-id'), act=b.getAttribute('data-act'); var cart=getCart();
+    var it=cart.find(function(x){return String(x.id)===String(id);}); if(!it && act!=='rm') return;
+    if(act==='inc') it.qtd=(it.qtd||1)+1;
+    else if(act==='dec') it.qtd=Math.max(1,(it.qtd||1)-1);
+    else if(act==='rm') cart=cart.filter(function(x){return String(x.id)!==String(id);});
+    setCart(cart);
+  });
+  document.getElementById('finalizar').addEventListener('click',function(){
+    var cart=getCart(); if(!cart.length) return;
+    var nome=document.getElementById('c_nome').value.trim(), email=document.getElementById('c_email').value.trim();
+    if(!nome||!email){ document.getElementById('msg').textContent=' Informe nome e e-mail.'; return; }
+    var btn=this; btn.disabled=true; btn.textContent='Enviando pedido…'; document.getElementById('msg').textContent='';
+    var payload={ p_cliente:{nome:nome,email:email,telefone:document.getElementById('c_tel').value.trim(),cidade:document.getElementById('c_cidade').value.trim()},
+      p_itens:cart.map(function(i){return {produto_id:i.id, qtd:i.qtd||1};}) };
+    fetch(SB+'/rest/v1/rpc/criar_pedido',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(j && j.ok){
+        localStorage.removeItem(KCART);
+        document.getElementById('layout').innerHTML='<div class="panel okcard" style="grid-column:1/-1">'
+          +'<div class="chk">✦</div><h2>Pedido recebido!</h2>'
+          +'<div class="num">Nº '+esc(j.numero)+' · '+brl(j.valor)+'</div>'
+          +'<p>Obrigado, '+esc(nome)+'. Seu pedido foi registrado com sucesso.<br>Um especialista KM entrará em contato para confirmar o pagamento e a entrega.</p>'
+          +'<p style="margin-top:18px"><a href="catalogo.html" style="color:var(--accent)">← Continuar vendo o catálogo</a></p></div>';
+      } else {
+        btn.disabled=false; btn.textContent='Finalizar pedido';
+        document.getElementById('msg').textContent=' '+((j&&j.error)||'Não foi possível concluir. Tente novamente.');
+      }
+    })
+    .catch(function(e){ btn.disabled=false; btn.textContent='Finalizar pedido'; document.getElementById('msg').textContent=' Erro de conexão.'; console.error(e); });
+  });
+  render();
+</script>
+</body>
+</html>

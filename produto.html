@@ -72,7 +72,7 @@
 <header><div class="wrap nav">
   <a class="brand" href="home_comparador.html"><img class="brand-logo" src="logo-dourado.png" alt="KM Interiores"></a>
   <nav class="menu"><a href="#">Ambientes</a><a href="catalogo.html">Coleções</a><a href="institucional.html#locacao">Locação</a><a href="institucional.html#atelier">Atelier 3D</a><a href="institucional.html">A Marca</a><a href="area-restrita.html">Área Restrita</a></nav>
-  <div class="icons"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></div>
+  <div class="icons"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><a href="carrinho.html" style="position:relative;display:inline-flex" title="Carrinho"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg><span id="cartCount" style="position:absolute;top:-7px;right:-9px;background:#080807;color:#CB984C;font-size:10px;min-width:16px;height:16px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;border:1px solid #CB984C;font-weight:600"></span></a></div>
 </div></header>
 <div class="wrap"><div class="crumbs" id="crumbs">Início · Coleções</div></div>
 <div id="state" class="state">Carregando a peça…</div>
@@ -113,11 +113,18 @@
       document.getElementById('nome').textContent = p.nome;
       document.getElementById('crumbs').textContent = 'Início · Coleções · '+p.categoria+' · '+(p.colecao||p.nome);
       document.title = p.nome+' · KM Interiores';
-      var carry = p.trilha==='carry';
-      document.getElementById('price').textContent = (carry && p.preco) ? nl(p.preco) : 'Sob consulta';
-      document.getElementById('pnote').textContent = carry ? 'Pronta-entrega' : 'Curadoria personalizada';
-      document.getElementById('cta1').textContent = carry ? 'Adicionar ao carrinho' : 'Solicitar curadoria';
-      document.getElementById('cta1').onclick = function(){ if(!carry) location.href='curadoria.html'; };
+      var buyable = (Number(p.preco)>0) && (Number(p.estoque_disponivel)>0);
+      document.getElementById('price').textContent = buyable ? nl(p.preco) : 'Sob consulta';
+      document.getElementById('pnote').textContent = buyable ? 'Pronta-entrega' : 'Curadoria personalizada';
+      document.getElementById('cta1').textContent = buyable ? 'Adicionar ao carrinho' : 'Solicitar curadoria';
+      document.getElementById('cta1').onclick = function(){
+        if(!buyable){ location.href='curadoria.html'; return; }
+        var cart; try{cart=JSON.parse(localStorage.getItem('km_cart')||'[]');}catch(e){cart=[];}
+        var f=cart.find(function(x){return String(x.id)===String(p.id);});
+        if(f) f.qtd=(f.qtd||1)+1; else cart.push({id:p.id,nome:p.nome,preco:p.preco,foto:p.foto_url||'',qtd:1});
+        localStorage.setItem('km_cart',JSON.stringify(cart));
+        location.href='carrinho.html';
+      };
       document.getElementById('desc').textContent = (p.descricao && p.descricao.length>0) ? p.descricao :
         'Peça autoral da curadoria KM Interiores, produzida com materiais nobres e acabamento artesanal. Personalizável sob medida — pensada para durar gerações e receber com elegância.';
       var specs = [
@@ -132,6 +139,7 @@
       document.getElementById('pdp').style.display='grid';
     })
     .catch(function(e){ document.getElementById('state').textContent='Não foi possível carregar a peça agora.'; console.error(e); });
+  (function(){var el=document.getElementById('cartCount');if(!el)return;var n=0;try{n=JSON.parse(localStorage.getItem('km_cart')||'[]').reduce(function(s,i){return s+(i.qtd||1);},0);}catch(e){}el.textContent=n;el.style.display=n>0?'flex':'none';})();
 </script>
 </body>
 </html>

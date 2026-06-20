@@ -61,6 +61,10 @@
   footer .tag{font-family:var(--serif-accent);font-size:16px;color:var(--accent);margin-top:8px}
   @media(max-width:960px){.wrap{padding:0 22px}nav.menu{display:none}.grid{grid-template-columns:1fr}}
   @media(min-width:961px) and (max-width:1200px){.grid{grid-template-columns:repeat(2,1fr)}}
+  .card .bar .price{font-family:var(--serif);font-size:15px;color:var(--accent)}
+  .card .bar .addbtn{margin-top:6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;background:var(--accent);color:#080807;border:none;padding:7px 13px;border-radius:3px;cursor:pointer;font-weight:600;transition:.2s}
+  .card .bar .addbtn:hover{background:#fff}
+  .cart-badge{position:absolute;top:-7px;right:-9px;background:#080807;color:var(--accent);font-size:10px;min-width:16px;height:16px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;border:1px solid var(--accent);font-weight:600}
   /* ===== TEMA DOURADO (brand book) ===== */
   :root{--bg:#14100a;--bg2:#1b160d;--text:#F1E4C9;--muted:rgba(241,228,201,.74);--accent:#CB984C;--champagne:#F1E4C9;--ouro-antigo:#9D7D31;--line:rgba(203,152,76,.26);--card-bg:#F1E4C9}
   .announce{background:#0f0c07;color:rgba(241,228,201,.72)}
@@ -89,7 +93,7 @@
   <div class="icons">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+    <a href="carrinho.html" style="position:relative;display:inline-flex" title="Carrinho"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg><span id="cartCount" class="cart-badge"></span></a>
   </div>
 </div></header>
 <section class="page-hero"><div class="wrap">
@@ -118,14 +122,30 @@
   var ORDEM = ['Sofás','Cabeceiras','Mesas','Banquetas','Guarda-Roupas','Colchões'];
   function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function ord(c){var i=ORDEM.indexOf(c);return i<0?99:i;}
+  function nl(v){ try{return 'R$ '+Number(v).toLocaleString('pt-BR');}catch(e){return 'R$ '+v;} }
   function card(p){
     var img = p.foto_url
       ? '<div class="img"><img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'" loading="lazy"></div>'
       : '<div class="img"><div class="ph"><svg class="bf"><use href="#bf"/></svg><span>'+esc(p.nome)+'</span></div></div>';
-    var tr = p.trilha==='carry' ? 'Pronta-entrega' : 'Sob curadoria';
+    var buyable = (Number(p.preco)>0) && (Number(p.estoque_disponivel)>0);
+    var tr = buyable ? 'Pronta-entrega' : 'Sob curadoria';
+    var right = buyable
+      ? '<div style="text-align:right"><div class="price">'+nl(p.preco)+'</div><button class="addbtn" data-id="'+esc(p.id)+'" data-nome="'+esc(p.nome)+'" data-preco="'+(p.preco||0)+'" data-foto="'+esc(p.foto_url||'')+'">+ Carrinho</button></div>'
+      : '<span class="cta">Ver peça →</span>';
     return '<a class="card" href="produto.html?sku='+encodeURIComponent(p.sku)+'">'+img+
-      '<div class="bar"><div class="meta"><div class="nm">'+esc(p.nome)+'</div><div class="cat">'+esc(p.categoria)+' · '+tr+'</div></div><span class="cta">Ver peça →</span></div></a>';
+      '<div class="bar"><div class="meta"><div class="nm">'+esc(p.nome)+'</div><div class="cat">'+esc(p.categoria)+' · '+tr+'</div></div>'+right+'</div></a>';
   }
+  function getCart(){ try{return JSON.parse(localStorage.getItem('km_cart')||'[]');}catch(e){return [];} }
+  function updateCartBadge(){ var el=document.getElementById('cartCount'); if(!el) return; var n=getCart().reduce(function(s,i){return s+(i.qtd||1);},0); el.textContent=n; el.style.display=n>0?'flex':'none'; }
+  grid.addEventListener('click', function(e){
+    var b=e.target.closest('.addbtn'); if(!b) return;
+    e.preventDefault(); e.stopPropagation();
+    var cart=getCart(), id=b.getAttribute('data-id');
+    var f=cart.find(function(x){return String(x.id)===String(id);});
+    if(f) f.qtd=(f.qtd||1)+1; else cart.push({id:id,nome:b.getAttribute('data-nome'),preco:Number(b.getAttribute('data-preco'))||0,foto:b.getAttribute('data-foto')||'',qtd:1});
+    localStorage.setItem('km_cart',JSON.stringify(cart)); updateCartBadge();
+    var old=b.textContent; b.textContent='✓ Adicionado'; setTimeout(function(){b.textContent=old;},1200);
+  });
   function render(){
     var lista = filtro==='Todos' ? produtos : produtos.filter(function(p){return p.categoria===filtro;});
     grid.innerHTML = lista.map(card).join('');
@@ -144,10 +164,10 @@
       });
     });
   }
-  fetch(SB+'/rest/v1/produtos?select=sku,nome,categoria,colecao,foto_url,trilha,destaque&ativo=eq.true&order=destaque.desc,categoria.asc,nome.asc',
+  fetch(SB+'/rest/v1/produtos?select=id,sku,nome,categoria,colecao,foto_url,trilha,destaque,preco,estoque_disponivel&ativo=eq.true&order=ranking.asc.nullslast,destaque.desc,categoria.asc,nome.asc',
     {headers:{apikey:KEY, Authorization:'Bearer '+KEY}})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-    .then(function(data){ produtos = data||[]; buildFilters(); render(); })
+    .then(function(data){ produtos = data||[]; buildFilters(); render(); updateCartBadge(); })
     .catch(function(e){ state.textContent='Não foi possível carregar o catálogo agora.'; console.error(e); });
 </script>
 </body>
