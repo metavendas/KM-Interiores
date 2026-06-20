@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KM Interiores · Mobiliário de Alto Luxo, Locação Premium e Atelier 3D</title>
+<meta name="description" content="KM Interiores — curadoria de mobiliário de alto luxo, locação premium e atelier de impressão 3D. Design que inspira. Sofisticação que permanece.">
+<link rel="canonical" href="https://www.kminteriores.com.br/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="KM Interiores · A arte de habitar o extraordinário">
+<meta property="og:description" content="Mobiliário autoral de alto luxo, locação premium e peças exclusivas em impressão 3D.">
+<meta property="og:url" content="https://www.kminteriores.com.br/">
+<meta property="og:image" content="https://www.kminteriores.com.br/og-image.jpg">
+<meta property="og:locale" content="pt_BR">
+<meta name="theme-color" content="#080807">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="favicon-256.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080807; --bg2:#0f0e0c; --text:#F1E9D2; --muted:rgba(241,233,210,.72);
+    --accent:#CB984C; --champagne:#F1E4C9; --ouro-antigo:#9D7D31; --line:rgba(203,152,76,.16);
+    --card-bg:#F1E9D2;
+    --serif:'Playfair Display',Georgia,serif; --serif-accent:'Cormorant Garamond',Georgia,serif; --sans:'Inter',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 40px}
+  .eyebrow{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--accent);font-weight:500}
+  .gold-rule{width:54px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:18px auto}
+
+  .announce{background:var(--bg2);border-bottom:1px solid var(--line);text-align:center;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding:10px 0}
+  header{position:sticky;top:0;z-index:50;background:rgba(8,8,7,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:92px}
+  .brand-logo{height:72px;width:auto;display:block}
+  nav.menu{display:flex;gap:30px}
+  nav.menu a{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text);opacity:.85;transition:.3s;padding:6px 0}
+  nav.menu a:hover{opacity:1;color:var(--accent)}
+  .icons{display:flex;gap:20px;align-items:center}
+  .icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85;cursor:pointer;transition:.3s}
+  .icons svg:hover{stroke:var(--accent)}
+
+  .hero{position:relative;min-height:84vh;display:flex;align-items:center;overflow:hidden}
+  .hero::before{content:'';position:absolute;inset:0;background-image:linear-gradient(160deg,rgba(8,8,7,.55),rgba(8,8,7,.82)),url('hero.jpg');background-size:cover;background-position:center;z-index:0}
+  .hero .wrap{position:relative;z-index:2;width:100%}
+  .hero-content{max-width:760px}
+  .hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(40px,6vw,78px);line-height:1.05;color:var(--text);margin:24px 0 0}
+  .hero h1 em{font-style:italic;color:var(--accent)}
+  .hero p.sub{font-family:var(--serif-accent);font-size:clamp(18px,2vw,23px);color:var(--champagne);max-width:560px;margin:24px 0 0;line-height:1.55}
+  .cta-row{display:flex;gap:16px;margin-top:40px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:12px;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;padding:17px 34px;transition:.3s;cursor:pointer;border:1px solid transparent}
+  .btn-primary{background:var(--accent);color:#080807}
+  .btn-primary:hover{background:var(--champagne)}
+  .btn-ghost{border-color:var(--accent);color:var(--text)}
+  .btn-ghost:hover{background:var(--accent);color:#080807}
+  .hero-foot{position:absolute;bottom:30px;left:0;right:0;z-index:2}
+  .hero-foot .wrap{display:flex;justify-content:space-between}
+  .hero-foot small{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent)}
+
+  section{padding:104px 0}
+  .sec-head{text-align:center;max-width:640px;margin:0 auto 56px}
+  .sec-head h2{font-family:var(--serif);font-weight:500;font-size:clamp(30px,4vw,46px);color:var(--text);line-height:1.12}
+  .sec-head p{font-family:var(--serif-accent);font-size:19px;color:var(--muted);margin-top:14px}
+
+  .ambientes{background:var(--bg2)}
+  .amb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .amb{position:relative;height:320px;overflow:hidden;border:1px solid var(--line);display:flex;align-items:flex-end;cursor:pointer}
+  .amb .ph{position:absolute;inset:0;transition:.7s}
+  .amb:hover .ph{transform:scale(1.06)}
+  .amb .veil{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(8,8,7,.88))}
+  .amb .label{position:relative;z-index:2;padding:24px 26px}
+  .amb .label h3{font-family:var(--serif);font-weight:500;font-size:22px;color:#F1E9D2}
+  .amb .label span{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);opacity:0;transition:.4s;display:inline-block;margin-top:5px}
+  .amb:hover .label span{opacity:1}
+  .ph-1{background:radial-gradient(80% 90% at 30% 20%,#2a2114,#0c0b09)}
+  .ph-2{background:radial-gradient(80% 90% at 70% 30%,#241d12,#0b0a08)}
+  .ph-3{background:radial-gradient(70% 80% at 40% 40%,#2c2415,#0c0b09)}
+  .ph-4{background:radial-gradient(80% 80% at 60% 25%,#221b11,#0b0a08)}
+  .ph-5{background:radial-gradient(75% 85% at 35% 30%,#2a2113,#0c0b09)}
+  .ph-6{background:radial-gradient(80% 90% at 65% 35%,#251e13,#0b0a08)}
+  .ph-wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:.10}
+  .ph-wm svg{width:110px;height:110px}
+
+  .catalogo{background:var(--bg)}
+  .cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+  .cat-card{background:var(--card-bg);border:1px solid var(--line);overflow:hidden;transition:.4s;cursor:pointer;box-shadow:0 14px 40px rgba(0,0,0,.25)}
+  .cat-card:hover{transform:translateY(-4px)}
+  .cat-card img{width:100%;display:block}
+  .cat-cta{text-align:center;margin-top:46px}
+
+  .pilares{background:var(--bg2)}
+  .pil-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line)}
+  .pil{padding:46px 38px;border-right:1px solid var(--line)}
+  .pil:last-child{border-right:none}
+  .pil .num{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--accent)}
+  .pil h3{font-family:var(--serif);font-weight:500;font-size:25px;color:var(--text);margin:12px 0 12px}
+  .pil p{font-size:14.5px;color:var(--muted);line-height:1.7}
+  .pil a{display:inline-block;margin-top:18px;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+
+  .difs{background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:52px 0}
+  .dif-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;text-align:center}
+  .dif h5{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--accent)}
+  .dif p{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+  .news{background:var(--bg);text-align:center}
+  .news .box{max-width:560px;margin:0 auto}
+  .news h2{font-family:var(--serif);font-weight:500;font-size:38px;color:var(--text);line-height:1.15}
+  .news p{font-family:var(--serif-accent);font-size:18px;color:var(--muted);margin-top:14px}
+  .news form{display:flex;margin-top:32px;border:1px solid var(--accent)}
+  .news input{flex:1;background:transparent;border:none;color:var(--text);padding:17px 22px;font-family:var(--sans);font-size:14px;outline:none}
+  .news input::placeholder{color:var(--muted)}
+  .news button{background:var(--accent);color:#080807;border:none;padding:0 32px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;cursor:pointer}
+  .news button:hover{background:var(--champagne)}
+
+  footer{background:var(--bg2);border-top:1px solid var(--line);padding:68px 0 34px}
+  .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px;padding-bottom:46px;border-bottom:1px solid var(--line)}
+  .foot-brand img{width:130px;height:auto;display:block;margin-bottom:18px}
+  .foot-brand p{font-size:13px;color:var(--muted);max-width:300px;line-height:1.7}
+  .foot-col h6{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+  .foot-col a{display:block;font-size:13px;color:var(--muted);margin-bottom:11px}
+  .foot-col a:hover{color:var(--accent)}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:26px;flex-wrap:wrap;gap:12px}
+  .foot-bottom small{font-size:11px;color:var(--muted)}
+
+  @media(max-width:960px){
+    .wrap{padding:0 22px}
+    nav.menu{display:none}
+    .amb-grid{grid-template-columns:repeat(2,1fr)}
+    .cat-grid{grid-template-columns:1fr}
+    .pil-grid{grid-template-columns:1fr}
+    .pil{border-right:none;border-bottom:1px solid var(--line)}
+    .dif-grid,.foot-grid{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F1E4C9"/><stop offset="40%" stop-color="#CB984C"/><stop offset="100%" stop-color="#9D7D31"/></linearGradient>
+  <symbol id="bf" viewBox="0 0 200 200"><g fill="none" stroke="url(#gold)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M100 88 C 96 60 92 48 86 38"/><path d="M100 88 C 104 60 108 48 114 38"/>
+    <path d="M100 92 C 118 56 158 40 174 58 C 188 74 172 104 140 110 C 120 114 104 108 100 96"/>
+    <path d="M101 100 C 126 108 156 128 150 156 C 146 174 128 172 118 158 C 108 144 100 124 100 104"/>
+    <path d="M100 92 C 82 56 42 40 26 58 C 12 74 28 104 60 110 C 80 114 96 108 100 96"/>
+    <path d="M99 100 C 74 108 44 128 50 156 C 54 174 72 172 82 158 C 92 144 100 124 100 104"/>
+    <path d="M100 90 L 100 116"/></g></symbol>
+</defs></svg>
+
+<div class="announce">Design que inspira · Sofisticação que permanece · Atendimento sob medida em todo o Brasil</div>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#"><img class="brand-logo" src="logo.png" alt="KM Interiores"></a>
+    <nav class="menu">
+      <a href="#ambientes">Ambientes</a><a href="#catalogo">Coleções</a><a href="#pilares">Locação</a><a href="#pilares">Atelier 3D</a><a href="#">A Marca</a>
+    </nav>
+    <div class="icons">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-content">
+      <span class="eyebrow">KM Interiores · Curadoria de alto luxo</span>
+      <h1>A arte de habitar<br>o <em>extraordinário</em>.</h1>
+      <p class="sub">Mobiliário autoral, locação premium e peças exclusivas em impressão 3D. Uma casa de curadoria para projetos que não admitem o comum.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#catalogo">Explorar a Coleção</a>
+        <a class="btn btn-ghost" href="#">Solicitar Curadoria</a>
+      </div>
+    </div>
+  </div>
+  <div class="hero-foot"><div class="wrap"><small>kminteriores.com.br</small><small>Role para descobrir ↓</small></div></div>
+</section>
+
+<section class="ambientes" id="ambientes">
+  <div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Elegância em cada espaço</span><div class="gold-rule"></div><h2>Móveis por Ambiente</h2><p>Composições para residências, hotelaria e projetos assinados.</p></div>
+    <div class="amb-grid">
+      <div class="amb"><div class="ph ph-1"></div><div class="ph-wm"><svg><use href="#bf"/></svg></div><div class="veil"></div><div class="label"><h3>Sala de Estar</h3><span>Ver coleção →</span></div></div>
+      <div class="amb"><div class="ph ph-2"></div><div class="ph-wm"><svg><use href="#bf"/></svg></div><div class="veil"></div><div class="label"><h3>Sala de Jantar</h3><span>Ver coleção →</span></div></div>
+      <div class="amb"><div class="ph ph-3"></div><div class="ph-wm"><svg><use href="#bf"/></svg></div><div class="veil"></div><div class="label"><h3>Quarto</h3><span>Ver coleção →</span></div></div>
+      <div class="amb"><div class="ph ph-4"></div><div class="ph-wm"><svg><use href="#bf"/></svg></div><div class="veil"></div><div class="label"><h3>Cabeceiras</h3><span>Ver coleção →</span></div></div>
+      <div class="amb"><div class="ph ph-5"></div><div class="ph-wm"><svg><use href="#bf"/></svg></div><div class="veil"></div><div class="label"><h3>Banquetas</h3><span>Ver coleção →</span></div></div>
+      <div class="amb"><div class="ph ph-6"></div><div class="ph-wm"><svg><use href="#bf"/></svg></div><div class="veil"></div><div class="label"><h3>Guarda-Roupas</h3><span>Ver coleção →</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="catalogo" id="catalogo">
+  <div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Direto do catálogo oficial</span><div class="gold-rule"></div><h2>Peças em Destaque</h2><p>Sofás, cabeceiras e coleções autorais com acabamentos nobres e curadoria de especialista.</p></div>
+    <div class="cat-grid">
+      <div class="cat-card"><img src="cat-milano.png" alt="Sofá Milano"></div>
+      <div class="cat-card"><img src="cat-zarath.png" alt="Sofá Zarath"></div>
+      <div class="cat-card"><img src="cat-clark.png" alt="Sofá Clark"></div>
+      <div class="cat-card"><img src="cat-vitoria.png" alt="Cabeceira Vitória"></div>
+    </div>
+    <div class="cat-cta"><a class="btn btn-primary" href="#">Ver catálogo completo</a></div>
+  </div>
+</section>
+
+<section class="pilares" id="pilares">
+  <div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Três formas de viver a KM</span><div class="gold-rule"></div><h2>Nossos Pilares</h2></div>
+    <div class="pil-grid">
+      <div class="pil"><span class="num">i.</span><h3>Venda de Mobiliário</h3><p>Peças autorais de alto luxo, com acabamentos nobres e personalização sob medida para residências e projetos de arquitetura.</p><a href="#catalogo">Explorar coleção →</a></div>
+      <div class="pil"><span class="num">ii.</span><h3>Locação Premium</h3><p>Mobiliário de exceção para eventos, home staging e ambientações corporativas — sofisticação por tempo determinado.</p><a href="#">Solicitar proposta →</a></div>
+      <div class="pil"><span class="num">iii.</span><h3>Atelier de Impressão 3D</h3><p>Artigos de decoração exclusivos e personalizados, da escultura à luminária, sob demanda com a assinatura da casa.</p><a href="#">Conhecer o atelier →</a></div>
+    </div>
+  </div>
+</section>
+
+<div class="difs"><div class="wrap dif-grid">
+  <div class="dif"><h5>Curadoria de Especialista</h5><p>Acompanhamento do conceito à entrega</p></div>
+  <div class="dif"><h5>Acabamentos Premium</h5><p>Materiais nobres e personalização sob medida</p></div>
+  <div class="dif"><h5>Atelier Sob Medida</h5><p>Peças autorais e impressão 3D exclusiva</p></div>
+  <div class="dif"><h5>Garantia KM Care</h5><p>Manutenção e relacionamento premium</p></div>
+</div></div>
+
+<section class="news"><div class="wrap box">
+  <span class="eyebrow">Círculo KM</span><div class="gold-rule"></div>
+  <h2>Seja o primeiro a conhecer<br>as novas coleções</h2>
+  <p>Lançamentos, curadorias e convites exclusivos — com a discrição que a marca merece.</p>
+  <form onsubmit="return false"><input type="email" placeholder="Seu e-mail"><button>Assinar</button></form>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="foot-grid">
+    <div class="foot-brand"><img src="logo.png" alt="KM Interiores"><p>KM Interiores — curadoria de mobiliário de alto luxo, locação premium e atelier de impressão 3D. A arte de habitar o extraordinário.</p></div>
+    <div class="foot-col"><h6>Coleções</h6><a href="#">Sofás</a><a href="#">Cabeceiras</a><a href="#">Banquetas</a><a href="#">Guarda-Roupas</a></div>
+    <div class="foot-col"><h6>A Casa</h6><a href="#">A Marca</a><a href="#">Projetos</a><a href="#">Locação Premium</a><a href="#">Atelier 3D</a></div>
+    <div class="foot-col"><h6>Atendimento</h6><a href="#">Curadoria sob medida</a><a href="#">WhatsApp</a><a href="#">Área do Cliente</a><a href="#">Contato</a></div>
+  </div>
+  <div class="foot-bottom"><small>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</small><small>Design que inspira. Sofisticação que permanece.</small></div>
+</div></footer>
+
+</body>
+</html>
