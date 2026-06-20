@@ -37,7 +37,7 @@
   + '.kmc-body{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;background:'
   + 'radial-gradient(90% 60% at 90% 0%,rgba(203,152,76,.06),transparent 60%),#0f0e0c}'
   + '.kmc-body::-webkit-scrollbar{width:7px}.kmc-body::-webkit-scrollbar-thumb{background:rgba(203,152,76,.3);border-radius:4px}'
-  + '.kmc-msg{max-width:84%;padding:11px 14px;font-size:13.5px;line-height:1.55;border-radius:12px}'
+  + '.kmc-msg{max-width:84%;padding:11px 14px;font-size:13.5px;line-height:1.55;border-radius:12px;white-space:pre-wrap;word-break:break-word}'
   + '.kmc-bot{align-self:flex-start;background:#15130f;border:1px solid rgba(203,152,76,.16);color:#F1E9D2;border-bottom-left-radius:3px}'
   + '.kmc-user{align-self:flex-end;background:linear-gradient(135deg,#CB984C,#9D7D31);color:#0d0b08;border-bottom-right-radius:3px;font-weight:500}'
   + '.kmc-typing{align-self:flex-start;color:rgba(241,228,201,.5);font-size:13px;font-style:italic;padding:6px 4px}'
@@ -101,21 +101,64 @@
     d.className = "kmc-msg " + (who === "user" ? "kmc-user" : "kmc-bot");
     d.textContent = texto; body.appendChild(d); scrollBottom(); return d;
   }
-  function addQuick(opcoes) {
+  function addQuick(opcoes, handler) {
     var w = document.createElement("div"); w.className = "kmc-quick";
     opcoes.forEach(function (o) {
-      var b = document.createElement("button"); b.textContent = o;
-      b.onclick = function () { w.remove(); enviar(o); };
+      var label = (o && typeof o === "object") ? o.label : o;
+      var b = document.createElement("button"); b.textContent = label;
+      b.onclick = function () { w.remove(); (handler || enviar)(o); };
       w.appendChild(b);
     });
     body.appendChild(w); scrollBottom();
+  }
+  function api(payload) {
+    return fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function (r) { return r.json(); });
+  }
+  function addLink(texto, url) {
+    var d = document.createElement("div"); d.className = "kmc-msg kmc-bot";
+    var a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener";
+    a.style.color = "#CB984C"; a.style.textDecoration = "underline"; a.textContent = texto;
+    d.appendChild(a); body.appendChild(d); scrollBottom();
+  }
+  function roteiro(o) {
+    var label = (o && typeof o === "object") ? o.label : o;
+    if (label === "Quero conhecer os móveis") { addMsg(label, "user"); mostrarCategorias(); return; }
+    if (label === "Falar com um especialista") { addMsg(label, "user"); addMsg("Com prazer. Deixe seu nome e WhatsApp abaixo e um especialista da KM falará com você em breve.", "bot"); mostrarLead(); return; }
+    enviar(label);
+  }
+  function mostrarCategorias() {
+    var carregando = addMsg("Apresentando nossas coleções…", "bot");
+    api({ acao: "catalogo" }).then(function (j) {
+      carregando.remove();
+      var cats = (j && j.categorias) || [];
+      if (!cats.length) { addMsg("No momento estamos atualizando o catálogo. Posso conduzir uma curadoria — deseja deixar seu contato?", "bot"); mostrarLead(); return; }
+      addMsg("Com prazer. Estas são as nossas coleções de mobiliário — selecione uma para conhecer as peças:", "bot");
+      addQuick(cats.map(function (c) { return { label: c.categoria + " (" + c.total + ")", categoria: c.categoria }; }), function (o) { mostrarPecas(o.categoria); });
+    }).catch(function () { carregando.remove(); addMsg("Tive uma instabilidade ao carregar o catálogo. Se preferir, deixe seu contato que um especialista o apresentará.", "bot"); mostrarLead(); });
+  }
+  function mostrarPecas(categoria) {
+    addMsg(categoria, "user");
+    var carregando = addMsg("Reunindo as peças de " + categoria + "…", "bot");
+    api({ acao: "catalogo", categoria: categoria }).then(function (j) {
+      carregando.remove();
+      var pecas = (j && j.pecas) || [];
+      if (!pecas.length) { addMsg("Esta coleção está em curadoria. Posso conduzir uma seleção sob medida — deseja deixar seu contato?", "bot"); mostrarLead(); return; }
+      var nomes = pecas.map(function (p) { return "•  " + p.nome; }).join("\n");
+      addMsg("Em " + categoria + ", algumas de nossas peças:\n" + nomes + "\n\nOs acabamentos são sob medida e o valor é apresentado em proposta exclusiva.", "bot");
+      addLink("Ver a coleção completa no catálogo →", "catalogo.html");
+      addQuick(["Solicitar curadoria", "Ver outra categoria"], function (o) {
+        var label = (o && typeof o === "object") ? o.label : o;
+        if (label === "Ver outra categoria") mostrarCategorias();
+        else { addMsg(label, "user"); addMsg("Perfeito. Deixe seu nome e WhatsApp e um especialista conduzirá sua curadoria.", "bot"); mostrarLead(); }
+      });
+    }).catch(function () { carregando.remove(); addMsg("Tive uma instabilidade. Se preferir, deixe seu contato que um especialista o apresentará.", "bot"); mostrarLead(); });
   }
 
   var saudou = false;
   function saudar() {
     if (saudou) return; saudou = true;
     addMsg("É uma satisfação recebê-lo na KM Interiores. Sou a concierge da casa e posso conduzir sua curadoria — móveis de luxo, locação premium ou impressão 3D de decoração. Em que posso ajudá-lo?", "bot");
-    addQuick(["Quero conhecer os móveis", "Locação para evento", "Impressão 3D personalizada", "Falar com um especialista"]);
+    addQuick(["Quero conhecer os móveis", "Locação para evento", "Impressão 3D personalizada", "Falar com um especialista"], roteiro);
   }
 
   function abrir() { panel.classList.add("kmc-on"); launch.style.display = "none"; aberto = true; saudar(); setTimeout(function(){ input.focus(); }, 100); }

@@ -198,24 +198,7 @@
       <section class="view" data-v="funil" hidden>
         <div class="h1">Funil de Vendas</div>
         <div class="sub">Pipeline do projeto · <span style="color:var(--ouro)">arraste os cards entre as colunas — a posição é salva</span></div>
-        <div class="kanban" id="funilKanban">
-          <div class="col" data-col="0"><h4>Novo lead <span>2</span></h4>
-            <div class="lead" data-id="l1" draggable="true"><div class="nm">Marina Alvarez (Arq.)</div><div class="mt">Instagram · sala de estar</div><div class="val">R$ 86.400</div></div>
-            <div class="lead" data-id="l2" draggable="true"><div class="nm">Studio Lumière</div><div class="mt">Indicação</div><div class="val">R$ 42.000</div></div>
-          </div>
-          <div class="col" data-col="1"><h4>Curadoria <span>1</span></h4>
-            <div class="lead" data-id="l3" draggable="true"><div class="nm">Família Tavares</div><div class="mt">Indicação A/A+</div><div class="val">R$ 64.200</div></div>
-          </div>
-          <div class="col" data-col="2"><h4>Proposta <span>1</span></h4>
-            <div class="lead" data-id="l4" draggable="true"><div class="nm">Cobertura Jardins</div><div class="mt">Arq. Marina</div><div class="val">R$ 86.400</div></div>
-          </div>
-          <div class="col" data-col="3"><h4>Negociação <span>1</span></h4>
-            <div class="lead" data-id="l5" draggable="true"><div class="nm">Incorp. Vista Real</div><div class="mt">Decorado 3 unid.</div><div class="val">R$ 198.000</div></div>
-          </div>
-          <div class="col" data-col="4"><h4>Ganho <span>1</span></h4>
-            <div class="lead" data-id="l6" draggable="true"><div class="nm">Sr. Eduardo M.</div><div class="mt">Sofá Milano</div><div class="val">R$ 51.300</div></div>
-          </div>
-        </div>
+        <div class="kanban" id="funilKanban"><div class="empty" style="grid-column:1/-1">Carregando funil…</div></div>
       </section>
 
       <!-- ===== AGENTES DE IA ===== -->
@@ -629,16 +612,12 @@
     .catch(function(e){ alert('Não foi possível deletar (sem permissão de equipe ou erro de conexão).'); console.error(e); });
   }
   // ===== Kanban arrastável (funil) =====
-  function initFunil(){
-    var k=$('funilKanban'); if(!k || k.dataset.init) return; k.dataset.init='1';
+  var ESTAGIOS=[{k:'novo_lead',t:'Novo lead'},{k:'curadoria',t:'Curadoria'},{k:'proposta',t:'Proposta'},{k:'negociacao',t:'Negociação'},{k:'ganho',t:'Ganho'}];
+  function funilCounts(k){ k.querySelectorAll('.col').forEach(function(c){ var s=c.querySelector('h4 span'); if(s) s.textContent=c.querySelectorAll('.lead').length; }); }
+  function funilDnD(k){
     var cols=[].slice.call(k.querySelectorAll('.col'));
-    var saved={}; try{ saved=JSON.parse(localStorage.getItem('km_funil')||'{}'); }catch(e){}
-    function counts(){ cols.forEach(function(c){ var s=c.querySelector('h4 span'); if(s) s.textContent=c.querySelectorAll('.lead').length; }); }
-    function persist(){ var m={}; cols.forEach(function(c,i){ c.querySelectorAll('.lead').forEach(function(cd){ m[cd.getAttribute('data-id')]=i; }); }); localStorage.setItem('km_funil',JSON.stringify(m)); }
     k.querySelectorAll('.lead').forEach(function(card){
-      var id=card.getAttribute('data-id');
-      if(saved[id]!=null && cols[saved[id]]) cols[saved[id]].appendChild(card);
-      card.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed='move'; card.classList.add('dragging'); });
+      card.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', card.getAttribute('data-id')); e.dataTransfer.effectAllowed='move'; card.classList.add('dragging'); });
       card.addEventListener('dragend', function(){ card.classList.remove('dragging'); });
     });
     cols.forEach(function(col){
@@ -646,10 +625,33 @@
       col.addEventListener('dragleave', function(e){ if(!col.contains(e.relatedTarget)) col.classList.remove('over'); });
       col.addEventListener('drop', function(e){ e.preventDefault(); col.classList.remove('over');
         var id=e.dataTransfer.getData('text/plain'); var card=k.querySelector('.lead[data-id="'+id+'"]');
-        if(card && card.parentNode!==col){ col.appendChild(card); persist(); counts(); }
+        if(card && card.parentNode!==col){ col.appendChild(card); funilCounts(k);
+          var novo=col.getAttribute('data-estagio'); var tok=localStorage.getItem(TOKKEY);
+          fetch(SB+'/rest/v1/oportunidades?id=eq.'+id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({estagio:novo})}).catch(function(_e){});
+        }
       });
     });
-    counts();
+  }
+  function initFunil(){
+    var k=$('funilKanban'); if(!k) return;
+    var tok=localStorage.getItem(TOKKEY);
+    k.innerHTML='<div class="empty" style="grid-column:1/-1">Carregando funil…</div>';
+    fetch(SB+'/rest/v1/oportunidades?select=id,titulo,valor,estagio,origem&order=created_at.desc&limit=300',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(rows){
+      rows=Array.isArray(rows)?rows:[];
+      k.innerHTML=ESTAGIOS.map(function(s){ return '<div class="col" data-estagio="'+s.k+'"><h4>'+s.t+' <span>0</span></h4></div>'; }).join('');
+      var by={}; ESTAGIOS.forEach(function(s){ by[s.k]=k.querySelector('.col[data-estagio="'+s.k+'"]'); });
+      rows.forEach(function(o){
+        var col=by[o.estagio]||by['novo_lead']; if(!col) return;
+        var val=(o.valor&&Number(o.valor)>0)?'<div class="val">R$ '+Number(o.valor).toLocaleString('pt-BR')+'</div>':'';
+        var card=document.createElement('div'); card.className='lead'; card.setAttribute('draggable','true'); card.setAttribute('data-id',o.id);
+        card.innerHTML='<div class="nm">'+esc(o.titulo||'—')+'</div><div class="mt">'+esc(o.origem||'')+'</div>'+val;
+        col.appendChild(card);
+      });
+      funilDnD(k); funilCounts(k);
+    })
+    .catch(function(e){ k.innerHTML='<div class="empty" style="grid-column:1/-1">Não foi possível carregar o funil (entre como equipe).</div>'; console.error(e); });
   }
   document.querySelectorAll('.nav a[data-view]').forEach(function(a){
     a.addEventListener('click', function(e){ e.preventDefault(); showView(a.getAttribute('data-view')); });
