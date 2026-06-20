@@ -89,15 +89,20 @@
 
 <footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p><p class="tag">Design que inspira. Sofisticação que permanece.</p></div></footer>
 
-<script type="module">
-  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-  const sb = createClient('https://hpbtnlfihbwwawgtesvm.supabase.co','sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE');
+<script>
+  const SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  async function sbSelect(qs){
+    const r = await fetch(SB+'/rest/v1/'+qs,{headers:{apikey:KEY, Authorization:'Bearer '+KEY}});
+    if(!r.ok) throw new Error('HTTP '+r.status); return await r.json();
+  }
   const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const sku = new URLSearchParams(location.search).get('sku') || 'KM-SOF-MILANO';
 
   document.querySelectorAll('.sw').forEach(s=>s.addEventListener('click',()=>{document.querySelectorAll('.sw').forEach(x=>x.classList.remove('active'));s.classList.add('active');}));
 
   (async ()=>{
-    let { data:p } = await sb.from('produtos').select('*').eq('sku',sku).maybeSingle();
-    if(!p){ const r = await sb.from('produtos').select('*').eq('destaque',true).limit(1).maybeSingle(); p=r.data; }
-    if(!p){ document.getElementById('state').textContent='Pe
+    let p=null;
+    try{
+      let arr = await sbSelect('produtos?select=*&sku=eq.'+encodeURIComponent(sku)+'&limit=1');
+      p = arr[0];
+      if(!p){ arr 
