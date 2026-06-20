@@ -99,6 +99,10 @@
   .agtag.ok{background:rgba(120,160,90,.18);color:#bcd39a}
   .agtag.soon{border:1px solid var(--line);color:var(--ouro)}
   @media(max-width:1000px){.agents{grid-template-columns:1fr}}
+  #funilKanban .lead{cursor:grab}
+  #funilKanban .lead:active{cursor:grabbing}
+  #funilKanban .lead.dragging{opacity:.45;border-style:dashed}
+  #funilKanban .col.over{background:rgba(203,152,76,.10);outline:1px dashed var(--accent);outline-offset:-3px}
 </style>
 </head>
 <body>
@@ -175,13 +179,24 @@
       <!-- ===== FUNIL ===== -->
       <section class="view" data-v="funil" hidden>
         <div class="h1">Funil de Vendas</div>
-        <div class="sub">Pipeline do projeto · <span style="color:var(--ouro)">dados ilustrativos para apresentação</span></div>
-        <div class="kanban">
-          <div class="col"><h4>Novo lead <span>4</span></h4><div class="lead"><div class="nm">Marina Alvarez (Arq.)</div><div class="mt">Instagram · sala de estar</div><div class="val">R$ 86.400</div></div><div class="lead"><div class="nm">Studio Lumière</div><div class="mt">Indicação</div><div class="val">R$ 42.000</div></div></div>
-          <div class="col"><h4>Curadoria <span>3</span></h4><div class="lead"><div class="nm">Família Tavares</div><div class="mt">Indicação A/A+</div><div class="val">R$ 64.200</div></div></div>
-          <div class="col"><h4>Proposta <span>2</span></h4><div class="lead"><div class="nm">Cobertura Jardins</div><div class="mt">Arq. Marina</div><div class="val">R$ 86.400</div></div></div>
-          <div class="col"><h4>Negociação <span>2</span></h4><div class="lead"><div class="nm">Incorp. Vista Real</div><div class="mt">Decorado 3 unid.</div><div class="val">R$ 198.000</div></div></div>
-          <div class="col"><h4>Ganho <span>5</span></h4><div class="lead"><div class="nm">Sr. Eduardo M.</div><div class="mt">Sofá Milano</div><div class="val">R$ 51.300</div></div></div>
+        <div class="sub">Pipeline do projeto · <span style="color:var(--ouro)">arraste os cards entre as colunas — a posição é salva</span></div>
+        <div class="kanban" id="funilKanban">
+          <div class="col" data-col="0"><h4>Novo lead <span>2</span></h4>
+            <div class="lead" data-id="l1" draggable="true"><div class="nm">Marina Alvarez (Arq.)</div><div class="mt">Instagram · sala de estar</div><div class="val">R$ 86.400</div></div>
+            <div class="lead" data-id="l2" draggable="true"><div class="nm">Studio Lumière</div><div class="mt">Indicação</div><div class="val">R$ 42.000</div></div>
+          </div>
+          <div class="col" data-col="1"><h4>Curadoria <span>1</span></h4>
+            <div class="lead" data-id="l3" draggable="true"><div class="nm">Família Tavares</div><div class="mt">Indicação A/A+</div><div class="val">R$ 64.200</div></div>
+          </div>
+          <div class="col" data-col="2"><h4>Proposta <span>1</span></h4>
+            <div class="lead" data-id="l4" draggable="true"><div class="nm">Cobertura Jardins</div><div class="mt">Arq. Marina</div><div class="val">R$ 86.400</div></div>
+          </div>
+          <div class="col" data-col="3"><h4>Negociação <span>1</span></h4>
+            <div class="lead" data-id="l5" draggable="true"><div class="nm">Incorp. Vista Real</div><div class="mt">Decorado 3 unid.</div><div class="val">R$ 198.000</div></div>
+          </div>
+          <div class="col" data-col="4"><h4>Ganho <span>1</span></h4>
+            <div class="lead" data-id="l6" draggable="true"><div class="nm">Sr. Eduardo M.</div><div class="mt">Sofá Milano</div><div class="val">R$ 51.300</div></div>
+          </div>
         </div>
       </section>
 
@@ -373,7 +388,31 @@
     if(!found){ var d=document.querySelector('.view[data-v="dashboard"]'); if(d)d.hidden=false; v='dashboard'; }
     document.querySelectorAll('.nav a[data-view]').forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-view')===v); });
     if(v==='catalogo') loadCatCount();
+    if(v==='funil') initFunil();
     var c=document.querySelector('.content'); if(c) c.scrollTop=0;
+  }
+  // ===== Kanban arrastável (funil) =====
+  function initFunil(){
+    var k=$('funilKanban'); if(!k || k.dataset.init) return; k.dataset.init='1';
+    var cols=[].slice.call(k.querySelectorAll('.col'));
+    var saved={}; try{ saved=JSON.parse(localStorage.getItem('km_funil')||'{}'); }catch(e){}
+    function counts(){ cols.forEach(function(c){ var s=c.querySelector('h4 span'); if(s) s.textContent=c.querySelectorAll('.lead').length; }); }
+    function persist(){ var m={}; cols.forEach(function(c,i){ c.querySelectorAll('.lead').forEach(function(cd){ m[cd.getAttribute('data-id')]=i; }); }); localStorage.setItem('km_funil',JSON.stringify(m)); }
+    k.querySelectorAll('.lead').forEach(function(card){
+      var id=card.getAttribute('data-id');
+      if(saved[id]!=null && cols[saved[id]]) cols[saved[id]].appendChild(card);
+      card.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed='move'; card.classList.add('dragging'); });
+      card.addEventListener('dragend', function(){ card.classList.remove('dragging'); });
+    });
+    cols.forEach(function(col){
+      col.addEventListener('dragover', function(e){ e.preventDefault(); e.dataTransfer.dropEffect='move'; col.classList.add('over'); });
+      col.addEventListener('dragleave', function(e){ if(!col.contains(e.relatedTarget)) col.classList.remove('over'); });
+      col.addEventListener('drop', function(e){ e.preventDefault(); col.classList.remove('over');
+        var id=e.dataTransfer.getData('text/plain'); var card=k.querySelector('.lead[data-id="'+id+'"]');
+        if(card && card.parentNode!==col){ col.appendChild(card); persist(); counts(); }
+      });
+    });
+    counts();
   }
   document.querySelectorAll('.nav a[data-view]').forEach(function(a){
     a.addEventListener('click', function(e){ e.preventDefault(); showView(a.getAttribute('data-view')); });
