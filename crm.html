@@ -70,6 +70,35 @@
   .empty{padding:30px 20px;text-align:center;color:var(--muted);font-size:13px}
   .demo{text-align:center;font-size:10px;letter-spacing:.1em;color:var(--ouro);padding:12px;border-top:1px solid var(--line)}
   @media(max-width:1000px){.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.kanban{grid-template-columns:repeat(2,1fr)}}
+  .ia-btn{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);border:1px solid var(--line);background:transparent;padding:6px 11px;border-radius:3px;cursor:pointer;transition:.2s}
+  .ia-btn:hover{border-color:var(--accent);background:rgba(203,152,76,.10)}
+  .ia-btn.sug{color:#080807;background:var(--accent);border-color:var(--accent)}
+  .ia-tag.ok{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#bcd39a;border:1px solid rgba(120,160,90,.4);padding:4px 9px;border-radius:2px}
+  #iaModal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.66);align-items:center;justify-content:center;padding:20px}
+  #iaModal .iabox{max-width:580px;width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:6px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  #iaModal .iahead{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line)}
+  #iaModal .iahead b{font-family:var(--serif);font-weight:500;color:var(--accent);font-size:16px}
+  #iaModal .iahead span{cursor:pointer;color:var(--muted);font-size:15px}
+  #iaModal .iabody{padding:20px 22px}
+  #iaModal .iameta{font-size:12.5px;letter-spacing:.04em;color:var(--text);margin-bottom:14px}
+  #iaModal .ialab{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);margin-bottom:7px}
+  #iaModal textarea{width:100%;min-height:150px;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:13px;font-family:var(--sans);font-size:13.5px;line-height:1.55;border-radius:4px;resize:vertical;outline:none}
+  #iaModal textarea:focus{border-color:var(--accent)}
+  #iaModal .iaprox{font-size:12.5px;color:var(--champagne);margin-top:12px}
+  #iaModal .iaft{display:flex;gap:10px;margin-top:18px}
+  #iaModal .iaok{background:var(--accent);color:#080807;border:none;padding:12px 24px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:3px}
+  #iaModal .iacancel{background:transparent;border:1px solid var(--line);color:var(--text);padding:12px 22px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:3px}
+  #iaModal .iagov{font-size:11px;color:var(--muted);margin-top:14px;line-height:1.5;border-top:1px dashed var(--line);padding-top:12px}
+  .view[hidden]{display:none}
+  .agents{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .ag{background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:20px 22px}
+  .ag.on{border-left:2px solid var(--accent)}
+  .ag .agh{font-family:var(--serif);font-size:16px;color:var(--text);display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .ag p{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:12px}
+  .agtag{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:2px}
+  .agtag.ok{background:rgba(120,160,90,.18);color:#bcd39a}
+  .agtag.soon{border:1px solid var(--line);color:var(--ouro)}
+  @media(max-width:1000px){.agents{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -91,51 +120,126 @@
   <aside class="side">
     <div class="brand"><img src="logo.png" alt="KM"><b>KM&nbsp;CRM</b></div>
     <nav class="nav">
-      <a class="active"><span class="dot"></span> Dashboard</a>
-      <a><span class="dot"></span> Funil de Vendas</a>
-      <a><span class="dot"></span> Clientes</a>
-      <a><span class="dot"></span> Catálogo</a>
+      <a class="active" href="#" data-view="dashboard"><span class="dot"></span> Dashboard</a>
+      <a href="#" data-view="funil"><span class="dot"></span> Funil de Vendas</a>
+      <a href="#" data-view="clientes"><span class="dot"></span> Clientes</a>
+      <a href="#" data-view="catalogo"><span class="dot"></span> Catálogo</a>
       <div class="sec">Operação</div>
-      <a><span class="dot"></span> Leads & Atendimento</a>
-      <a><span class="dot"></span> Pedidos</a>
-      <a><span class="dot"></span> Financeiro</a>
+      <a href="#" data-view="leads"><span class="dot"></span> Leads & Atendimento</a>
+      <a href="#" data-view="pedidos"><span class="dot"></span> Pedidos</a>
+      <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
       <div class="sec">Inteligência</div>
-      <a><span class="dot"></span> Agentes de IA</a>
-      <a><span class="dot"></span> Relatórios</a>
+      <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
+      <a href="#" data-view="relatorios"><span class="dot"></span> Relatórios</a>
     </nav>
   </aside>
   <div class="main">
     <div class="topbar">
-      <input class="search" placeholder="Buscar cliente, pedido, peça...">
-      <div class="right"><span class="ai">✦ Assistente IA</span><span class="who" id="who"></span><span class="out" id="logout">Sair</span></div>
+      <input class="search" id="search" placeholder="Buscar lead por nome, contato, interesse...">
+      <div class="right"><span class="ai" id="aiBtn">✦ Assistente IA</span><span class="who" id="who"></span><span class="out" id="logout">Sair</span></div>
     </div>
     <div class="content">
-      <div class="h1">Dashboard</div>
-      <div class="sub">Visão geral · governança IA propõe → admin aprova</div>
+      <!-- ===== DASHBOARD ===== -->
+      <section class="view" data-v="dashboard">
+        <div class="h1">Dashboard</div>
+        <div class="sub">Visão geral · governança IA propõe → admin aprova</div>
+        <div class="kpis">
+          <div class="kpi"><div class="l">Leads (total)</div><div class="n" id="kpiLeads">—</div><div class="d" id="kpiLeads7">tempo real</div></div>
+          <div class="kpi"><div class="l">Faturamento (mês)</div><div class="n">R$ 312.480</div><div class="d">ilustrativo</div></div>
+          <div class="kpi"><div class="l">Pipeline ponderado</div><div class="n">R$ 486.000</div><div class="d">ilustrativo</div></div>
+          <div class="kpi"><div class="l">Ticket médio</div><div class="n">R$ 28.400</div><div class="d">ilustrativo</div></div>
+        </div>
+        <div class="funnel-title">Funil de Vendas · Pipeline Projeto <span class="tagdemo" style="font-size:9.5px">dados ilustrativos</span></div>
+        <div class="kanban">
+          <div class="col"><h4>Novo lead <span>4</span></h4><div class="lead"><div class="nm">Marina Alvarez (Arq.)</div><div class="mt">Instagram · sala de estar</div><div class="val">R$ 86.400</div></div></div>
+          <div class="col"><h4>Curadoria <span>3</span></h4><div class="lead"><div class="nm">Família Tavares</div><div class="mt">Indicação A/A+</div><div class="val">R$ 64.200</div></div></div>
+          <div class="col"><h4>Proposta <span>2</span></h4><div class="lead"><div class="nm">Cobertura Jardins</div><div class="mt">Arq. Marina</div><div class="val">R$ 86.400</div></div></div>
+          <div class="col"><h4>Negociação <span>2</span></h4><div class="lead"><div class="nm">Incorp. Vista Real</div><div class="mt">Decorado 3 unid.</div><div class="val">R$ 198.000</div></div></div>
+          <div class="col"><h4>Ganho <span>5</span></h4><div class="lead"><div class="nm">Sr. Eduardo M.</div><div class="mt">Sofá Milano</div><div class="val">R$ 51.300</div></div></div>
+        </div>
+      </section>
 
-      <div class="panel">
-        <h3>Leads recebidos pelo site <span class="tagreal" id="leadsTag">● tempo real</span></h3>
-        <table>
-          <thead><tr><th>Nome</th><th>Contato</th><th>Interesse</th><th>Origem</th><th>Recebido</th></tr></thead>
-          <tbody id="leadsBody"><tr><td colspan="5" class="empty">Carregando leads…</td></tr></tbody>
-        </table>
-      </div>
+      <!-- ===== LEADS & ATENDIMENTO ===== -->
+      <section class="view" data-v="leads" hidden>
+        <div class="h1">Leads &amp; Atendimento</div>
+        <div class="sub">Leads reais recebidos pelo site · acione o agente para qualificar e propor a resposta</div>
+        <div class="panel">
+          <h3>Leads recebidos pelo site <span class="tagreal" id="leadsTag">● tempo real</span></h3>
+          <table>
+            <thead><tr><th>Nome</th><th>Contato</th><th>Interesse</th><th>Origem</th><th>Recebido</th><th>IA · propõe→aprova</th></tr></thead>
+            <tbody id="leadsBody"><tr><td colspan="6" class="empty">Carregando leads…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
 
-      <div class="kpis">
-        <div class="kpi"><div class="l">Leads (total)</div><div class="n" id="kpiLeads">—</div><div class="d" id="kpiLeads7">tempo real</div></div>
-        <div class="kpi"><div class="l">Faturamento (mês)</div><div class="n">R$ 312.480</div><div class="d">ilustrativo</div></div>
-        <div class="kpi"><div class="l">Pipeline ponderado</div><div class="n">R$ 486.000</div><div class="d">ilustrativo</div></div>
-        <div class="kpi"><div class="l">Ticket médio</div><div class="n">R$ 28.400</div><div class="d">ilustrativo</div></div>
-      </div>
+      <!-- ===== FUNIL ===== -->
+      <section class="view" data-v="funil" hidden>
+        <div class="h1">Funil de Vendas</div>
+        <div class="sub">Pipeline do projeto · <span style="color:var(--ouro)">dados ilustrativos para apresentação</span></div>
+        <div class="kanban">
+          <div class="col"><h4>Novo lead <span>4</span></h4><div class="lead"><div class="nm">Marina Alvarez (Arq.)</div><div class="mt">Instagram · sala de estar</div><div class="val">R$ 86.400</div></div><div class="lead"><div class="nm">Studio Lumière</div><div class="mt">Indicação</div><div class="val">R$ 42.000</div></div></div>
+          <div class="col"><h4>Curadoria <span>3</span></h4><div class="lead"><div class="nm">Família Tavares</div><div class="mt">Indicação A/A+</div><div class="val">R$ 64.200</div></div></div>
+          <div class="col"><h4>Proposta <span>2</span></h4><div class="lead"><div class="nm">Cobertura Jardins</div><div class="mt">Arq. Marina</div><div class="val">R$ 86.400</div></div></div>
+          <div class="col"><h4>Negociação <span>2</span></h4><div class="lead"><div class="nm">Incorp. Vista Real</div><div class="mt">Decorado 3 unid.</div><div class="val">R$ 198.000</div></div></div>
+          <div class="col"><h4>Ganho <span>5</span></h4><div class="lead"><div class="nm">Sr. Eduardo M.</div><div class="mt">Sofá Milano</div><div class="val">R$ 51.300</div></div></div>
+        </div>
+      </section>
 
-      <div class="funnel-title">Funil de Vendas · Pipeline Projeto <span class="tagdemo" style="font-size:9.5px">dados ilustrativos</span></div>
-      <div class="kanban">
-        <div class="col"><h4>Novo lead <span>4</span></h4><div class="lead"><div class="nm">Marina Alvarez (Arq.)</div><div class="mt">Instagram · sala de estar</div><div class="val">R$ 86.400</div></div></div>
-        <div class="col"><h4>Curadoria <span>3</span></h4><div class="lead"><div class="nm">Família Tavares</div><div class="mt">Indicação A/A+</div><div class="val">R$ 64.200</div></div></div>
-        <div class="col"><h4>Proposta <span>2</span></h4><div class="lead"><div class="nm">Cobertura Jardins</div><div class="mt">Arq. Marina</div><div class="val">R$ 86.400</div></div></div>
-        <div class="col"><h4>Negociação <span>2</span></h4><div class="lead"><div class="nm">Incorp. Vista Real</div><div class="mt">Decorado 3 unid.</div><div class="val">R$ 198.000</div></div></div>
-        <div class="col"><h4>Ganho <span>5</span></h4><div class="lead"><div class="nm">Sr. Eduardo M.</div><div class="mt">Sofá Milano</div><div class="val">R$ 51.300</div></div></div>
-      </div>
+      <!-- ===== AGENTES DE IA ===== -->
+      <section class="view" data-v="agentes" hidden>
+        <div class="h1">Agentes de IA</div>
+        <div class="sub">Camada C4 · Ferramentas · governança <b style="color:var(--accent)">IA propõe → Edson aprova</b></div>
+        <div class="agents">
+          <div class="ag on"><div class="agh">Qualificador de Leads <span class="agtag ok">ativo</span></div><p>Classifica o lead (Quente/Morno/Frio + score), propõe resposta on-brand e o próximo passo. Lê o catálogo real como contexto.</p><button class="ia-btn" id="agRunLatest">✦ Rodar no lead mais recente</button></div>
+          <div class="ag on"><div class="agh">Curador de Produto <span class="agtag ok">ativo</span></div><p>Gera descrição editorial de luxo para peças do catálogo, no tom da marca. Sugere → você publica.</p></div>
+          <div class="ag"><div class="agh">Briefing 360 <span class="agtag soon">em ativação</span></div><p>Consolida o histórico do cliente (pedidos, propostas, projetos) num resumo executivo antes do atendimento.</p></div>
+          <div class="ag"><div class="agh">Régua / Lifecycle <span class="agtag soon">em ativação</span></div><p>Propõe e-mails de relacionamento e reengajamento (boas-vindas, pós-venda, KM Care). Depende de integração de e-mail.</p></div>
+          <div class="ag"><div class="agh">Sentinela (QA/Segurança) <span class="agtag soon">em ativação</span></div><p>Revisa conteúdo e segurança (RLS, governança) antes de qualquer publicação.</p></div>
+        </div>
+      </section>
+
+      <!-- ===== MÓDULOS EM ATIVAÇÃO ===== -->
+      <section class="view" data-v="clientes" hidden>
+        <div class="h1">Clientes</div>
+        <div class="sub">Base 360 de clientes · <span style="color:var(--ouro)">módulo em ativação · prévia ilustrativa</span></div>
+        <div class="panel"><h3>Clientes</h3><table>
+          <thead><tr><th>Nome</th><th>Segmento</th><th>Cidade</th><th>LTV estimado</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--text)">Sr. Eduardo Monteiro</td><td><span class="badge">A+</span></td><td>São Paulo/SP</td><td>R$ 142.000</td><td>Ativo</td></tr>
+            <tr><td style="color:var(--text)">Família Tavares</td><td><span class="badge">A</span></td><td>Campos do Jordão/SP</td><td>R$ 88.000</td><td>Ativo</td></tr>
+            <tr><td style="color:var(--text)">Arq. Marina Alvarez</td><td><span class="badge">Parceiro</span></td><td>São Paulo/SP</td><td>—</td><td>Especificadora</td></tr>
+          </tbody></table></div>
+      </section>
+      <section class="view" data-v="catalogo" hidden>
+        <div class="h1">Catálogo</div>
+        <div class="sub">Acervo conectado ao banco · <span id="catCount" style="color:var(--ouro)">consultando…</span></div>
+        <div class="panel"><h3>Coleções</h3><div style="padding:20px"><p style="color:var(--muted);font-size:13.5px;line-height:1.7">O catálogo oficial está publicado e conectado ao banco de dados. A vitrine pública abre em nova aba.</p><a class="ia-btn" href="catalogo.html" target="_blank" style="display:inline-block;margin-top:14px">Abrir catálogo no site →</a></div></div>
+      </section>
+      <section class="view" data-v="pedidos" hidden>
+        <div class="h1">Pedidos</div>
+        <div class="sub">Acompanhamento de produção e entrega · <span style="color:var(--ouro)">módulo em ativação · prévia ilustrativa</span></div>
+        <div class="panel"><h3>Pedidos recentes</h3><table>
+          <thead><tr><th>Peça</th><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--text)">Sofá Milano — Nogueira</td><td>#KM-2041</td><td>Sr. Eduardo</td><td>R$ 51.300</td><td><span class="badge">Em produção</span></td></tr>
+            <tr><td style="color:var(--text)">Cabeceira Vitória — Marfim</td><td>#KM-2038</td><td>Família Tavares</td><td>R$ 18.900</td><td><span class="ia-tag ok">Entregue</span></td></tr>
+          </tbody></table></div>
+      </section>
+      <section class="view" data-v="financeiro" hidden>
+        <div class="h1">Financeiro</div>
+        <div class="sub">DRE, margens e fluxo · <span style="color:var(--ouro)">módulo em ativação · prévia ilustrativa</span></div>
+        <div class="kpis">
+          <div class="kpi"><div class="l">Receita (mês)</div><div class="n">R$ 312.480</div><div class="d">ilustrativo</div></div>
+          <div class="kpi"><div class="l">Margem bruta</div><div class="n">58%</div><div class="d">ilustrativo</div></div>
+          <div class="kpi"><div class="l">Recebíveis</div><div class="n">R$ 196.000</div><div class="d">ilustrativo</div></div>
+          <div class="kpi"><div class="l">A pagar</div><div class="n">R$ 74.300</div><div class="d">ilustrativo</div></div>
+        </div>
+      </section>
+      <section class="view" data-v="relatorios" hidden>
+        <div class="h1">Relatórios</div>
+        <div class="sub">Briefings e análises · <span style="color:var(--ouro)">módulo em ativação</span></div>
+        <div class="panel"><h3>Relatórios disponíveis</h3><div style="padding:20px;color:var(--muted);font-size:13.5px;line-height:1.8">Briefing semanal · Análise financeira por pilar · Review de OKRs (QBR) · Performance de campanhas.<br><span style="color:var(--ouro)">Gerados sob demanda pela assessoria de IA.</span></div></div>
+      </section>
     </div>
     <div class="demo">Leads em tempo real do banco · KPIs do funil ilustrativos · governança IA propõe → Edson aprova</div>
   </div>
@@ -150,6 +254,11 @@
   function authHeaders(tok){return {apikey:KEY, Authorization:'Bearer '+tok};}
   function showApp(email){ $('gate').style.display='none'; $('app').style.display='block'; $('who').textContent=email||''; loadLeads(); }
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
+  function leadIaCell(l){
+    if(l.ia_status==='aprovado') return '<span class="ia-tag ok">✓ Aprovado</span> <button class="ia-btn" data-id="'+l.id+'">rever</button>';
+    if(l.ia_status==='ia_sugerido') return '<button class="ia-btn sug" data-id="'+l.id+'">● Ver sugestão · '+esc(l.ia_classificacao||'?')+'</button>';
+    return '<button class="ia-btn" data-id="'+l.id+'">✦ IA propõe</button>';
+  }
   function loadLeads(){
     var tok=localStorage.getItem(TOKKEY);
     fetch(SB+'/rest/v1/leads?select=*&order=created_at.desc&limit=50',{headers:authHeaders(tok)})
@@ -157,15 +266,62 @@
     .then(function(rows){
       $('kpiLeads').textContent=rows.length;
       var tb=$('leadsBody');
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Nenhum lead ainda. Quando alguém enviar o formulário de curadoria, aparece aqui.</td></tr>'; return; }
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="6" class="empty">Nenhum lead ainda. Quando alguém enviar o formulário de curadoria, aparece aqui.</td></tr>'; return; }
       tb.innerHTML=rows.map(function(l){
         var contato=[l.telefone,l.email].filter(Boolean).join(' · ');
         var d=new Date(l.created_at); var dt=isNaN(d)?'':d.toLocaleString('pt-BR');
-        return '<tr><td style="color:var(--text)">'+esc(l.nome||'—')+'</td><td>'+esc(contato)+'</td><td><span class="badge">'+esc(l.interesse||'—')+'</span></td><td>'+esc(l.origem||'—')+'</td><td>'+esc(dt)+'</td></tr>';
+        return '<tr><td style="color:var(--text)">'+esc(l.nome||'—')+'</td><td>'+esc(contato)+'</td><td><span class="badge">'+esc(l.interesse||'—')+'</span></td><td>'+esc(l.origem||'—')+'</td><td>'+esc(dt)+'</td><td>'+leadIaCell(l)+'</td></tr>';
       }).join('');
     })
-    .catch(function(e){ $('leadsBody').innerHTML='<tr><td colspan="5" class="empty">Sem permissão para ler os leads (seu usuário ainda não é staff) ou erro de conexão.</td></tr>'; console.error(e); });
+    .catch(function(e){ $('leadsBody').innerHTML='<tr><td colspan="6" class="empty">Sem permissão para ler os leads (seu usuário ainda não é staff) ou erro de conexão.</td></tr>'; console.error(e); });
   }
+  // ===== C4/C5 · IA propõe → Edson aprova =====
+  var iaLead=null;
+  function iaModal(){
+    var m=$('iaModal'); if(m) return m;
+    m=document.createElement('div'); m.id='iaModal';
+    m.innerHTML='<div class="iabox">'
+      +'<div class="iahead"><b>✦ Sugestão da IA · KM</b><span id="iaX">✕</span></div>'
+      +'<div class="iabody">'
+      +'<div id="iaMeta" class="iameta">Consultando o agente…</div>'
+      +'<label class="ialab">Resposta proposta (edite antes de aprovar, se quiser)</label>'
+      +'<textarea id="iaResp"></textarea>'
+      +'<div id="iaProx" class="iaprox"></div>'
+      +'<div class="iaft"><button id="iaAprovar" class="iaok">Aprovar</button><button id="iaFechar" class="iacancel">Fechar</button></div>'
+      +'<div class="iagov">Nada é enviado ao cliente automaticamente. Aprovar apenas marca o rascunho como validado por você.</div>'
+      +'</div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){ if(e.target===m) m.style.display='none'; });
+    $('iaX').onclick=function(){m.style.display='none';};
+    $('iaFechar').onclick=function(){m.style.display='none';};
+    $('iaAprovar').onclick=function(){
+      if(!iaLead) return;
+      var tok=localStorage.getItem(TOKKEY);
+      $('iaAprovar').disabled=true; $('iaAprovar').textContent='Salvando…';
+      fetch(SB+'/rest/v1/leads?id=eq.'+iaLead,{method:'PATCH',headers:{apikey:KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({ia_sugestao:$('iaResp').value,ia_status:'aprovado'})})
+      .then(function(){ $('iaAprovar').disabled=false; $('iaAprovar').textContent='Aprovar'; m.style.display='none'; loadLeads(); })
+      .catch(function(e){ $('iaAprovar').disabled=false; $('iaAprovar').textContent='Aprovar'; $('iaMeta').textContent='Erro ao salvar.'; console.error(e); });
+    };
+    return m;
+  }
+  function openIA(id){
+    iaLead=id; var tok=localStorage.getItem(TOKKEY);
+    var m=iaModal(); m.style.display='flex';
+    $('iaMeta').textContent='Consultando o agente de IA…'; $('iaResp').value=''; $('iaProx').textContent='';
+    fetch(SB+'/functions/v1/agente-ia',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({lead_id:id})})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j.ok===false || j.error){ $('iaMeta').textContent=(j.error||'Não foi possível consultar a IA.'); return; }
+      var fonte=(j._fonte||j.fonte||''); var via=fonte.indexOf('groq')===0?'Groq · Llama 3.3':'fallback (configure GROQ_API_KEY p/ IA real)';
+      $('iaMeta').innerHTML='Classificação: <b style="color:var(--accent)">'+esc(j.classificacao||'—')+'</b> · Score '+esc(String(j.score||0))+' · <span style="color:var(--ouro)">'+esc(via)+'</span>';
+      $('iaResp').value=j.resposta_sugerida||'';
+      $('iaProx').textContent='Próximo passo: '+(j.proximo_passo||'—');
+    })
+    .catch(function(e){ $('iaMeta').textContent='Erro de conexão com o agente.'; console.error(e); });
+  }
+  document.getElementById('leadsBody').addEventListener('click',function(e){
+    var b=e.target.closest?e.target.closest('.ia-btn'):null; if(b) openIA(b.getAttribute('data-id'));
+  });
   function checkRole(tok){
     return fetch(SB+'/auth/v1/user',{headers:authHeaders(tok)})
       .then(function(r){ return r.ok?r.json():null; })
@@ -210,6 +366,47 @@
     $('g_msg').textContent='';
   });
   $('logout').addEventListener('click', function(){ localStorage.removeItem(TOKKEY); showGate('Sessão encerrada.'); });
+  // ===== Navegação entre telas =====
+  function showView(v){
+    var found=false;
+    document.querySelectorAll('.view').forEach(function(s){ var m=(s.getAttribute('data-v')===v); s.hidden=!m; if(m)found=true; });
+    if(!found){ var d=document.querySelector('.view[data-v="dashboard"]'); if(d)d.hidden=false; v='dashboard'; }
+    document.querySelectorAll('.nav a[data-view]').forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-view')===v); });
+    if(v==='catalogo') loadCatCount();
+    var c=document.querySelector('.content'); if(c) c.scrollTop=0;
+  }
+  document.querySelectorAll('.nav a[data-view]').forEach(function(a){
+    a.addEventListener('click', function(e){ e.preventDefault(); showView(a.getAttribute('data-view')); });
+  });
+  // ===== Busca filtra a tabela de leads =====
+  var sEl=$('search');
+  if(sEl) sEl.addEventListener('input', function(){
+    var q=this.value.toLowerCase();
+    document.querySelectorAll('#leadsBody tr').forEach(function(tr){
+      if(tr.querySelector('.empty')) return;
+      tr.style.display = tr.textContent.toLowerCase().indexOf(q)>=0 ? '' : 'none';
+    });
+  });
+  // ===== Assistente IA (topo) abre a aba de Agentes =====
+  if($('aiBtn')) $('aiBtn').style.cursor='pointer';
+  if($('aiBtn')) $('aiBtn').addEventListener('click', function(){ showView('agentes'); });
+  // ===== Agentes: rodar no lead mais recente =====
+  document.addEventListener('click', function(e){
+    if(e.target && e.target.id==='agRunLatest'){
+      var tok=localStorage.getItem(TOKKEY);
+      e.target.disabled=true; var old=e.target.textContent; e.target.textContent='Buscando lead…';
+      fetch(SB+'/rest/v1/leads?select=id&order=created_at.desc&limit=1',{headers:authHeaders(tok)})
+      .then(function(r){return r.json();})
+      .then(function(rows){ e.target.disabled=false; e.target.textContent=old;
+        if(rows&&rows[0]) openIA(rows[0].id); else alert('Nenhum lead ainda.'); });
+    }
+  });
+  function loadCatCount(){
+    var tok=localStorage.getItem(TOKKEY); var el=$('catCount'); if(!el) return;
+    fetch(SB+'/rest/v1/produtos?select=id',{headers:{apikey:KEY,Authorization:'Bearer '+tok,Prefer:'count=exact',Range:'0-0'}})
+    .then(function(r){ var cr=r.headers.get('content-range')||''; var n=cr.split('/')[1]; el.textContent=(n&&n!=='*'?n:'—')+' peças no catálogo'; })
+    .catch(function(){ el.textContent='catálogo conectado'; });
+  }
   (function(){
     var tok=localStorage.getItem(TOKKEY);
     if(!tok){ showGate(); return; }
