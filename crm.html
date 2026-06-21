@@ -446,6 +446,47 @@
   };
   function labelFor(cfg,k){ for(var i=0;i<cfg.fields.length;i++){ if(cfg.fields[i].k===k) return cfg.fields[i].l; } return k; }
   function modMoney(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
+  // ===== Importacao CSV em massa =====
+  function csvNum(v){ v=(v||'').toString().replace(/[^0-9,.-]/g,''); if(v.indexOf(',')>=0) v=v.replace(/\./g,'').replace(',','.'); return Number(v)||0; }
+  function csvNorm(s){ return (s||'').toString().trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+  function parseCSV(text){
+    var head=(text.split(/\r?\n/)[0]||''); var delim=(head.split(';').length>head.split(',').length)?';':',';
+    var rows=[],row=[],field='',i=0,inQ=false;
+    while(i<text.length){ var ch=text[i];
+      if(inQ){ if(ch==='"'){ if(text[i+1]==='"'){ field+='"'; i++; } else inQ=false; } else field+=ch; }
+      else { if(ch==='"') inQ=true; else if(ch===delim){ row.push(field); field=''; } else if(ch==='\n'){ row.push(field); rows.push(row); row=[]; field=''; } else if(ch!=='\r') field+=ch; }
+      i++;
+    }
+    if(field!==''||row.length){ row.push(field); rows.push(row); }
+    return rows.filter(function(r){ return r.some(function(c){ return (c||'').trim()!==''; }); });
+  }
+  function importarCSV(table, fields, file, msgEl, onDone, prep){
+    var rd=new FileReader();
+    rd.onerror=function(){ if(msgEl) msgEl.textContent='Nao foi possivel ler o arquivo.'; };
+    rd.onload=function(ev){
+      var rows=parseCSV(ev.target.result);
+      if(rows.length<2){ msgEl.textContent='CSV vazio ou sem linhas de dados.'; return; }
+      var heads=rows[0].map(csvNorm);
+      var map=heads.map(function(h){ for(var j=0;j<fields.length;j++){ var f=fields[j]; if(csvNorm(f.k)===h||csvNorm(f.l||f.k)===h) return f; } return null; });
+      var regs=[];
+      for(var r=1;r<rows.length;r++){ var o={},okNome=false;
+        rows[r].forEach(function(val,ci){ var f=map[ci]; if(!f) return; val=(val||'').trim(); if(val==='') return;
+          o[f.k]=(f.type==='number')?csvNum(val):(f.type==='bool')?/^(true|sim|s|1|verdadeiro)$/i.test(val):val;
+          if(f.k==='nome') okNome=true;
+        });
+        if(okNome){ if(prep) prep(o); regs.push(o); }
+      }
+      if(!regs.length){ msgEl.textContent='Nenhuma linha valida — confira o cabecalho (precisa ter a coluna "nome").'; return; }
+      msgEl.textContent='Importando '+regs.length+' registro(s)…';
+      var tok=localStorage.getItem(TOKKEY);
+      fetch(SB+'/rest/v1/'+table,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(regs)})
+      .then(function(resp){ if(resp.ok){ msgEl.textContent=regs.length+' registro(s) importado(s) ✓'; if(onDone) onDone(); setTimeout(function(){ msgEl.textContent=''; },3500); }
+        else resp.text().then(function(t){ msgEl.textContent='Erro na importacao: '+t.slice(0,140); }); })
+      .catch(function(){ msgEl.textContent='Erro de conexao na importacao.'; });
+    };
+    rd.readAsText(file,'UTF-8');
+  }
+  var PROD_FIELDS=[{k:'nome',l:'Nome'},{k:'categoria',l:'Categoria'},{k:'sku',l:'SKU'},{k:'preco',l:'Preco',type:'number'},{k:'estoque_disponivel',l:'Estoque',type:'number'},{k:'ranking',l:'Rank',type:'number'},{k:'trilha',l:'Trilha'},{k:'destaque',l:'Destaque',type:'bool'},{k:'video_url',l:'Video'},{k:'foto_url',l:'Foto'},{k:'descricao',l:'Descricao'}];
   function renderMod(key){
     var cfg=MODS[key]; var host=$('mod-'+key); if(!host) return;
     if(host.dataset.built){ loadMod(key); return; } host.dataset.built='1';
@@ -459,10 +500,12 @@
     var ths=cfg.cols.map(function(c){ return '<th>'+esc(labelFor(cfg,c.k))+'</th>'; }).join('');
     host.innerHTML='<div class="panel">'
       +'<div class="modbar"><h3>Novo cadastro</h3><span class="modmsg" id="msg-'+key+'"></span></div>'
-      +'<div class="modform" id="form-'+key+'">'+ff+'<div class="f full" style="text-align:right;justify-content:flex-end"><button class="btn" id="save-'+key+'">Salvar cadastro</button></div></div>'
+      +'<div class="modform" id="form-'+key+'">'+ff+'<div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><input type="file" id="csv-'+key+'" accept=".csv,text/csv" style="display:none"><button class="btn" id="imp-'+key+'" style="background:transparent;color:var(--accent);border:1px solid var(--accent)">Importar CSV</button><button class="btn" id="save-'+key+'">Salvar cadastro</button></div></div>'
       +'<table><thead><tr>'+ths+'</tr></thead><tbody id="body-'+key+'"><tr><td colspan="'+cfg.cols.length+'" class="empty">Carregando…</td></tr></tbody></table>'
       +'</div>';
     $('save-'+key).addEventListener('click', function(){ saveMod(key); });
+    $('imp-'+key).addEventListener('click', function(){ $('csv-'+key).click(); });
+    $('csv-'+key).addEventListener('change', function(e){ var f=e.target.files[0]; if(f){ importarCSV(cfg.table, cfg.fields, f, $('msg-'+key), function(){ loadMod(key); }); e.target.value=''; } });
     loadMod(key);
   }
   function loadMod(key){
@@ -522,12 +565,14 @@
       +'<div class="f"><label>URL da imagem (ou envie ao lado)</label><input data-k="foto_url"></div>'
       +'<div class="f"><label>Imagem do produto (upload)</label><input type="file" id="prod_img" accept="image/*"></div>'
       +'<div class="f full"><label>Descrição</label><textarea data-k="descricao" rows="2"></textarea></div>'
-      +'<div class="f full" style="text-align:right"><button class="btn" id="save-prod">Salvar produto</button></div>'
+      +'<div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><input type="file" id="csv-prod" accept=".csv,text/csv" style="display:none"><button class="btn" id="imp-prod" style="background:transparent;color:var(--accent);border:1px solid var(--accent)">Importar CSV</button><button class="btn" id="save-prod">Salvar produto</button></div>'
       +'</div>'
       +'<table><thead><tr><th>Img</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Rank</th><th>Trilha</th><th style="text-align:right">Ações</th></tr></thead>'
       +'<tbody id="body-prod"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody></table>'
       +'</div>';
     $('save-prod').addEventListener('click', saveProduto);
+    $('imp-prod').addEventListener('click', function(){ $('csv-prod').click(); });
+    $('csv-prod').addEventListener('change', function(e){ var f=e.target.files[0]; if(f){ importarCSV('produtos', PROD_FIELDS, f, $('msg-prod'), loadProdutos, function(o){ if(!o.sku) o.sku=slugSku(o.nome||''); if(o.ativo===undefined) o.ativo=true; }); e.target.value=''; } });
     $('body-prod').addEventListener('click', function(e){
       var b=e.target.closest?e.target.closest('button[data-act]'):null; if(!b) return;
       var id=b.getAttribute('data-id'), act=b.getAttribute('data-act');
