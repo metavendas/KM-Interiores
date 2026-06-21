@@ -300,6 +300,7 @@
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
       $('kpiLeads').textContent=rows.length;
+      leadsById={}; rows.forEach(function(l){ leadsById[l.id]=l; });
       var tb=$('leadsBody');
       if(!rows.length){ tb.innerHTML='<tr><td colspan="6" class="empty">Nenhum lead ainda. Quando alguém enviar o formulário de curadoria, aparece aqui.</td></tr>'; return; }
       tb.innerHTML=rows.map(function(l){
@@ -311,7 +312,7 @@
     .catch(function(e){ $('leadsBody').innerHTML='<tr><td colspan="6" class="empty">Sem permissão para ler os leads (seu usuário ainda não é staff) ou erro de conexão.</td></tr>'; console.error(e); });
   }
   // ===== C4/C5 · IA propõe → Edson aprova =====
-  var iaLead=null;
+  var iaLead=null, leadsById={};
   function iaModal(){
     var m=$('iaModal'); if(m) return m;
     m=document.createElement('div'); m.id='iaModal';
@@ -322,8 +323,8 @@
       +'<label class="ialab">Resposta proposta (edite antes de aprovar, se quiser)</label>'
       +'<textarea id="iaResp"></textarea>'
       +'<div id="iaProx" class="iaprox"></div>'
-      +'<div class="iaft"><button id="iaAprovar" class="iaok">Aprovar</button><button id="iaFechar" class="iacancel">Fechar</button></div>'
-      +'<div class="iagov">Nada é enviado ao cliente automaticamente. Aprovar apenas marca o rascunho como validado por você.</div>'
+      +'<div class="iaft"><button id="iaEnviar" class="iaok" style="display:none">Aprovar e Enviar</button><button id="iaAprovar" class="iacancel">Aprovar (rascunho)</button><button id="iaFechar" class="iacancel">Fechar</button></div>'
+      +'<div class="iagov" id="iaGov">Nada é enviado sozinho. <b>Aprovar (rascunho)</b> apenas marca como validado por você. <b>Aprovar e Enviar</b> envia a resposta ao cliente pelo canal de origem (WhatsApp/Instagram) — só aparece para esses canais.</div>'
       +'</div></div>';
     document.body.appendChild(m);
     m.addEventListener('click',function(e){ if(e.target===m) m.style.display='none'; });
@@ -334,14 +335,29 @@
       var tok=localStorage.getItem(TOKKEY);
       $('iaAprovar').disabled=true; $('iaAprovar').textContent='Salvando…';
       fetch(SB+'/rest/v1/leads?id=eq.'+iaLead,{method:'PATCH',headers:{apikey:KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({ia_sugestao:$('iaResp').value,ia_status:'aprovado'})})
-      .then(function(){ $('iaAprovar').disabled=false; $('iaAprovar').textContent='Aprovar'; m.style.display='none'; loadLeads(); })
-      .catch(function(e){ $('iaAprovar').disabled=false; $('iaAprovar').textContent='Aprovar'; $('iaMeta').textContent='Erro ao salvar.'; console.error(e); });
+      .then(function(){ $('iaAprovar').disabled=false; $('iaAprovar').textContent='Aprovar (rascunho)'; m.style.display='none'; loadLeads(); })
+      .catch(function(e){ $('iaAprovar').disabled=false; $('iaAprovar').textContent='Aprovar (rascunho)'; $('iaMeta').textContent='Erro ao salvar.'; console.error(e); });
+    };
+    $('iaEnviar').onclick=function(){
+      if(!iaLead) return;
+      var tok=localStorage.getItem(TOKKEY);
+      $('iaEnviar').disabled=true; $('iaEnviar').textContent='Enviando…';
+      fetch(SB+'/functions/v1/responder-meta',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({lead_id:iaLead,texto:$('iaResp').value})})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        $('iaEnviar').disabled=false; $('iaEnviar').textContent='Aprovar e Enviar';
+        if(j && j.ok){ $('iaMeta').innerHTML='<b style="color:#bcd39a">✓ Enviado ao cliente pelo '+esc(j.canal||'')+'</b>'; setTimeout(function(){ m.style.display='none'; loadLeads(); },900); }
+        else { $('iaMeta').textContent = (j&&(j.detalhe||j.error)) || 'Não foi possível enviar.'; }
+      })
+      .catch(function(e){ $('iaEnviar').disabled=false; $('iaEnviar').textContent='Aprovar e Enviar'; $('iaMeta').textContent='Erro de conexão ao enviar.'; console.error(e); });
     };
     return m;
   }
   function openIA(id){
     iaLead=id; var tok=localStorage.getItem(TOKKEY);
     var m=iaModal(); m.style.display='flex';
+    var lo=leadsById[id]||{}; var podeEnviar=(lo.origem==='whatsapp'||lo.origem==='instagram');
+    var be=$('iaEnviar'); if(be){ be.style.display=podeEnviar?'inline-block':'none'; be.textContent='Aprovar e Enviar'; be.disabled=false; }
     $('iaMeta').textContent='Consultando o agente de IA…'; $('iaResp').value=''; $('iaProx').textContent='';
     fetch(SB+'/functions/v1/agente-ia',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({lead_id:id})})
     .then(function(r){ return r.json(); })
