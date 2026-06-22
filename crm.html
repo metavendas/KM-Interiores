@@ -157,14 +157,17 @@
       <a href="#" data-view="fornecedores"><span class="dot"></span> Fornecedores</a>
       <a href="#" data-view="vendedores"><span class="dot"></span> Vendedores</a>
       <a href="#" data-view="parceiros"><span class="dot"></span> Parceiros</a>
+      <a href="#" data-view="ficha360"><span class="dot"></span> Ficha 360</a>
       <div class="sec">Operação</div>
       <a href="#" data-view="leads"><span class="dot"></span> Leads & Atendimento</a>
       <a href="#" data-view="produtos"><span class="dot"></span> Produtos</a>
       <a href="#" data-view="estoque"><span class="dot"></span> Estoque</a>
       <a href="#" data-view="pedidos"><span class="dot"></span> Pedidos</a>
       <a href="#" data-view="locacao"><span class="dot"></span> Locação (Pilar 2)</a>
+      <a href="#" data-view="pedidos3d"><span class="dot"></span> Impressão 3D (Pilar 3)</a>
       <a href="#" data-view="programas"><span class="dot"></span> Programas KM</a>
       <a href="#" data-view="treinamentos"><span class="dot"></span> Treinamentos</a>
+      <a href="#" data-view="tarefas"><span class="dot"></span> Tarefas</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
@@ -186,9 +189,9 @@
         <div class="sub">Visão geral · governança IA propõe → admin aprova</div>
         <div class="kpis">
           <div class="kpi"><div class="l">Leads (total)</div><div class="n" id="kpiLeads">—</div><div class="d" id="kpiLeads7">tempo real</div></div>
-          <div class="kpi"><div class="l">Faturamento (mês)</div><div class="n">R$ 312.480</div><div class="d">ilustrativo</div></div>
-          <div class="kpi"><div class="l">Pipeline ponderado</div><div class="n">R$ 486.000</div><div class="d">ilustrativo</div></div>
-          <div class="kpi"><div class="l">Ticket médio</div><div class="n">R$ 28.400</div><div class="d">ilustrativo</div></div>
+          <div class="kpi"><div class="l">Faturamento (mês)</div><div class="n" id="kpiFat">—</div><div class="d" id="kpiFatD">pedidos pagos</div></div>
+          <div class="kpi"><div class="l">Pipeline ponderado</div><div class="n" id="kpiPipe">—</div><div class="d">funil aberto</div></div>
+          <div class="kpi"><div class="l">Receita recorrente (MRR)</div><div class="n" id="kpiMrr">—</div><div class="d" id="kpiMrrD">contratos ativos</div></div>
         </div>
         <div class="funnel-title">Funil de Vendas · Pipeline Projeto <span class="tagdemo" style="font-size:9.5px">dados ilustrativos</span></div>
         <div class="kanban">
@@ -408,6 +411,72 @@
           <tbody id="matBodyAdm"><tr><td colspan="5" class="empty">Carregando…</td></tr></tbody></table>
         </div>
       </section>
+
+      <!-- ===== IMPRESSÃO 3D (PILAR 3) ===== -->
+      <section class="view" data-v="pedidos3d" hidden>
+        <div class="h1">Impressão 3D <span class="tagreal" style="vertical-align:middle">Pilar 3</span></div>
+        <div class="sub">Peças de decoração sob medida · briefing → orçamento → produção → entrega · estoque zero</div>
+        <div class="panel">
+          <div class="modbar"><h3>Novo briefing de peça 3D</h3><span class="modmsg" id="msg-3d"></span></div>
+          <div class="modform" id="form-3d">
+            <div class="f"><label>Cliente *</label><select data-k="cliente_id" id="td_cliente"><option value="">Carregando…</option></select></div>
+            <div class="f"><label>Peça / título *</label><input data-k="titulo" placeholder="Ex.: Luminária escultural"></div>
+            <div class="f"><label>Material</label><input data-k="material" placeholder="PLA Seda, PETG, resina…"></div>
+            <div class="f"><label>Dimensões</label><input data-k="dimensoes" placeholder="30 × 20 × 20 cm"></div>
+            <div class="f"><label>Cor</label><input data-k="cor"></div>
+            <div class="f"><label>Acabamento</label><input data-k="acabamento" placeholder="Verniz UV, polido…"></div>
+            <div class="f"><label>Quantidade</label><input data-k="quantidade" type="number" value="1"></div>
+            <div class="f"><label>Prazo desejado (dias)</label><input data-k="prazo_dias" type="number"></div>
+            <div class="f"><label>Valor estimado (R$)</label><input data-k="valor_estimado" type="number" step="0.01"></div>
+            <div class="f"><label>Link de referência</label><input data-k="referencia_url" placeholder="imagem / modelo 3D"></div>
+            <div class="f full"><label>Descrição / observações</label><textarea data-k="descricao" rows="2"></textarea></div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="td_salvar">Registrar briefing</button></div>
+          </div>
+        </div>
+        <div class="panel"><h3>Pedidos 3D <span class="tagreal">● tempo real</span></h3>
+          <table><thead><tr><th>Nº</th><th>Cliente</th><th>Peça</th><th>Material</th><th>Qtd</th><th>Valor</th><th>Status</th><th style="text-align:right">Ação</th></tr></thead>
+          <tbody id="td3dBody"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody></table>
+        </div>
+      </section>
+
+      <!-- ===== TAREFAS ===== -->
+      <section class="view" data-v="tarefas" hidden>
+        <div class="h1">Tarefas &amp; Follow-ups</div>
+        <div class="sub">Agenda da equipe comercial · próximos passos com clientes e oportunidades</div>
+        <div class="panel">
+          <div class="modbar"><h3>Nova tarefa</h3><span class="modmsg" id="msg-tar"></span></div>
+          <div class="modform" id="form-tar">
+            <div class="f full"><label>Título *</label><input data-k="titulo" placeholder="Ex.: Ligar para cliente sobre proposta"></div>
+            <div class="f"><label>Prazo</label><input data-k="prazo" type="datetime-local"></div>
+            <div class="f"><label>Cliente (opcional)</label><select data-k="cliente_id" id="tar_cliente"><option value="">—</option></select></div>
+            <div class="f full"><label>Descrição</label><textarea data-k="descricao" rows="2"></textarea></div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="tar_salvar">Criar tarefa</button></div>
+          </div>
+        </div>
+        <div class="panel"><h3>Tarefas abertas <span class="tagreal">● tempo real</span></h3>
+          <table><thead><tr><th></th><th>Tarefa</th><th>Cliente</th><th>Prazo</th><th style="text-align:right">Ação</th></tr></thead>
+          <tbody id="tarBody"><tr><td colspan="5" class="empty">Carregando…</td></tr></tbody></table>
+        </div>
+      </section>
+
+      <!-- ===== FICHA 360 ===== -->
+      <section class="view" data-v="ficha360" hidden>
+        <div class="h1">Ficha 360 do Cliente</div>
+        <div class="sub">Visão consolidada · pedidos, contratos, atendimento e e-mails num só lugar</div>
+        <div class="panel"><div style="padding:16px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select id="fc_cliente" style="flex:1;min-width:240px;background:#221b10;border:1px solid var(--line);color:var(--text);padding:11px 12px;border-radius:4px;font-size:13px;outline:none"><option value="">Selecione um cliente…</option></select>
+          <button class="btn" id="fc_abrir" style="background:var(--accent);color:#080807;border:none;padding:11px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-radius:3px;cursor:pointer">Abrir ficha</button>
+          <button class="ia-btn" id="fc_briefing">✦ Briefing por IA</button>
+        </div></div>
+        <div id="fc_out" style="display:none">
+          <div class="panel" id="fc_head"></div>
+          <div id="fc_brief" style="display:none;white-space:pre-wrap;margin-bottom:24px;padding:14px 18px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div>
+          <div class="panel"><h3>Pedidos</h3><table><tbody id="fc_pedidos"></tbody></table></div>
+          <div class="panel"><h3>Contratos (locação / programas)</h3><table><tbody id="fc_contratos"></tbody></table></div>
+          <div class="panel"><h3>Atendimento (interações)</h3><table><tbody id="fc_interacoes"></tbody></table></div>
+          <div class="panel"><h3>E-mails enviados</h3><table><tbody id="fc_emails"></tbody></table></div>
+        </div>
+      </section>
     </div>
     <div class="demo">Leads em tempo real do banco · KPIs do funil ilustrativos · governança IA propõe → Edson aprova</div>
   </div>
@@ -427,12 +496,12 @@
   var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Vendedores'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['produtos','Produtos'],
-    ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['financeiro','Financeiro'],
+    ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],
     ['agentes','Agentes de IA'],['relatorios','Relatórios']];
   var ACCESS_DEFAULT={
-    vendas:        ['funil','clientes','produtos','estoque','pedidos','locacao','programas','treinamentos'],
-    representante: ['funil','clientes','produtos','estoque','pedidos','locacao','treinamentos'],
-    curadoria:     ['funil','clientes','produtos','estoque','pedidos','leads','locacao','programas','treinamentos']
+    vendas:        ['funil','clientes','ficha360','produtos','estoque','pedidos','locacao','pedidos3d','programas','treinamentos','tarefas'],
+    representante: ['funil','clientes','ficha360','produtos','estoque','pedidos','locacao','pedidos3d','treinamentos','tarefas'],
+    curadoria:     ['funil','clientes','ficha360','produtos','estoque','pedidos','leads','locacao','pedidos3d','programas','treinamentos','tarefas']
   };
   var ME_ROLE='', ME_ACESSOS=null;
   function allowedViews(){
@@ -770,9 +839,13 @@
     if(v==='produtos') renderProdutos();
     if(v==='funil') initFunil();
     if(v==='pedidos') loadPedidos();
+    if(v==='dashboard') loadDashboard();
     if(v==='locacao') loadLocacao();
+    if(v==='pedidos3d') loadPedidos3d();
     if(v==='programas') loadProgramas();
     if(v==='treinamentos') loadTreinamentos();
+    if(v==='tarefas') loadTarefas();
+    if(v==='ficha360') initFicha360();
     if(v==='financeiro') loadFinanceiro();
     if(v==='relatorios') loadRelatorios();
     if(v==='equipe') loadEquipe();
@@ -1112,8 +1185,10 @@
       if(!d || d.erro){ box.innerHTML=kpiCard('Sem permissão','—','entre como equipe'); return; }
       box.innerHTML=[
         kpiCard('Receita (mês)',moneyBR(d.receita_mes),'pedidos pagos'),
-        kpiCard('Receita total',moneyBR(d.receita_total),'acumulado'),
-        kpiCard('Recebíveis',moneyBR(d.recebiveis),'a confirmar'),
+        kpiCard('Receita recorrente (MRR)',moneyBR(d.mrr),(d.contratos_ativos||0)+' contratos ativos'),
+        kpiCard('Recebíveis',moneyBR(d.recebiveis),'loja + contratos'),
+        kpiCard('Recebíveis de contratos',moneyBR(d.recebiveis_contratos),'locação/programas/3D'),
+        kpiCard('Receita total',moneyBR(d.receita_total),'acumulado (loja)'),
         kpiCard('Ticket médio',moneyBR(d.ticket_medio),'por pedido pago'),
         kpiCard('Pedidos (mês)',d.pedidos_mes,(d.pedidos_pagos||0)+' pagos'),
         kpiCard('A pagar',moneyBR(d.a_pagar),'em aberto')
@@ -1209,7 +1284,7 @@
       tb.innerHTML=rows.map(function(p){
         var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
         var st=LOC_PROP_STATUS[p.status]||p.status||'—';
-        var acao=(p.status==='aceita')?'<span class="ia-tag ok">✓ contrato gerado</span>':'<button class="ia-btn sug" data-act="converter" data-id="'+p.id+'">→ Gerar contrato</button>';
+        var acao=((p.status==='aceita')?'<span class="ia-tag ok">✓ contrato</span>':'<button class="ia-btn sug" data-act="converter" data-id="'+p.id+'">→ Gerar contrato</button>')+' <button class="ia-btn" data-act="doc" data-tipo="proposta_locacao" data-id="'+p.id+'" title="Gerar documento">📄</button>';
         return '<tr><td style="color:var(--text)">'+esc(p.numero||'—')+'</td><td>'+esc(cli)+'</td><td>'+esc(p.titulo||'—')+'<div style="font-size:11px;color:var(--ouro)">'+esc(itensResumo(p.itens))+'</div></td><td>'+esc(periodoTxt(p.periodo_inicio,p.periodo_fim))+'</td><td style="color:var(--accent)">'+brl(p.valor)+'</td><td>'+brl(p.caucao)+'</td><td><span class="badge">'+esc(st)+'</span></td><td style="text-align:right">'+acao+'</td></tr>';
       }).join('');
     })
@@ -1225,7 +1300,7 @@
         var ativo=(c.status==='ativo');
         var cau='<span style="font-size:11px;color:var(--ouro)">'+esc(c.caucao_status||'retida')+'</span> '+brl(c.caucao);
         var st=ativo?'<span class="ia-tag ok">ativo</span>':'<span class="badge">'+esc(c.status||'—')+(c.devolvido_em?(' · '+new Date(c.devolvido_em+'T00:00:00').toLocaleDateString('pt-BR')):'')+'</span>';
-        var acao=ativo?'<button class="ia-btn" data-act="devolver" data-id="'+c.id+'">Registrar devolução</button>':'—';
+        var acao=(ativo?'<button class="ia-btn" data-act="devolver" data-id="'+c.id+'">Devolução</button> ':'')+'<button class="ia-btn" data-act="doc" data-tipo="contrato_locacao" data-id="'+c.id+'" title="Gerar documento">📄</button>';
         return '<tr><td style="color:var(--text)">'+esc(c.numero||'—')+'</td><td>'+esc(cli)+'</td><td>'+esc(periodoTxt(c.inicio,c.fim))+'</td><td style="color:var(--accent)">'+brl(c.valor_adesao)+'</td><td>'+cau+'</td><td>'+st+'</td><td style="text-align:right">'+acao+'</td></tr>';
       }).join('');
     })
@@ -1297,7 +1372,7 @@
       tb.innerHTML=rows.map(function(c){
         var cli=(c.clientes&&c.clientes.nome)?c.clientes.nome:'—';
         var st=(c.status==='ativo')?'<span class="ia-tag ok">ativo</span>':'<span class="badge">'+esc(c.status||'—')+'</span>';
-        return '<tr><td style="color:var(--text)">'+esc(c.numero||'—')+'</td><td><span class="badge">'+esc(PROG_LABEL[c.tipo]||c.tipo)+'</span></td><td>'+esc(cli)+'</td><td>'+esc(c.plano||'—')+'</td><td>'+brl(c.valor_adesao)+'</td><td style="color:var(--accent)">'+brl(c.valor_recorrente)+'</td><td>'+st+'</td></tr>';
+        return '<tr><td style="color:var(--text)">'+esc(c.numero||'—')+'</td><td><span class="badge">'+esc(PROG_LABEL[c.tipo]||c.tipo)+'</span></td><td>'+esc(cli)+'</td><td>'+esc(c.plano||'—')+'</td><td>'+brl(c.valor_adesao)+'</td><td style="color:var(--accent)">'+brl(c.valor_recorrente)+'</td><td>'+st+' <button class="ia-btn" data-act="doc" data-tipo="contrato_programa" data-id="'+c.id+'" title="Gerar documento">📄</button></td></tr>';
       }).join('');
     })
     .catch(function(){ $('progBody').innerHTML='<tr><td colspan="7" class="empty">Sem permissão ou erro de conexão.</td></tr>'; });
@@ -1451,6 +1526,209 @@
       }
     });
   })();
+
+  // ===== DASHBOARD — KPIs reais =====
+  function loadDashboard(){
+    var tok=localStorage.getItem(TOKKEY);
+    // Pipeline ponderado (staff lê oportunidades)
+    fetch(SB+'/rest/v1/oportunidades?select=valor,probabilidade,estagio&limit=1000',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){ rows=Array.isArray(rows)?rows:[];
+      var pond=0; rows.forEach(function(o){ if(o.estagio!=='ganho'&&o.estagio!=='perdido') pond+=Number(o.valor||0)*(Number(o.probabilidade||0)/100); });
+      if($('kpiPipe')) $('kpiPipe').textContent='R$ '+Math.round(pond).toLocaleString('pt-BR');
+    }).catch(function(){});
+    // Faturamento + MRR (admin)
+    fetch(SB+'/rest/v1/rpc/get_financeiro_resumo',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d||d.erro){ if($('kpiFat')){ $('kpiFat').textContent='restrito'; $('kpiFatD').textContent='só admin'; } if($('kpiMrr')){ $('kpiMrr').textContent='restrito'; $('kpiMrrD').textContent='só admin'; } return; }
+      if($('kpiFat')) $('kpiFat').textContent='R$ '+Number(d.receita_mes||0).toLocaleString('pt-BR');
+      if($('kpiMrr')){ $('kpiMrr').textContent='R$ '+Number(d.mrr||0).toLocaleString('pt-BR'); $('kpiMrrD').textContent=(d.contratos_ativos||0)+' contratos ativos'; }
+    }).catch(function(){});
+  }
+
+  // ===== PILAR 3 — IMPRESSÃO 3D =====
+  var ST3D=[['briefing','Briefing'],['orcado','Orçado'],['aprovado','Aprovado'],['producao','Em produção'],['concluido','Concluído'],['entregue','Entregue'],['cancelado','Cancelado']];
+  function st3dOptions(cur){ return ST3D.map(function(s){ return '<option value="'+s[0]+'"'+(s[0]===cur?' selected':'')+'>'+s[1]+'</option>'; }).join(''); }
+  function loadPedidos3d(){
+    var sel=$('td_cliente'); ensureClientes(function(){ if(sel) sel.innerHTML=cliOptions(); });
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/pedidos_3d?select=*,clientes(nome)&order=created_at.desc&limit=200',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      var tb=$('td3dBody'); rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhum pedido 3D ainda. Registre um briefing acima.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(p){
+        var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
+        var val=(Number(p.valor_final)>0)?p.valor_final:p.valor_estimado;
+        var det=[p.dimensoes,p.cor,p.acabamento].filter(Boolean).join(' · ');
+        return '<tr><td style="color:var(--text)">'+esc(p.numero||'—')+'</td><td>'+esc(cli)+'</td><td>'+esc(p.titulo||'—')+(det?'<div style="font-size:11px;color:var(--ouro)">'+esc(det)+'</div>':'')+'</td><td>'+esc(p.material||'—')+'</td><td>'+(p.quantidade||1)+'</td><td style="color:var(--accent)">'+brl(val)+'</td><td><select class="td3d-st" data-id="'+p.id+'">'+st3dOptions(p.status)+'</select></td><td style="text-align:right"><button class="ia-btn" data-act="doc" data-tipo="pedido_3d" data-id="'+p.id+'" title="Gerar documento">📄</button></td></tr>';
+      }).join('');
+    })
+    .catch(function(){ $('td3dBody').innerHTML='<tr><td colspan="8" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; });
+  }
+  (function(){
+    var btn=$('td_salvar');
+    if(btn) btn.addEventListener('click', function(){
+      var form=$('form-3d'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
+      if(!g('cliente_id')){ $('msg-3d').textContent='Selecione o cliente.'; return; }
+      if(!g('titulo')){ $('msg-3d').textContent='Informe a peça/título.'; return; }
+      btn.disabled=true; var old=btn.textContent; btn.textContent='Salvando…'; $('msg-3d').textContent='';
+      rpc('criar_pedido_3d',{ p_cliente_id:g('cliente_id'), p_titulo:g('titulo'), p_descricao:g('descricao'),
+        p_material:g('material'), p_dimensoes:g('dimensoes'), p_cor:g('cor'), p_acabamento:g('acabamento'),
+        p_quantidade:Number(g('quantidade'))||1, p_prazo_dias:Number(g('prazo_dias'))||0, p_referencia_url:g('referencia_url'),
+        p_valor_estimado:Number(g('valor_estimado'))||0, p_observacoes:'' })
+      .then(function(j){ btn.disabled=false; btn.textContent=old;
+        if(j&&j.ok){ $('msg-3d').textContent='Pedido '+j.numero+' registrado ✓'; form.querySelectorAll('input,textarea').forEach(function(el){ if(el.getAttribute('data-k')==='quantidade') el.value='1'; else el.value=''; }); loadPedidos3d(); setTimeout(function(){ $('msg-3d').textContent=''; },3000); }
+        else { $('msg-3d').textContent='Não foi possível: '+((j&&j.erro)||'erro'); } })
+      .catch(function(){ btn.disabled=false; btn.textContent=old; $('msg-3d').textContent='Erro de conexão.'; });
+    });
+    var tb=$('td3dBody');
+    if(tb) tb.addEventListener('change', function(e){
+      var s=e.target.closest?e.target.closest('.td3d-st'):null; if(!s) return;
+      var novo=s.value, vfinal=0;
+      if(novo==='orcado'||novo==='aprovado'){ var v=prompt('Valor final do orçamento (R$) — deixe em branco p/ manter:',''); if(v&&!isNaN(Number(v.replace(',','.')))) vfinal=Number(v.replace(',','.')); }
+      s.disabled=true;
+      rpc('atualizar_status_3d',{p_id:s.getAttribute('data-id'),p_status:novo,p_valor_final:vfinal})
+      .then(function(j){ s.disabled=false; if(!j||!j.ok){ alert('Não foi possível: '+((j&&j.erro)||'erro')); } loadPedidos3d(); })
+      .catch(function(){ s.disabled=false; loadPedidos3d(); });
+    });
+  })();
+
+  // ===== TAREFAS =====
+  function loadTarefas(){
+    var sel=$('tar_cliente'); ensureClientes(function(){ if(sel) sel.innerHTML=cliOptions(); });
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/tarefas?select=*,clientes(nome)&concluida=eq.false&order=prazo.asc.nullslast,created_at.desc&limit=200',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      var tb=$('tarBody'); rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Nenhuma tarefa aberta. Crie acima.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(t){
+        var cli=(t.clientes&&t.clientes.nome)?t.clientes.nome:'—';
+        var prz=t.prazo?new Date(t.prazo).toLocaleString('pt-BR'):'—';
+        var atrasada=t.prazo&&(new Date(t.prazo)<new Date());
+        return '<tr><td style="width:34px"><input type="checkbox" class="tar-ok" data-id="'+t.id+'" title="Concluir"></td><td style="color:var(--text)">'+esc(t.titulo||'')+(t.descricao?'<div style="font-size:11px;color:var(--ouro)">'+esc(t.descricao)+'</div>':'')+'</td><td>'+esc(cli)+'</td><td'+(atrasada?' style="color:#d39a9a"':'')+'>'+esc(prz)+(atrasada?' ⚠':'')+'</td><td style="text-align:right"><button class="ia-btn" data-act="deltar" data-id="'+t.id+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button></td></tr>';
+      }).join('');
+    })
+    .catch(function(){ $('tarBody').innerHTML='<tr><td colspan="5" class="empty">Sem permissão ou erro de conexão.</td></tr>'; });
+  }
+  (function(){
+    var btn=$('tar_salvar');
+    if(btn) btn.addEventListener('click', function(){
+      var form=$('form-tar'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
+      if(!g('titulo')){ $('msg-tar').textContent='Informe o título da tarefa.'; return; }
+      var tok=localStorage.getItem(TOKKEY); btn.disabled=true; var old=btn.textContent; btn.textContent='Salvando…';
+      var data={titulo:g('titulo'),descricao:g('descricao')||null,prazo:g('prazo')||null,cliente_id:g('cliente_id')||null};
+      fetch(SB+'/rest/v1/tarefas',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
+      .then(function(r){ btn.disabled=false; btn.textContent=old;
+        if(r.ok){ $('msg-tar').textContent='Tarefa criada ✓'; form.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; }); loadTarefas(); setTimeout(function(){ $('msg-tar').textContent=''; },2500); }
+        else r.text().then(function(t){ $('msg-tar').textContent='Erro: '+t.slice(0,90); }); })
+      .catch(function(){ btn.disabled=false; btn.textContent=old; $('msg-tar').textContent='Erro de conexão.'; });
+    });
+    var tb=$('tarBody');
+    if(tb) tb.addEventListener('change', function(e){
+      var c=e.target.closest?e.target.closest('.tar-ok'):null; if(!c||!c.checked) return;
+      var tok=localStorage.getItem(TOKKEY);
+      fetch(SB+'/rest/v1/tarefas?id=eq.'+c.getAttribute('data-id'),{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({concluida:true})})
+      .then(function(){ loadTarefas(); }).catch(function(){ loadTarefas(); });
+    });
+  })();
+
+  // ===== FICHA 360 =====
+  function initFicha360(){ var sel=$('fc_cliente'); ensureClientes(function(){ if(sel) sel.innerHTML=cliOptions(); }); }
+  function fcRows(rows, cols, vazio){ if(!rows||!rows.length) return '<tr><td class="empty">'+vazio+'</td></tr>'; return rows.map(function(r){ return '<tr>'+cols(r)+'</tr>'; }).join(''); }
+  function abrirFicha(){
+    var id=$('fc_cliente').value; if(!id){ return; }
+    var tok=localStorage.getItem(TOKKEY); $('fc_out').style.display='block'; $('fc_brief').style.display='none';
+    $('fc_head').innerHTML='<div style="padding:16px 20px;color:var(--muted)">Carregando ficha…</div>';
+    var H=authHeaders(tok);
+    Promise.all([
+      fetch(SB+'/rest/v1/clientes?id=eq.'+id+'&select=*',{headers:H}).then(function(r){return r.json();}),
+      fetch(SB+'/rest/v1/pedidos?cliente_id=eq.'+id+'&select=numero,valor,status,created_at&order=created_at.desc',{headers:H}).then(function(r){return r.json();}),
+      fetch(SB+'/rest/v1/contratos?cliente_id=eq.'+id+'&select=numero,tipo,valor_adesao,valor_recorrente,status,inicio,fim&order=created_at.desc',{headers:H}).then(function(r){return r.json();}),
+      fetch(SB+'/rest/v1/interacoes?cliente_id=eq.'+id+'&select=canal,direcao,conteudo,created_at&order=created_at.desc&limit=30',{headers:H}).then(function(r){return r.json();}),
+      fetch(SB+'/rest/v1/emails_lifecycle?cliente_id=eq.'+id+'&select=assunto,tipo,status,enviado_em,created_at&order=created_at.desc&limit=30',{headers:H}).then(function(r){return r.json();})
+    ]).then(function(res){
+      var c=(res[0]&&res[0][0])||{};
+      $('fc_head').innerHTML='<h3>'+esc(c.nome||'—')+(c.classificacao?' <span class="badge">'+esc(c.classificacao)+'</span>':'')+'</h3><div style="padding:14px 20px;color:var(--muted);font-size:13px;line-height:1.8">'
+        +'<b style="color:var(--text)">Contato:</b> '+esc([c.telefone,c.email].filter(Boolean).join(' · ')||'—')+'<br>'
+        +'<b style="color:var(--text)">Cidade:</b> '+esc(c.cidade||'—')+' · <b style="color:var(--text)">Origem:</b> '+esc(c.origem||'—')+' · <b style="color:var(--text)">Ticket médio:</b> '+brl(c.ticket_medio)
+        +(c.observacoes?'<br><b style="color:var(--text)">Obs.:</b> '+esc(c.observacoes):'')+'</div>';
+      $('fc_pedidos').innerHTML=fcRows(res[1],function(p){ return '<td style="color:var(--text)">'+esc(p.numero||'—')+'</td><td>'+(p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'')+'</td><td style="color:var(--accent)">'+brl(p.valor)+'</td><td><span class="badge">'+esc(p.status||'')+'</span></td>'; },'Nenhum pedido.');
+      $('fc_contratos').innerHTML=fcRows(res[2],function(k){ var lbl=({km_care:'KM Care',km_signature:'KM Signature',km_curadoria:'KM Curadoria',locacao:'Locação',projeto:'Projeto'})[k.tipo]||k.tipo; return '<td style="color:var(--text)">'+esc(k.numero||'—')+'</td><td><span class="badge">'+esc(lbl)+'</span></td><td>'+brl(k.valor_adesao)+(Number(k.valor_recorrente)>0?(' + '+brl(k.valor_recorrente)+'/rec'):'')+'</td><td><span class="badge">'+esc(k.status||'')+'</span></td>'; },'Nenhum contrato.');
+      $('fc_interacoes').innerHTML=fcRows(res[3],function(i){ return '<td>'+(i.created_at?new Date(i.created_at).toLocaleDateString('pt-BR'):'')+'</td><td><span class="badge">'+esc(i.canal||'')+'</span></td><td>'+esc(i.direcao||'')+'</td><td style="color:var(--muted)">'+esc((i.conteudo||'').slice(0,80))+'</td>'; },'Nenhuma interação.');
+      $('fc_emails').innerHTML=fcRows(res[4],function(m){ return '<td style="color:var(--text)">'+esc(m.assunto||'—')+'</td><td><span class="badge">'+esc(m.tipo||'')+'</span></td><td>'+esc(m.status||'')+'</td><td>'+(m.enviado_em?new Date(m.enviado_em).toLocaleDateString('pt-BR'):'—')+'</td>'; },'Nenhum e-mail.');
+    }).catch(function(){ $('fc_head').innerHTML='<div style="padding:16px 20px;color:var(--muted)">Não foi possível carregar (entre como equipe).</div>'; });
+  }
+  (function(){
+    var b=$('fc_abrir'); if(b) b.addEventListener('click', abrirFicha);
+    var br=$('fc_briefing'); if(br) br.addEventListener('click', function(){
+      var id=$('fc_cliente').value; if(!id){ return; }
+      var tok=localStorage.getItem(TOKKEY); var out=$('fc_brief'); out.style.display='block'; out.textContent='Gerando briefing por IA…';
+      fetch(SB+'/functions/v1/agente-briefing',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({cliente_id:id})})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if(j.erro||j.ok===false){ out.textContent=(j.erro||'Não foi possível gerar.'); return; } var via=(j.fonte||'').indexOf('groq')===0?'Groq · Llama 3.3':'fallback'; out.textContent=(j.briefing||'')+'\n\n— '+(j.cliente||'')+' · '+via; })
+      .catch(function(){ out.textContent='Erro de conexão com o agente.'; });
+    });
+  })();
+
+  // ===== DOCUMENTOS (PDF via impressão) =====
+  function kmFmt(v){ return brl(v); }
+  function kmDt(x){ return x?new Date(x+'T00:00:00').toLocaleDateString('pt-BR'):'—'; }
+  function kmDocOpen(tipo,id){
+    var tok=localStorage.getItem(TOKKEY);
+    var table=(tipo==='proposta_locacao')?'propostas':(tipo==='pedido_3d'?'pedidos_3d':'contratos');
+    fetch(SB+'/rest/v1/'+table+'?id=eq.'+id+'&select='+encodeURIComponent('*,clientes(nome,email,telefone,cidade)'),{headers:authHeaders(tok)})
+    .then(function(r){ return r.json(); })
+    .then(function(rows){ var d=rows&&rows[0]; if(!d){ alert('Registro não encontrado.'); return; } kmDocRender(tipo,d); })
+    .catch(function(){ alert('Não foi possível carregar o documento.'); });
+  }
+  function kmDocRender(tipo,d){
+    var c=d.clientes||{}; var titulo='', corpo='';
+    function linha(l,v){ return '<tr><td class="k">'+l+'</td><td>'+(v||'—')+'</td></tr>'; }
+    var cliBox='<table class="det"><tr><td class="k">Cliente</td><td>'+esc(c.nome||'—')+'</td></tr>'+linha('Contato',esc([c.telefone,c.email].filter(Boolean).join(' · ')))+linha('Cidade',esc(c.cidade||''))+'</table>';
+    if(tipo==='proposta_locacao'){
+      titulo='Proposta de Locação';
+      var itens=[]; try{ itens=(typeof d.itens==='string')?JSON.parse(d.itens):(d.itens||[]); }catch(e){ itens=[]; }
+      var itrows=itens.length?itens.map(function(i){ return '<tr><td>'+esc(i.item||'')+'</td><td style="text-align:center">'+(i.qtd||1)+'</td><td style="text-align:right">'+kmFmt(i.valor)+'</td></tr>'; }).join(''):'<tr><td colspan="3">—</td></tr>';
+      var total=(Number(d.valor||0)+Number(d.valor_frete||0));
+      corpo=cliBox+'<h2>'+esc(d.titulo||'')+'</h2>'
+        +'<table class="items"><thead><tr><th>Item</th><th style="text-align:center">Qtd</th><th style="text-align:right">Valor</th></tr></thead><tbody>'+itrows+'</tbody></table>'
+        +'<table class="det">'+linha('Período',kmDt(d.periodo_inicio)+' a '+kmDt(d.periodo_fim))+linha('Locação',kmFmt(d.valor))+linha('Frete / logística',kmFmt(d.valor_frete))+'<tr><td class="k">Total</td><td class="tot">'+kmFmt(total)+'</td></tr>'+linha('Caução (reembolsável)',kmFmt(d.caucao))+linha('Validade da proposta',kmDt(d.validade))+'</table>'
+        +(d.condicoes?'<h3>Condições</h3><p>'+esc(d.condicoes)+'</p>':'');
+    } else if(tipo==='contrato_locacao'){
+      titulo='Contrato de Locação';
+      corpo=cliBox+'<h2>'+esc(d.numero||'')+'</h2><table class="det">'+linha('Período',kmDt(d.inicio)+' a '+kmDt(d.fim))+linha('Valor da locação',kmFmt(d.valor_adesao))+linha('Caução',kmFmt(d.caucao)+' ('+esc(d.caucao_status||'retida')+')')+linha('Status',esc(d.status||''))+'</table>'+(d.observacoes?'<h3>Observações</h3><p>'+esc(d.observacoes)+'</p>':'');
+    } else if(tipo==='contrato_programa'){
+      var lbl=({km_care:'KM Care — Manutenção Premium',km_signature:'KM Signature — Olfativo & Lifestyle',km_curadoria:'KM Curadoria — Arte & Tapetes'})[d.tipo]||d.tipo;
+      titulo='Contrato — '+lbl;
+      var det=''; try{ var mt=(typeof d.meta==='string')?JSON.parse(d.meta):(d.meta||{}); det=mt.detalhe||''; }catch(e){}
+      corpo=cliBox+'<h2>'+esc(d.numero||'')+'</h2><table class="det">'+linha('Plano',esc(d.plano||''))+linha('Adesão / 1º pagamento',kmFmt(d.valor_adesao))+linha('Recorrente',kmFmt(d.valor_recorrente))+linha('Período',kmDt(d.inicio)+(d.fim?(' a '+kmDt(d.fim)):''))+(det?linha('Detalhe',esc(det)):'')+'</table>'+(d.observacoes?'<h3>Observações</h3><p>'+esc(d.observacoes)+'</p>':'');
+    } else if(tipo==='pedido_3d'){
+      titulo='Orçamento — Impressão 3D';
+      var val=(Number(d.valor_final)>0)?d.valor_final:d.valor_estimado;
+      corpo=cliBox+'<h2>'+esc(d.titulo||'')+' · '+esc(d.numero||'')+'</h2><table class="det">'+linha('Material',esc(d.material||''))+linha('Dimensões',esc(d.dimensoes||''))+linha('Cor / acabamento',esc([d.cor,d.acabamento].filter(Boolean).join(' · ')))+linha('Quantidade',d.quantidade||1)+linha('Prazo',(d.prazo_dias||0)+' dias')+'<tr><td class="k">Valor</td><td class="tot">'+kmFmt(val)+'</td></tr>'+linha('Status',esc(d.status||''))+'</table>'+(d.descricao?'<h3>Descrição</h3><p>'+esc(d.descricao)+'</p>':'');
+    }
+    var css='*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;color:#1a1712;padding:42px 48px;max-width:780px;margin:auto}'
+      +'.hd{display:flex;align-items:center;gap:14px;border-bottom:2px solid #CB984C;padding-bottom:16px;margin-bottom:8px}.hd img{height:60px}.bn{font-size:20px;letter-spacing:.14em;color:#9D7D31;font-weight:bold}.tg{font-size:11px;color:#8a7a55;font-style:italic}'
+      +'h1{font-size:22px;color:#9D7D31;margin:22px 0 2px}.num{font-size:12px;color:#888;margin-bottom:18px}'
+      +'h2{font-size:16px;color:#1a1712;margin:18px 0 10px}h3{font-size:13px;color:#9D7D31;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.08em}p{font-size:13px;line-height:1.6;color:#333}'
+      +'table{width:100%;border-collapse:collapse;margin:8px 0}.items th,.items td{border-bottom:1px solid #e5ddc9;padding:8px 6px;font-size:13px}.items th{text-align:left;color:#9D7D31;font-size:11px;text-transform:uppercase}'
+      +'.det td{padding:7px 6px;font-size:13px;border-bottom:1px solid #f0ead9}.det .k{color:#9D7D31;width:200px;font-size:11px;text-transform:uppercase;letter-spacing:.04em}.det .tot{font-weight:bold;color:#9D7D31;font-size:15px}'
+      +'.ft{margin-top:42px;border-top:1px solid #e5ddc9;padding-top:14px;font-size:11px;color:#999;text-align:center}'
+      +'.sign{margin-top:54px;display:flex;justify-content:space-between;gap:40px}.sign div{flex:1;border-top:1px solid #888;padding-top:6px;font-size:12px;text-align:center;color:#555}'
+      +'.noprint{margin-top:30px;text-align:center}.noprint button{background:#CB984C;color:#080807;border:none;padding:12px 28px;font-size:13px;font-family:sans-serif;font-weight:bold;border-radius:4px;cursor:pointer}@media print{.noprint{display:none}body{padding:0}}';
+    var head='<div class="hd"><img src="https://www.kminteriores.com.br/logo.png" onerror="this.style.display=\'none\'"><div><div class="bn">KM INTERIORES</div><div class="tg">Design que inspira. Sofisticação que permanece.</div></div></div><h1>'+titulo+'</h1><div class="num">'+esc(d.numero||'')+' · emitido em '+new Date().toLocaleDateString('pt-BR')+'</div>';
+    var ft='<div class="sign"><div>KM Interiores</div><div>'+esc(c.nome||'Cliente')+'</div></div><div class="ft">KM Interiores · www.kminteriores.com.br · Documento gerado pelo CRM KM — confira os valores antes de enviar.</div>';
+    var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+titulo+' · KM</title><style>'+css+'</style></head><body>'+head+corpo+ft+'<div class="noprint"><button onclick="window.print()">Imprimir / Salvar como PDF</button></div></body></html>';
+    var w=window.open('','_blank'); if(!w){ alert('Permita pop-ups para gerar o documento.'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+  }
+  document.addEventListener('click', function(e){
+    var b=e.target.closest?e.target.closest('button[data-act="doc"]'):null; if(!b) return;
+    kmDocOpen(b.getAttribute('data-tipo'), b.getAttribute('data-id'));
+  });
 
   // ===== Recolher / expandir o menu lateral =====
   (function(){
