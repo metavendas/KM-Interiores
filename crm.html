@@ -209,7 +209,7 @@
           <div class="ag on"><div class="agh">Qualificador de Leads <span class="agtag ok">ativo</span></div><p>Classifica o lead (Quente/Morno/Frio + score), propõe resposta on-brand e o próximo passo. Lê o catálogo real como contexto.</p><button class="ia-btn" id="agRunLatest">✦ Rodar no lead mais recente</button></div>
           <div class="ag on"><div class="agh">Curador de Produto <span class="agtag ok">ativo</span></div><p>Gera descrição editorial de luxo para peças do catálogo, no tom da marca. Sugere → você publica.</p><button class="ia-btn" id="agCurador">✦ Rodar numa peça do catálogo</button><div id="curadorOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
           <div class="ag on"><div class="agh">Briefing 360 <span class="agtag ok">ativo</span></div><p>Consolida o histórico do cliente (pedidos, interações) num resumo executivo antes do atendimento.</p><button class="ia-btn" id="agBriefing">✦ Gerar briefing do cliente mais recente</button><div id="briefingOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
-          <div class="ag"><div class="agh">Régua / Lifecycle <span class="agtag soon">em ativação</span></div><p>Propõe e-mails de relacionamento e reengajamento (boas-vindas, pós-venda, KM Care). Depende de integração de e-mail.</p></div>
+          <div class="ag on"><div class="agh">Régua / Lifecycle <span class="agtag ok">ativo</span></div><p>Propõe e-mails de relacionamento (boas-vindas, pós-venda, reengajamento). IA rascunha → você aprova → envia.</p><button class="ia-btn" id="agRegua">✦ Propor e-mail de boas-vindas</button> <button class="ia-btn" id="agReguaSend" style="display:none">✓ Aprovar e enviar</button><div id="reguaOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
           <div class="ag"><div class="agh">Sentinela (QA/Segurança) <span class="agtag soon">em ativação</span></div><p>Revisa conteúdo e segurança (RLS, governança) antes de qualquer publicação.</p></div>
         </div>
       </section>
@@ -399,6 +399,40 @@
         });
       })
       .catch(function(e){ agC.disabled=false; agC.textContent=old; out.textContent='Erro de conexão com o agente.'; console.error(e); });
+    });
+  })();
+  // ===== Agente Régua / Lifecycle =====
+  (function(){
+    var agR=document.getElementById('agRegua'); if(!agR) return;
+    var agRS=document.getElementById('agReguaSend'); var lastEmailId='';
+    function strip(h){ var d=document.createElement('div'); d.innerHTML=h||''; return d.textContent||d.innerText||''; }
+    agR.addEventListener('click',function(){
+      var tok=localStorage.getItem(TOKKEY); var out=$('reguaOut'); var old=agR.textContent;
+      agR.disabled=true; agR.textContent='Gerando…'; agRS.style.display='none'; out.style.display='block'; out.textContent='A IA está redigindo o e-mail…';
+      fetch(SB+'/functions/v1/agente-regua',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'propor',tipo:'boas_vindas'})})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        agR.disabled=false; agR.textContent=old;
+        if(!j||j.ok===false){ out.textContent=(j&&j.error)||'Não foi possível gerar.'; return; }
+        lastEmailId=j.email_id||'';
+        var via=(j.fonte||'').indexOf('groq')===0?'Groq · Llama 3.3':'fallback (configure GROQ_API_KEY)';
+        out.textContent='Para: '+(j.nome||'')+' <'+(j.destinatario||'')+'>\n\nAssunto: '+(j.assunto||'')+'\n\n'+strip(j.corpo)+'\n\n— rascunho salvo (pendente) · '+via;
+        if(lastEmailId) agRS.style.display='inline-block';
+      })
+      .catch(function(e){ agR.disabled=false; agR.textContent=old; out.textContent='Erro de conexão com o agente.'; console.error(e); });
+    });
+    agRS.addEventListener('click',function(){
+      if(!lastEmailId) return; var tok=localStorage.getItem(TOKKEY); var out=$('reguaOut'); var old=agRS.textContent;
+      agRS.disabled=true; agRS.textContent='Enviando…';
+      fetch(SB+'/functions/v1/agente-regua',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'enviar',email_id:lastEmailId})})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        agRS.disabled=false; agRS.textContent=old;
+        if(j&&j.ok){ out.textContent='✓ E-mail enviado com sucesso.'; agRS.style.display='none'; return; }
+        if(j&&j.error==='credenciais_ausentes'){ out.textContent='Rascunho aprovado, mas falta plugar a chave do Brevo (BREVO_API_KEY) nos secrets para o envio sair. O e-mail está salvo como pendente.'; return; }
+        out.textContent='Não foi possível enviar: '+((j&&(j.detalhe||j.error))||'erro');
+      })
+      .catch(function(e){ agRS.disabled=false; agRS.textContent=old; out.textContent='Erro de conexão ao enviar.'; console.error(e); });
     });
   })();
   // ===== Agente Briefing 360 =====
