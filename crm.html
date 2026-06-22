@@ -484,7 +484,7 @@
 
 <script>
   var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
-  var TOKKEY='km_crm_token', STAFF=['admin','gestor','vendas','curadoria','representante'];
+  var TOKKEY='km_crm_token', RTKEY='km_crm_refresh', STAFF=['admin','gestor','vendas','curadoria','representante'];
   var mode='login';
   var $=function(id){return document.getElementById(id);};
   function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -811,6 +811,8 @@
       var tok=res.j.access_token;
       if(!tok){ $('g_msg').textContent='Resposta inesperada.'; return; }
       localStorage.setItem(TOKKEY,tok);
+      if(res.j.refresh_token) localStorage.setItem(RTKEY,res.j.refresh_token);
+      startTokenKeepAlive();
       checkRole(tok).then(function(info){
         if(info && STAFF.indexOf(info.role)>=0){ showApp(info.email, info.role, info.acessos); }
         else { $('g_msg').textContent='Login ok, mas seu usuário ainda não tem acesso de equipe. Peça ao admin para promover.'; }
@@ -827,7 +829,7 @@
     $('g_alt').innerHTML = mode==='login' ? 'Primeiro acesso? <a id="g_toggle">Criar conta de admin</a>' : 'Já tem conta? <a id="g_toggle">Fazer login</a>';
     $('g_msg').textContent='';
   });
-  $('logout').addEventListener('click', function(){ localStorage.removeItem(TOKKEY); showGate('Sessão encerrada.'); });
+  $('logout').addEventListener('click', function(){ stopTokenKeepAlive(); localStorage.removeItem(TOKKEY); localStorage.removeItem(RTKEY); showGate('Sessão encerrada.'); });
   // ===== Navegação entre telas =====
   function showView(v){
     var allow=allowedViews();
@@ -1742,13 +1744,42 @@
     document.querySelectorAll('.nav a[data-view]').forEach(function(a){ a.addEventListener('click', function(){ if(isMobile()) layout.classList.remove('sb-open'); }); });
   })();
 
+  // ===== Sessão sempre fresca — renova o token antes de expirar (corrige "JWT expired") =====
+  function jwtExpMs(tok){ try{ var p=JSON.parse(atob((tok||'').split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); return (p.exp||0)*1000; }catch(e){ return 0; } }
+  function refreshToken(){
+    var rt=localStorage.getItem(RTKEY); if(!rt) return Promise.resolve(false);
+    return fetch(SB+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})})
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){ if(j&&j.access_token){ localStorage.setItem(TOKKEY,j.access_token); if(j.refresh_token) localStorage.setItem(RTKEY,j.refresh_token); return true; }
+      // refresh token inválido/expirado → encerra sessão
+      localStorage.removeItem(TOKKEY); localStorage.removeItem(RTKEY); return false; })
+    .catch(function(){ return false; });
+  }
+  // Renova se faltar < 15 min para expirar (ou já expirou). Resolve true se há token válido.
+  function ensureFreshToken(){
+    var tok=localStorage.getItem(TOKKEY); if(!tok) return Promise.resolve(false);
+    var exp=jwtExpMs(tok);
+    if(exp && exp - Date.now() > 15*60*1000) return Promise.resolve(true);
+    return refreshToken();
+  }
+  var KA_TIMER=null;
+  function startTokenKeepAlive(){ if(KA_TIMER) return; KA_TIMER=setInterval(function(){ ensureFreshToken(); }, 5*60*1000); }
+  function stopTokenKeepAlive(){ if(KA_TIMER){ clearInterval(KA_TIMER); KA_TIMER=null; } }
+  // ao voltar para a aba, garante token fresco
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) ensureFreshToken(); });
+  window.addEventListener('focus', function(){ ensureFreshToken(); });
+
   (function(){
     var tok=localStorage.getItem(TOKKEY);
     if(!tok){ showGate(); return; }
-    checkRole(tok).then(function(info){
-      if(info && STAFF.indexOf(info.role)>=0) showApp(info.email, info.role, info.acessos);
-      else showGate();
-    }).catch(function(){ showGate(); });
+    ensureFreshToken().then(function(){
+      var t=localStorage.getItem(TOKKEY);
+      if(!t){ showGate('Sua sessão expirou. Faça login novamente.'); return; }
+      checkRole(t).then(function(info){
+        if(info && STAFF.indexOf(info.role)>=0){ showApp(info.email, info.role, info.acessos); startTokenKeepAlive(); }
+        else showGate();
+      }).catch(function(){ showGate(); });
+    });
   })();
 </script>
 </body>
