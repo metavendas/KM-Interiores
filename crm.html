@@ -208,7 +208,7 @@
         <div class="agents">
           <div class="ag on"><div class="agh">Qualificador de Leads <span class="agtag ok">ativo</span></div><p>Classifica o lead (Quente/Morno/Frio + score), propõe resposta on-brand e o próximo passo. Lê o catálogo real como contexto.</p><button class="ia-btn" id="agRunLatest">✦ Rodar no lead mais recente</button></div>
           <div class="ag on"><div class="agh">Curador de Produto <span class="agtag ok">ativo</span></div><p>Gera descrição editorial de luxo para peças do catálogo, no tom da marca. Sugere → você publica.</p></div>
-          <div class="ag"><div class="agh">Briefing 360 <span class="agtag soon">em ativação</span></div><p>Consolida o histórico do cliente (pedidos, propostas, projetos) num resumo executivo antes do atendimento.</p></div>
+          <div class="ag on"><div class="agh">Briefing 360 <span class="agtag ok">ativo</span></div><p>Consolida o histórico do cliente (pedidos, interações) num resumo executivo antes do atendimento.</p><button class="ia-btn" id="agBriefing">✦ Gerar briefing do cliente mais recente</button><div id="briefingOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
           <div class="ag"><div class="agh">Régua / Lifecycle <span class="agtag soon">em ativação</span></div><p>Propõe e-mails de relacionamento e reengajamento (boas-vindas, pós-venda, KM Care). Depende de integração de e-mail.</p></div>
           <div class="ag"><div class="agh">Sentinela (QA/Segurança) <span class="agtag soon">em ativação</span></div><p>Revisa conteúdo e segurança (RLS, governança) antes de qualquer publicação.</p></div>
         </div>
@@ -260,18 +260,21 @@
       </section>
       <section class="view" data-v="financeiro" hidden>
         <div class="h1">Financeiro</div>
-        <div class="sub">DRE, margens e fluxo · <span style="color:var(--ouro)">módulo em ativação · prévia ilustrativa</span></div>
-        <div class="kpis">
-          <div class="kpi"><div class="l">Receita (mês)</div><div class="n">R$ 312.480</div><div class="d">ilustrativo</div></div>
-          <div class="kpi"><div class="l">Margem bruta</div><div class="n">58%</div><div class="d">ilustrativo</div></div>
-          <div class="kpi"><div class="l">Recebíveis</div><div class="n">R$ 196.000</div><div class="d">ilustrativo</div></div>
-          <div class="kpi"><div class="l">A pagar</div><div class="n">R$ 74.300</div><div class="d">ilustrativo</div></div>
-        </div>
+        <div class="sub">Receita e recebíveis em tempo real · baseado nos pedidos do site</div>
+        <div class="kpis" id="finKpis"><div class="kpi"><div class="l">Carregando…</div><div class="n">—</div></div></div>
+        <div class="panel" style="margin-top:14px"><h3>Como é calculado</h3>
+          <div style="padding:16px 20px;color:var(--muted);font-size:13px;line-height:1.7">
+            <b style="color:var(--text)">Receita (mês)</b> = pedidos com status <b>Pago</b> no mês corrente. ·
+            <b style="color:var(--text)">Recebíveis</b> = pedidos <b>novos / aguardando pagamento</b>. ·
+            <b style="color:var(--text)">A pagar</b> = lançamentos do financeiro ainda em aberto.<br>
+            Os números atualizam sozinhos conforme o Mercado Pago confirma cada pagamento.
+          </div></div>
       </section>
       <section class="view" data-v="relatorios" hidden>
         <div class="h1">Relatórios</div>
-        <div class="sub">Briefings e análises · <span style="color:var(--ouro)">módulo em ativação</span></div>
-        <div class="panel"><h3>Relatórios disponíveis</h3><div style="padding:20px;color:var(--muted);font-size:13.5px;line-height:1.8">Briefing semanal · Análise financeira por pilar · Review de OKRs (QBR) · Performance de campanhas.<br><span style="color:var(--ouro)">Gerados sob demanda pela assessoria de IA.</span></div></div>
+        <div class="sub">Panorama do negócio em tempo real</div>
+        <div class="kpis" id="relKpis"><div class="kpi"><div class="l">Carregando…</div><div class="n">—</div></div></div>
+        <div class="panel" style="margin-top:14px"><h3>Relatórios sob demanda</h3><div style="padding:20px;color:var(--muted);font-size:13.5px;line-height:1.8">Briefing semanal · Análise financeira por pilar · Review de OKRs (QBR) · Performance de campanhas.<br><span style="color:var(--ouro)">Gerados sob demanda pela assessoria de IA.</span></div></div>
       </section>
     </div>
     <div class="demo">Leads em tempo real do banco · KPIs do funil ilustrativos · governança IA propõe → Edson aprova</div>
@@ -371,6 +374,23 @@
   document.getElementById('leadsBody').addEventListener('click',function(e){
     var b=e.target.closest?e.target.closest('.ia-btn'):null; if(b) openIA(b.getAttribute('data-id'));
   });
+  // ===== Agente Briefing 360 =====
+  (function(){
+    var agB=document.getElementById('agBriefing'); if(!agB) return;
+    agB.addEventListener('click',function(){
+      var tok=localStorage.getItem(TOKKEY); var out=$('briefingOut'); var old=agB.textContent;
+      agB.disabled=true; agB.textContent='Gerando…'; out.style.display='block'; out.textContent='Consultando o agente Briefing 360…';
+      fetch(SB+'/functions/v1/agente-briefing',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:'{}'})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        agB.disabled=false; agB.textContent=old;
+        if(j.erro||j.ok===false){ out.textContent=(j.erro==='sem_permissao'?'Entre como equipe para usar o agente.':(j.erro||'Não foi possível gerar o briefing.')); return; }
+        var via=(j.fonte||'').indexOf('groq')===0?'Groq · Llama 3.3':'fallback (configure GROQ_API_KEY p/ IA real)';
+        out.textContent=(j.briefing||'')+'\n\n— Cliente: '+(j.cliente||'—')+' · '+via;
+      })
+      .catch(function(e){ agB.disabled=false; agB.textContent=old; out.textContent='Erro de conexão com o agente.'; console.error(e); });
+    });
+  })();
   function checkRole(tok){
     return fetch(SB+'/auth/v1/user',{headers:authHeaders(tok)})
       .then(function(r){ return r.ok?r.json():null; })
@@ -424,6 +444,8 @@
     if(v==='produtos') renderProdutos();
     if(v==='funil') initFunil();
     if(v==='pedidos') loadPedidos();
+    if(v==='financeiro') loadFinanceiro();
+    if(v==='relatorios') loadRelatorios();
     if(typeof MODS!=='undefined' && MODS[v]) renderMod(v);
     var c=document.querySelector('.content'); if(c) c.scrollTop=0;
   }
@@ -734,6 +756,49 @@
       }).join('');
     })
     .catch(function(e){ tb.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:18px">Não foi possível carregar os pedidos (entre como equipe).</td></tr>'; console.error(e); });
+  }
+  // ===== Financeiro real (RPC get_financeiro_resumo) =====
+  function moneyBR(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR'); }
+  function kpiCard(l,n,d){ return '<div class="kpi"><div class="l">'+l+'</div><div class="n">'+n+'</div>'+(d?'<div class="d">'+d+'</div>':'')+'</div>'; }
+  function loadFinanceiro(){
+    var box=$('finKpis'); if(!box) return;
+    var tok=localStorage.getItem(TOKKEY);
+    box.innerHTML=kpiCard('Carregando…','—','');
+    fetch(SB+'/rest/v1/rpc/get_financeiro_resumo',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d || d.erro){ box.innerHTML=kpiCard('Sem permissão','—','entre como equipe'); return; }
+      box.innerHTML=[
+        kpiCard('Receita (mês)',moneyBR(d.receita_mes),'pedidos pagos'),
+        kpiCard('Receita total',moneyBR(d.receita_total),'acumulado'),
+        kpiCard('Recebíveis',moneyBR(d.recebiveis),'a confirmar'),
+        kpiCard('Ticket médio',moneyBR(d.ticket_medio),'por pedido pago'),
+        kpiCard('Pedidos (mês)',d.pedidos_mes,(d.pedidos_pagos||0)+' pagos'),
+        kpiCard('A pagar',moneyBR(d.a_pagar),'em aberto')
+      ].join('');
+    })
+    .catch(function(e){ box.innerHTML=kpiCard('Erro ao carregar','—',''); console.error(e); });
+  }
+  // ===== Relatórios: panorama em tempo real =====
+  function countOf(tok,table){
+    return fetch(SB+'/rest/v1/'+table+'?select=id',{method:'HEAD',headers:Object.assign(authHeaders(tok),{Prefer:'count=exact','Range-Unit':'items',Range:'0-0'})})
+      .then(function(r){ var cr=r.headers.get('content-range')||''; var n=cr.split('/')[1]; return n&&n!=='*'?Number(n):0; }).catch(function(){ return 0; });
+  }
+  function loadRelatorios(){
+    var box=$('relKpis'); if(!box) return;
+    var tok=localStorage.getItem(TOKKEY);
+    box.innerHTML=kpiCard('Carregando…','—','');
+    Promise.all([countOf(tok,'clientes'),countOf(tok,'produtos'),countOf(tok,'pedidos'),countOf(tok,'leads'),countOf(tok,'oportunidades'),countOf(tok,'parceiros')])
+    .then(function(c){
+      box.innerHTML=[
+        kpiCard('Clientes',c[0],'base'),
+        kpiCard('Produtos',c[1],'catálogo'),
+        kpiCard('Pedidos',c[2],'total'),
+        kpiCard('Leads',c[3],'captados'),
+        kpiCard('Oportunidades',c[4],'no funil'),
+        kpiCard('Parceiros',c[5],'arquitetos')
+      ].join('');
+    });
   }
   document.querySelectorAll('.nav a[data-view]').forEach(function(a){
     a.addEventListener('click', function(e){ e.preventDefault(); showView(a.getAttribute('data-view')); });
