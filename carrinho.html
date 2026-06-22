@@ -125,6 +125,13 @@
     else if(act==='rm') cart=cart.filter(function(x){return String(x.id)!==String(id);});
     setCart(cart);
   });
+  function pedidoOk(j,nome){
+    document.getElementById('layout').innerHTML='<div class="panel okcard" style="grid-column:1/-1">'
+      +'<div class="chk">✦</div><h2>Pedido recebido!</h2>'
+      +'<div class="num">Nº '+esc(j.numero)+' · '+brl(j.valor)+'</div>'
+      +'<p>Obrigado, '+esc(nome)+'. Seu pedido foi registrado com sucesso.<br>Um especialista KM entrará em contato para confirmar o pagamento e a entrega.</p>'
+      +'<p style="margin-top:18px"><a href="catalogo.html" style="color:var(--accent)">← Continuar vendo o catálogo</a></p></div>';
+  }
   document.getElementById('finalizar').addEventListener('click',function(){
     var cart=getCart(); if(!cart.length) return;
     var nome=document.getElementById('c_nome').value.trim(), email=document.getElementById('c_email').value.trim();
@@ -137,11 +144,18 @@
     .then(function(j){
       if(j && j.ok){
         localStorage.removeItem(KCART);
-        document.getElementById('layout').innerHTML='<div class="panel okcard" style="grid-column:1/-1">'
-          +'<div class="chk">✦</div><h2>Pedido recebido!</h2>'
-          +'<div class="num">Nº '+esc(j.numero)+' · '+brl(j.valor)+'</div>'
-          +'<p>Obrigado, '+esc(nome)+'. Seu pedido foi registrado com sucesso.<br>Um especialista KM entrará em contato para confirmar o pagamento e a entrega.</p>'
-          +'<p style="margin-top:18px"><a href="catalogo.html" style="color:var(--accent)">← Continuar vendo o catálogo</a></p></div>';
+        // Tenta gerar o link de pagamento online (Mercado Pago). Se o gateway ainda
+        // nao estiver configurado, cai no fluxo classico (especialista confirma).
+        if(j.pedido_id){
+          document.getElementById('msg').textContent=' Gerando pagamento seguro…';
+          fetch(SB+'/functions/v1/criar-pagamento',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify({pedido_id:j.pedido_id})})
+          .then(function(r){return r.json();})
+          .then(function(pg){
+            if(pg && pg.init_point){ window.location.href=pg.init_point; return; }
+            pedidoOk(j,nome); // sem gateway configurado -> fluxo classico
+          })
+          .catch(function(){ pedidoOk(j,nome); });
+        } else { pedidoOk(j,nome); }
       } else {
         btn.disabled=false; btn.textContent='Finalizar pedido';
         document.getElementById('msg').textContent=' '+((j&&j.error)||'Não foi possível concluir. Tente novamente.');
