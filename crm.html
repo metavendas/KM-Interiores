@@ -281,9 +281,20 @@
         <div class="h1">Equipe &amp; Acessos</div>
         <div class="sub">Quem pode usar o painel e em qual nível · só administradores gerenciam · ninguém altera o próprio nível</div>
         <div class="panel"><h3>Pessoas com acesso</h3><table>
-          <thead><tr><th>Nome</th><th>E-mail</th><th>Nível</th><th>Acesso</th></tr></thead>
-          <tbody id="equipeBody"><tr><td colspan="4" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Nível</th><th>Acesso</th><th>Áreas liberadas</th></tr></thead>
+          <tbody id="equipeBody"><tr><td colspan="5" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
         </table></div>
+        <div class="panel" id="acessosPanel" style="display:none;margin-top:14px">
+          <h3>Áreas liberadas para <span id="acNome" style="color:var(--accent)"></span></h3>
+          <div style="padding:14px 20px">
+            <div id="acChecks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px"></div>
+            <div style="margin-top:14px;display:flex;gap:10px">
+              <button id="acSalvar" class="ia-btn">Salvar acessos</button>
+              <button id="acCancelar" style="background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:3px;padding:8px 14px;cursor:pointer">Cancelar</button>
+              <span id="acMsg" style="color:var(--ouro);align-self:center;font-size:12px"></span>
+            </div>
+          </div>
+        </div>
         <div class="panel" style="margin-top:14px"><h3>Como adicionar uma pessoa</h3><div style="padding:16px 20px;color:var(--muted);font-size:13px;line-height:1.7">1) A pessoa cria o login em <b style="color:var(--text)">/crm.html</b> (equipe) ou <b style="color:var(--text)">/area-restrita.html</b> (parceiro) — entra como <b>cliente</b>, sem acesso.<br>2) Aqui você define o <b>nível</b> dela. Níveis: <b>admin</b> (tudo), <b>gestor</b>, <b>vendas</b>, <b>curadoria</b>, <b>representante</b>, <b>parceiro</b>.</div></div>
       </section>
     </div>
@@ -298,8 +309,39 @@
   var $=function(id){return document.getElementById(id);};
   function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function authHeaders(tok){return {apikey:KEY, Authorization:'Bearer '+tok};}
-  function showApp(email){ $('gate').style.display='none'; $('app').style.display='block'; $('who').textContent=email||''; loadLeads(); }
+  function showApp(email, role, acessos){ $('gate').style.display='none'; $('app').style.display='block'; $('who').textContent=(email||'')+(role&&role!=='admin'&&role!=='gestor'?' · '+role:''); applyAccess(role, acessos); loadLeads(); }
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
+  // ===== Controle de acesso (UI) — acessos personalizados por pessoa =====
+  // Módulos que o admin pode conceder (Equipe & Acessos é sempre só de admin).
+  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['clientes','Clientes'],
+    ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Vendedores'],
+    ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['produtos','Produtos'],
+    ['estoque','Estoque'],['pedidos','Pedidos'],['financeiro','Financeiro'],
+    ['agentes','Agentes de IA'],['relatorios','Relatórios']];
+  var ACCESS_DEFAULT={
+    vendas:        ['funil','clientes','produtos','estoque','pedidos'],
+    representante: ['funil','clientes','produtos','estoque','pedidos'],
+    curadoria:     ['funil','clientes','produtos','estoque','pedidos','leads']
+  };
+  var ME_ROLE='', ME_ACESSOS=null;
+  function allowedViews(){
+    if(!ME_ROLE || ME_ROLE==='admin' || ME_ROLE==='gestor') return null; // acesso total
+    if(ME_ACESSOS && ME_ACESSOS.length) return ME_ACESSOS;               // personalizado
+    return ACCESS_DEFAULT[ME_ROLE] || ['funil','clientes','produtos','estoque','pedidos'];
+  }
+  function applyAccess(role, acessos){
+    ME_ROLE=role||''; ME_ACESSOS=(acessos&&acessos.length)?acessos:null;
+    var allow=allowedViews();
+    document.querySelectorAll('.nav a[data-view]').forEach(function(a){
+      var v=a.getAttribute('data-view');
+      a.style.display=(allow===null || allow.indexOf(v)>=0)?'':'none';
+    });
+    if(allow!==null){
+      var at=document.querySelector('.nav a[data-view].active');
+      var cur=at?at.getAttribute('data-view'):'dashboard';
+      if(allow.indexOf(cur)<0) showView(allow[0]);
+    }
+  }
   function leadIaCell(l){
     if(l.ia_status==='aprovado') return '<span class="ia-tag ok">✓ Aprovado</span> <button class="ia-btn" data-id="'+l.id+'">rever</button>';
     if(l.ia_status==='ia_sugerido') return '<button class="ia-btn sug" data-id="'+l.id+'">● Ver sugestão · '+esc(l.ia_classificacao||'?')+'</button>';
@@ -447,20 +489,25 @@
   })();
   // ===== Equipe & Acessos (admin) =====
   var EQ_ROLES=['admin','gestor','vendas','curadoria','representante','parceiro','cliente'];
+  var EQ_BYID={};
+  function acessosDe(p){ return (p.acessos&&p.acessos.length)?p.acessos:(ACCESS_DEFAULT[p.role]||[]); }
   function loadEquipe(){
     var tb=$('equipeBody'); if(!tb) return;
     var tok=localStorage.getItem(TOKKEY); var meId='';
-    tb.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
+    if($('acessosPanel')) $('acessosPanel').style.display='none';
+    tb.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
     fetch(SB+'/auth/v1/user',{headers:authHeaders(tok)}).then(function(r){ return r.ok?r.json():null; })
     .then(function(u){ meId=(u&&u.id)||''; return fetch(SB+'/rest/v1/rpc/listar_equipe',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'}); })
     .then(function(r){ return r.json(); })
     .then(function(d){
-      if(!d || d.erro){ tb.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:18px">'+(d&&d.erro==='sem_permissao'?'Apenas administradores podem gerenciar acessos.':'Não foi possível carregar.')+'</td></tr>'; return; }
-      var lista=d.equipe||[];
-      if(!lista.length){ tb.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:18px">Ninguém com acesso ainda.</td></tr>'; return; }
+      if(!d || d.erro){ tb.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:18px">'+(d&&d.erro==='sem_permissao'?'Apenas administradores podem gerenciar acessos.':'Não foi possível carregar.')+'</td></tr>'; return; }
+      var lista=d.equipe||[]; EQ_BYID={};
+      if(!lista.length){ tb.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:18px">Ninguém com acesso ainda.</td></tr>'; return; }
       tb.innerHTML=lista.map(function(p){
+        EQ_BYID[p.id]=p;
         var self=(p.id===meId); var ativo=(p.ativo!==false); var prot=(p.protegido===true);
-        var sel, acc;
+        var full=(p.role==='admin'||p.role==='gestor');
+        var sel, acc, areas;
         if(prot && !self){
           sel='<span style="color:var(--accent)">'+esc(p.role)+'</span> <span title="Administrador-dono protegido">🔒</span>';
           acc='<span style="color:var(--muted)">protegido</span>';
@@ -468,11 +515,26 @@
           sel='<select class="eq-role" data-id="'+p.id+'"'+(self?' disabled title="Você não pode alterar o próprio nível"':'')+'>'+EQ_ROLES.map(function(r){ return '<option value="'+r+'"'+(r===p.role?' selected':'')+'>'+r+'</option>'; }).join('')+'</select>';
           acc=self?'<span style="color:var(--muted)">— você —</span>':('<button class="eq-ativo" data-id="'+p.id+'" data-ativo="'+(ativo?'1':'0')+'" style="background:var(--bg3,#221b10);border:1px solid var(--line);color:var(--text);border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px">'+(ativo?'Desativar':'Ativar')+'</button>');
         }
+        if(full){ areas='<span style="color:var(--muted)">tudo (gestão)</span>'; }
+        else { areas='<span style="color:var(--muted)">'+acessosDe(p).length+' área(s)</span> <button class="eq-acessos" data-id="'+p.id+'" style="background:var(--accent);border:none;color:#14100a;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;font-weight:600">Configurar</button>'; }
         var badge=ativo?'<span style="color:#7CCB8C">●</span> ':'<span style="color:#C98C8C">●</span> ';
-        return '<tr><td style="color:var(--text)">'+esc(p.nome||'—')+(prot?' <span style="font-size:10px;color:var(--ouro)">DONO</span>':'')+'</td><td>'+esc(p.email||'')+'</td><td>'+sel+'</td><td>'+badge+acc+'</td></tr>';
+        return '<tr><td style="color:var(--text)">'+esc(p.nome||'—')+(prot?' <span style="font-size:10px;color:var(--ouro)">DONO</span>':'')+'</td><td>'+esc(p.email||'')+'</td><td>'+sel+'</td><td>'+badge+acc+'</td><td>'+areas+'</td></tr>';
       }).join('');
     })
-    .catch(function(e){ tb.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:18px">Erro ao carregar.</td></tr>'; console.error(e); });
+    .catch(function(e){ tb.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:18px">Erro ao carregar.</td></tr>'; console.error(e); });
+  }
+  // Abre o painel de checkboxes de áreas para uma pessoa
+  var AC_ALVO='';
+  function abrirAcessos(id){
+    var p=EQ_BYID[id]; if(!p) return; AC_ALVO=id;
+    var atuais=acessosDe(p);
+    $('acNome').textContent=(p.nome||p.email||'')+' ('+p.role+')';
+    $('acChecks').innerHTML=MODULOS.map(function(m){
+      var ck=atuais.indexOf(m[0])>=0?' checked':'';
+      return '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" class="ac-ck" value="'+m[0]+'"'+ck+'> '+m[1]+'</label>';
+    }).join('');
+    $('acMsg').textContent=''; $('acessosPanel').style.display='block';
+    $('acessosPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
   }
   (function(){
     var tb=document.getElementById('equipeBody'); if(!tb) return;
@@ -484,11 +546,27 @@
       .catch(function(){ s.disabled=false; loadEquipe(); });
     });
     tb.addEventListener('click',function(e){
+      var cfg=e.target.closest?e.target.closest('.eq-acessos'):null;
+      if(cfg){ abrirAcessos(cfg.getAttribute('data-id')); return; }
       var b=e.target.closest?e.target.closest('.eq-ativo'):null; if(!b) return;
       var tok=localStorage.getItem(TOKKEY); var id=b.getAttribute('data-id'); var novo=(b.getAttribute('data-ativo')!=='1'); b.disabled=true;
       fetch(SB+'/rest/v1/rpc/definir_ativo',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({p_user_id:id,p_ativo:novo})})
       .then(function(r){ return r.json(); }).then(function(){ loadEquipe(); })
       .catch(function(){ b.disabled=false; loadEquipe(); });
+    });
+    var acC=$('acCancelar'); if(acC) acC.addEventListener('click',function(){ $('acessosPanel').style.display='none'; AC_ALVO=''; });
+    var acS=$('acSalvar'); if(acS) acS.addEventListener('click',function(){
+      if(!AC_ALVO) return; var tok=localStorage.getItem(TOKKEY); var old=acS.textContent;
+      var sel=[].slice.call(document.querySelectorAll('#acChecks .ac-ck:checked')).map(function(c){ return c.value; });
+      acS.disabled=true; acS.textContent='Salvando…'; $('acMsg').textContent='';
+      fetch(SB+'/rest/v1/rpc/definir_acessos',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({p_user_id:AC_ALVO,p_acessos:sel})})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        acS.disabled=false; acS.textContent=old;
+        if(j&&j.ok){ $('acMsg').textContent='✓ Acessos salvos.'; setTimeout(function(){ $('acessosPanel').style.display='none'; loadEquipe(); },700); }
+        else { $('acMsg').textContent=(j&&j.erro==='admin_dono_protegido')?'Conta protegida (dono).':((j&&j.erro)||'Falha ao salvar.'); }
+      })
+      .catch(function(e){ acS.disabled=false; acS.textContent=old; $('acMsg').textContent='Erro de conexão.'; console.error(e); });
     });
   })();
   // ===== Agente Sentinela (QA/Segurança) =====
@@ -530,9 +608,9 @@
     return fetch(SB+'/auth/v1/user',{headers:authHeaders(tok)})
       .then(function(r){ return r.ok?r.json():null; })
       .then(function(u){ if(!u||!u.id) return null;
-        return fetch(SB+'/rest/v1/perfis?select=role&id=eq.'+u.id,{headers:authHeaders(tok)})
+        return fetch(SB+'/rest/v1/perfis?select=role,acessos&id=eq.'+u.id,{headers:authHeaders(tok)})
           .then(function(r){return r.json();})
-          .then(function(p){ return {email:u.email, role:(p&&p[0])?p[0].role:'cliente'}; });
+          .then(function(p){ return {email:u.email, role:(p&&p[0])?p[0].role:'cliente', acessos:(p&&p[0])?p[0].acessos:null}; });
       });
   }
   function entrar(){
@@ -554,7 +632,7 @@
       if(!tok){ $('g_msg').textContent='Resposta inesperada.'; return; }
       localStorage.setItem(TOKKEY,tok);
       checkRole(tok).then(function(info){
-        if(info && STAFF.indexOf(info.role)>=0){ showApp(info.email); }
+        if(info && STAFF.indexOf(info.role)>=0){ showApp(info.email, info.role, info.acessos); }
         else { $('g_msg').textContent='Login ok, mas seu usuário ainda não tem acesso de equipe. Peça ao admin para promover.'; }
       });
     })
@@ -572,6 +650,8 @@
   $('logout').addEventListener('click', function(){ localStorage.removeItem(TOKKEY); showGate('Sessão encerrada.'); });
   // ===== Navegação entre telas =====
   function showView(v){
+    var allow=allowedViews();
+    if(allow!==null && allow.indexOf(v)<0){ v=allow[0]; }   // tela restrita -> 1ª permitida
     var found=false;
     document.querySelectorAll('.view').forEach(function(s){ var m=(s.getAttribute('data-v')===v); s.hidden=!m; if(m)found=true; });
     if(!found){ var d=document.querySelector('.view[data-v="dashboard"]'); if(d)d.hidden=false; v='dashboard'; }
@@ -972,7 +1052,7 @@
     var tok=localStorage.getItem(TOKKEY);
     if(!tok){ showGate(); return; }
     checkRole(tok).then(function(info){
-      if(info && STAFF.indexOf(info.role)>=0) showApp(info.email);
+      if(info && STAFF.indexOf(info.role)>=0) showApp(info.email, info.role, info.acessos);
       else showGate();
     }).catch(function(){ showGate(); });
   })();
