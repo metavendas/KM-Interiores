@@ -28,7 +28,11 @@
   .gatecard .msg{margin-top:14px;font-size:12px;color:var(--ouro);min-height:16px;line-height:1.5}
   #app{display:none;min-height:100vh}
   .layout{display:flex;min-height:100vh}
-  .side{width:230px;background:var(--bg2);border-right:1px solid var(--line);padding:24px 0;flex-shrink:0;position:sticky;top:0;height:100vh}
+  .side{width:230px;background:var(--bg2);border-right:1px solid var(--line);padding:24px 0;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;transition:margin-left .25s ease,width .25s ease}
+  .layout.sb-collapsed .side{margin-left:-230px}
+  #sideToggle{font-size:18px;line-height:1;color:var(--accent);background:transparent;border:1px solid var(--line);border-radius:3px;padding:7px 12px;cursor:pointer;margin-right:14px;flex-shrink:0}
+  #sideToggle:hover{border-color:var(--accent);background:rgba(203,152,76,.08)}
+  #sideBackdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:115}
   .side .brand{display:flex;align-items:center;gap:10px;padding:0 22px 22px;border-bottom:1px solid var(--line);margin-bottom:14px}
   .side .brand img{height:50px}.side .brand b{font-family:var(--serif);font-weight:600;font-size:15px;letter-spacing:.12em;color:var(--accent)}
   .nav a{display:flex;align-items:center;gap:12px;padding:13px 24px;font-size:13.5px;color:var(--muted);transition:.2s;border-left:2px solid transparent;cursor:pointer}
@@ -69,7 +73,15 @@
   .funnel-title{font-family:var(--serif);font-size:18px;margin:6px 0 14px}
   .empty{padding:30px 20px;text-align:center;color:var(--muted);font-size:13px}
   .demo{text-align:center;font-size:10px;letter-spacing:.1em;color:var(--ouro);padding:12px;border-top:1px solid var(--line)}
-  @media(max-width:1000px){.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.kanban{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:1000px){.side{position:fixed;left:0;top:0;height:100vh;z-index:120;margin-left:-260px;box-shadow:0 0 40px rgba(0,0,0,.6)}.layout.sb-open .side{margin-left:0}.layout.sb-open #sideBackdrop{display:block}.kpis{grid-template-columns:repeat(2,1fr)}.kanban{grid-template-columns:repeat(2,1fr)}}
+  .vidgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .vidcard{background:var(--bg2);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .vidcard .frame{position:relative;padding-top:56.25%;background:#000}
+  .vidcard .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .vidcard .vinfo{padding:12px 14px}
+  .vidcard .vcat{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro)}
+  .vidcard h4{font-family:var(--serif);font-size:15px;color:var(--text);margin:4px 0 6px}
+  .vidcard p{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px}
   .ia-btn{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);border:1px solid var(--line);background:transparent;padding:6px 11px;border-radius:3px;cursor:pointer;transition:.2s}
   .ia-btn:hover{border-color:var(--accent);background:rgba(203,152,76,.10)}
   .ia-btn.sug{color:#080807;background:var(--accent);border-color:var(--accent)}
@@ -152,6 +164,7 @@
       <a href="#" data-view="pedidos"><span class="dot"></span> Pedidos</a>
       <a href="#" data-view="locacao"><span class="dot"></span> Locação (Pilar 2)</a>
       <a href="#" data-view="programas"><span class="dot"></span> Programas KM</a>
+      <a href="#" data-view="treinamentos"><span class="dot"></span> Treinamentos</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
@@ -159,8 +172,10 @@
       <a href="#" data-view="equipe"><span class="dot"></span> Equipe &amp; Acessos</a>
     </nav>
   </aside>
+  <div id="sideBackdrop"></div>
   <div class="main">
     <div class="topbar">
+      <button id="sideToggle" title="Recolher / expandir o menu">☰</button>
       <input class="search" id="search" placeholder="Buscar lead por nome, contato, interesse...">
       <div class="right"><span class="ai" id="aiBtn">✦ Assistente IA</span><span class="who" id="who"></span><span class="out" id="trocarSenha">Trocar senha</span><span class="out" id="logout">Sair</span></div>
     </div>
@@ -361,6 +376,38 @@
           <tbody id="progBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody></table>
         </div>
       </section>
+
+      <!-- ===== TREINAMENTOS (equipe comercial) ===== -->
+      <section class="view" data-v="treinamentos" hidden>
+        <div class="h1">Treinamentos da Equipe</div>
+        <div class="sub">Vídeos (YouTube), apresentações e PDFs · publicados aqui aparecem no portal da equipe (Área Restrita)</div>
+
+        <div class="panel">
+          <div class="modbar"><h3>Adicionar vídeo (YouTube / Vimeo)</h3><span class="modmsg" id="msg-vid"></span></div>
+          <div class="modform" id="form-vid">
+            <div class="f"><label>Título *</label><input data-k="titulo" placeholder="Ex.: Técnica de fechamento de venda"></div>
+            <div class="f"><label>Categoria</label><input data-k="categoria" placeholder="Vendas, Produto, Onboarding…"></div>
+            <div class="f"><label>Link do vídeo *</label><input data-k="url" placeholder="https://youtu.be/..."></div>
+            <div class="f full"><label>Descrição</label><textarea data-k="descricao" rows="2"></textarea></div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="vid_salvar">Publicar vídeo</button></div>
+          </div>
+        </div>
+        <div class="panel"><h3>Vídeos publicados <span class="tagreal">● tempo real</span></h3>
+          <div style="padding:18px 20px"><div class="vidgrid" id="vidGridAdm"><div class="empty">Carregando…</div></div></div>
+        </div>
+
+        <div class="panel">
+          <div class="modbar"><h3>Enviar material (PPT / PDF / DOCX)</h3><span class="modmsg" id="msg-mat"></span></div>
+          <div class="modform" id="form-mat">
+            <div class="f"><label>Título *</label><input data-k="titulo" placeholder="Ex.: Catálogo comercial 2026"></div>
+            <div class="f"><label>Categoria</label><input data-k="categoria" placeholder="Vendas, Catálogo, Processos…"></div>
+            <div class="f"><label>Arquivo *</label><input type="file" id="mat_file" accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx"></div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="mat_salvar">Enviar material</button></div>
+          </div>
+          <table><thead><tr><th>Título</th><th>Categoria</th><th>Tipo</th><th>Tamanho</th><th style="text-align:right">Ações</th></tr></thead>
+          <tbody id="matBodyAdm"><tr><td colspan="5" class="empty">Carregando…</td></tr></tbody></table>
+        </div>
+      </section>
     </div>
     <div class="demo">Leads em tempo real do banco · KPIs do funil ilustrativos · governança IA propõe → Edson aprova</div>
   </div>
@@ -380,12 +427,12 @@
   var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Vendedores'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['produtos','Produtos'],
-    ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['programas','Programas KM'],['financeiro','Financeiro'],
+    ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['financeiro','Financeiro'],
     ['agentes','Agentes de IA'],['relatorios','Relatórios']];
   var ACCESS_DEFAULT={
-    vendas:        ['funil','clientes','produtos','estoque','pedidos','locacao','programas'],
-    representante: ['funil','clientes','produtos','estoque','pedidos','locacao'],
-    curadoria:     ['funil','clientes','produtos','estoque','pedidos','leads','locacao','programas']
+    vendas:        ['funil','clientes','produtos','estoque','pedidos','locacao','programas','treinamentos'],
+    representante: ['funil','clientes','produtos','estoque','pedidos','locacao','treinamentos'],
+    curadoria:     ['funil','clientes','produtos','estoque','pedidos','leads','locacao','programas','treinamentos']
   };
   var ME_ROLE='', ME_ACESSOS=null;
   function allowedViews(){
@@ -725,6 +772,7 @@
     if(v==='pedidos') loadPedidos();
     if(v==='locacao') loadLocacao();
     if(v==='programas') loadProgramas();
+    if(v==='treinamentos') loadTreinamentos();
     if(v==='financeiro') loadFinanceiro();
     if(v==='relatorios') loadRelatorios();
     if(v==='equipe') loadEquipe();
@@ -1322,6 +1370,98 @@
       }
       $('pw_new').value=''; $('pw_new2').value=''; $('pw_msg').textContent=''; m.style.display='flex';
     });
+  })();
+
+  // ===== TREINAMENTOS (vídeos + materiais — mesmas tabelas do portal da equipe) =====
+  var TBUCKET='portal-materiais';
+  function ytEmbedCrm(url){
+    if(!url) return '';
+    var m=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/);
+    if(m) return 'https://www.youtube.com/embed/'+m[1];
+    if(/vimeo\.com\/(\d+)/.test(url)) return 'https://player.vimeo.com/video/'+url.match(/vimeo\.com\/(\d+)/)[1];
+    return url;
+  }
+  function matTam(kb){ return kb?(kb>1024?(kb/1024).toFixed(1)+' MB':kb+' KB'):'—'; }
+  function loadTreinamentos(){
+    var tok=localStorage.getItem(TOKKEY);
+    // Vídeos
+    fetch(SB+'/rest/v1/portal_videos?select=*&order=ordem.asc,created_at.desc&limit=200',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      var el=$('vidGridAdm'); rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ el.innerHTML='<div class="empty">Nenhum vídeo publicado ainda. Adicione acima.</div>'; return; }
+      el.innerHTML=rows.map(function(v){
+        return '<div class="vidcard"><div class="frame"><iframe src="'+esc(ytEmbedCrm(v.url))+'" allowfullscreen loading="lazy"></iframe></div>'
+          +'<div class="vinfo"><div class="vcat">'+esc(v.categoria||'—')+(v.ativo===false?' · oculto':'')+'</div><h4>'+esc(v.titulo||'')+'</h4><p>'+esc(v.descricao||'')+'</p>'
+          +'<button class="ia-btn" data-act="delvid" data-id="'+v.id+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button></div></div>';
+      }).join('');
+    })
+    .catch(function(){ $('vidGridAdm').innerHTML='<div class="empty">Sem permissão (entre como equipe) ou erro de conexão.</div>'; });
+    // Materiais
+    fetch(SB+'/rest/v1/portal_materiais?select=*&order=created_at.desc&limit=200',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      var tb=$('matBodyAdm'); rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Nenhum material ainda. Envie acima.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(m){
+        return '<tr><td style="color:var(--text)">'+esc(m.titulo||'')+'</td><td><span class="badge">'+esc(m.categoria||'—')+'</span></td><td>'+esc((m.tipo||'').toUpperCase())+'</td><td>'+matTam(m.tamanho_kb)+'</td>'
+          +'<td style="text-align:right;white-space:nowrap"><button class="ia-btn" data-act="dlmat" data-path="'+esc(m.storage_path||'')+'">Baixar</button> <button class="ia-btn" data-act="delmat" data-id="'+m.id+'" data-path="'+esc(m.storage_path||'')+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button></td></tr>';
+      }).join('');
+    })
+    .catch(function(){ $('matBodyAdm').innerHTML='<tr><td colspan="5" class="empty">Sem permissão ou erro de conexão.</td></tr>'; });
+  }
+  (function(){
+    var vb=$('vid_salvar');
+    if(vb) vb.addEventListener('click', function(){
+      var form=$('form-vid'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
+      if(!g('titulo')||!g('url')){ $('msg-vid').textContent='Informe título e link do vídeo.'; return; }
+      var tok=localStorage.getItem(TOKKEY); vb.disabled=true; var old=vb.textContent; vb.textContent='Publicando…';
+      fetch(SB+'/rest/v1/portal_videos',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({titulo:g('titulo'),url:g('url'),categoria:g('categoria'),descricao:g('descricao'),ativo:true})})
+      .then(function(r){ vb.disabled=false; vb.textContent=old;
+        if(r.ok){ $('msg-vid').textContent='Vídeo publicado ✓'; form.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; }); loadTreinamentos(); setTimeout(function(){ $('msg-vid').textContent=''; },2500); }
+        else r.text().then(function(t){ $('msg-vid').textContent='Erro: '+t.slice(0,90); }); })
+      .catch(function(){ vb.disabled=false; vb.textContent=old; $('msg-vid').textContent='Erro de conexão.'; });
+    });
+    var mb=$('mat_salvar');
+    if(mb) mb.addEventListener('click', function(){
+      var form=$('form-mat'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
+      var file=$('mat_file').files[0];
+      if(!g('titulo')||!file){ $('msg-mat').textContent='Informe título e selecione o arquivo.'; return; }
+      var tok=localStorage.getItem(TOKKEY); var ext=(file.name.split('.').pop()||'').toLowerCase();
+      var path='materiais/'+Date.now()+'_'+file.name.replace(/[^\w.\-]/g,'_');
+      mb.disabled=true; var old=mb.textContent; mb.textContent='Enviando…'; $('msg-mat').textContent='Enviando arquivo…';
+      fetch(SB+'/storage/v1/object/'+TBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':file.type||'application/octet-stream','x-upsert':'true'}),body:file})
+      .then(function(r){ if(!r.ok) throw new Error('upload'); return fetch(SB+'/rest/v1/portal_materiais',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({titulo:g('titulo'),tipo:ext,categoria:g('categoria'),storage_path:path,tamanho_kb:Math.round(file.size/1024),enviado_por:($('who')?$('who').textContent:'')})}); })
+      .then(function(){ mb.disabled=false; mb.textContent=old; $('msg-mat').textContent='Material enviado ✓'; form.querySelectorAll('input').forEach(function(el){ el.value=''; }); loadTreinamentos(); setTimeout(function(){ $('msg-mat').textContent=''; },2500); })
+      .catch(function(){ mb.disabled=false; mb.textContent=old; $('msg-mat').textContent='Falha no envio (verifique seu acesso de equipe).'; });
+    });
+    // Ações nas listas (vídeos + materiais)
+    document.addEventListener('click', function(e){
+      var b=e.target.closest?e.target.closest('button[data-act]'):null; if(!b) return;
+      var act=b.getAttribute('data-act'), tok=localStorage.getItem(TOKKEY);
+      if(act==='delvid'){ if(!confirm('Excluir este vídeo do treinamento?')) return;
+        fetch(SB+'/rest/v1/portal_videos?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})}).then(function(){ loadTreinamentos(); });
+      } else if(act==='dlmat'){ var path=b.getAttribute('data-path'); b.disabled=true; var o=b.textContent; b.textContent='…';
+        fetch(SB+'/storage/v1/object/sign/'+TBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:3600})})
+        .then(function(r){ return r.json(); }).then(function(j){ b.disabled=false; b.textContent=o; if(j.signedURL) window.open(SB+'/storage/v1'+j.signedURL,'_blank'); else alert('Não foi possível gerar o link.'); })
+        .catch(function(){ b.disabled=false; b.textContent=o; });
+      } else if(act==='delmat'){ if(!confirm('Excluir este material?')) return; var path=b.getAttribute('data-path');
+        fetch(SB+'/storage/v1/object/'+TBUCKET+'/'+path,{method:'DELETE',headers:authHeaders(tok)}).catch(function(){});
+        fetch(SB+'/rest/v1/portal_materiais?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})}).then(function(){ loadTreinamentos(); });
+      }
+    });
+  })();
+
+  // ===== Recolher / expandir o menu lateral =====
+  (function(){
+    var t=$('sideToggle'), layout=document.querySelector('.layout'), bd=$('sideBackdrop');
+    function isMobile(){ return window.matchMedia('(max-width:1000px)').matches; }
+    if(t) t.addEventListener('click', function(){
+      if(isMobile()) layout.classList.toggle('sb-open');
+      else layout.classList.toggle('sb-collapsed');
+    });
+    if(bd) bd.addEventListener('click', function(){ layout.classList.remove('sb-open'); });
+    document.querySelectorAll('.nav a[data-view]').forEach(function(a){ a.addEventListener('click', function(){ if(isMobile()) layout.classList.remove('sb-open'); }); });
   })();
 
   (function(){
