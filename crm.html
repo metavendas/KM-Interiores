@@ -754,20 +754,32 @@
     host.innerHTML='<div class="panel">'
       +'<div class="modbar"><h3>Novo cadastro</h3><span class="modmsg" id="msg-'+key+'"></span></div>'
       +'<div class="modform" id="form-'+key+'">'+ff+'<div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><input type="file" id="csv-'+key+'" accept=".csv,text/csv" style="display:none"><button class="btn" id="imp-'+key+'" style="background:transparent;color:var(--accent);border:1px solid var(--accent)">Importar CSV</button><button class="btn" id="save-'+key+'">Salvar cadastro</button></div></div>'
+      +'<div style="display:flex;gap:10px;align-items:center;margin:12px 0 4px"><input id="search-'+key+'" placeholder="🔍 Buscar por nome, e-mail, cidade…" autocomplete="off" style="flex:1;background:#221b10;border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:4px;font-size:13px;outline:none"><span id="count-'+key+'" style="white-space:nowrap;color:var(--muted);font-size:12px"></span></div>'
       +'<table><thead><tr>'+ths+'</tr></thead><tbody id="body-'+key+'"><tr><td colspan="'+cfg.cols.length+'" class="empty">Carregando…</td></tr></tbody></table>'
       +'</div>';
     $('save-'+key).addEventListener('click', function(){ saveMod(key); });
     $('imp-'+key).addEventListener('click', function(){ $('csv-'+key).click(); });
     $('csv-'+key).addEventListener('change', function(e){ var f=e.target.files[0]; if(f){ importarCSV(cfg.table, cfg.fields, f, $('msg-'+key), function(){ loadMod(key); }); e.target.value=''; } });
+    var si=$('search-'+key), tmr; if(si) si.addEventListener('input', function(){ clearTimeout(tmr); var t=si.value; tmr=setTimeout(function(){ loadMod(key, t); }, 300); });
     loadMod(key);
   }
-  function loadMod(key){
-    var cfg=MODS[key]; var tok=localStorage.getItem(TOKKEY);
-    fetch(SB+'/rest/v1/'+cfg.table+'?select=*&order=created_at.desc&limit=200',{headers:authHeaders(tok)})
+  function loadMod(key, term){
+    var cfg=MODS[key]; var tok=localStorage.getItem(TOKKEY); term=(term||'').trim();
+    var url=SB+'/rest/v1/'+cfg.table+'?select=*';
+    if(term){
+      var numeric={}; cfg.fields.forEach(function(f){ if(f.type==='number') numeric[f.k]=1; });
+      var skeys=cfg.cols.filter(function(c){ return !c.money && !c.date && !numeric[c.k]; }).map(function(c){ return c.k; });
+      var t=term.replace(/[(),*]/g,' ').trim(); var enc='*'+encodeURIComponent(t)+'*';
+      if(skeys.length) url+='&or=('+skeys.map(function(k){ return k+'.ilike.'+enc; }).join(',')+')';
+    }
+    url+='&order=created_at.desc&limit=200';
+    var cnt=$('count-'+key);
+    fetch(url,{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
       var tb=$('body-'+key);
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="'+cfg.cols.length+'" class="empty">Nenhum cadastro ainda. Use o formulário acima.</td></tr>'; return; }
+      if(cnt) cnt.textContent=rows.length+(rows.length>=200?'+':'')+' resultado(s)';
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="'+cfg.cols.length+'" class="empty">'+(term?'Nada encontrado para “'+esc(term)+'”.':'Nenhum cadastro ainda. Use o formulário acima.')+'</td></tr>'; return; }
       tb.innerHTML=rows.map(function(r){
         return '<tr>'+cfg.cols.map(function(c,i){
           if(c.badge && r[c.k]) return '<td><span class="badge">'+esc(String(r[c.k]))+'</span></td>';
