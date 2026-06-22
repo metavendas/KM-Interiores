@@ -128,6 +128,7 @@
     <label>Senha</label><input id="g_pw" type="password" placeholder="••••••••">
     <button id="g_btn">Entrar</button>
     <div class="alt" id="g_alt">Primeiro acesso? <a id="g_toggle">Criar conta de admin</a></div>
+    <div class="alt"><a id="g_forgot">Esqueci minha senha</a></div>
     <div class="msg" id="g_msg"></div>
   </div>
 </div>
@@ -149,6 +150,8 @@
       <a href="#" data-view="produtos"><span class="dot"></span> Produtos</a>
       <a href="#" data-view="estoque"><span class="dot"></span> Estoque</a>
       <a href="#" data-view="pedidos"><span class="dot"></span> Pedidos</a>
+      <a href="#" data-view="locacao"><span class="dot"></span> Locação (Pilar 2)</a>
+      <a href="#" data-view="programas"><span class="dot"></span> Programas KM</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
@@ -159,7 +162,7 @@
   <div class="main">
     <div class="topbar">
       <input class="search" id="search" placeholder="Buscar lead por nome, contato, interesse...">
-      <div class="right"><span class="ai" id="aiBtn">✦ Assistente IA</span><span class="who" id="who"></span><span class="out" id="logout">Sair</span></div>
+      <div class="right"><span class="ai" id="aiBtn">✦ Assistente IA</span><span class="who" id="who"></span><span class="out" id="trocarSenha">Trocar senha</span><span class="out" id="logout">Sair</span></div>
     </div>
     <div class="content">
       <!-- ===== DASHBOARD ===== -->
@@ -297,6 +300,67 @@
         </div>
         <div class="panel" style="margin-top:14px"><h3>Como adicionar uma pessoa</h3><div style="padding:16px 20px;color:var(--muted);font-size:13px;line-height:1.7">1) A pessoa cria o login em <b style="color:var(--text)">/crm.html</b> (equipe) ou <b style="color:var(--text)">/area-restrita.html</b> (parceiro) — entra como <b>cliente</b>, sem acesso.<br>2) Aqui você define o <b>nível</b> dela. Níveis: <b>admin</b> (tudo), <b>gestor</b>, <b>vendas</b>, <b>curadoria</b>, <b>representante</b>, <b>parceiro</b>.</div></div>
       </section>
+
+      <!-- ===== LOCAÇÃO (PILAR 2) ===== -->
+      <section class="view" data-v="locacao" hidden>
+        <div class="h1">Locação de Móveis Premium <span class="tagreal" style="vertical-align:middle">Pilar 2</span></div>
+        <div class="sub">Staging imobiliário · eventos · locação corporativa · proposta → contrato → devolução/caução</div>
+        <div class="panel">
+          <div class="modbar"><h3 id="locFormTitle">Nova proposta de locação</h3><span class="modmsg" id="msg-loc"></span></div>
+          <div class="modform" id="form-loc">
+            <div class="f"><label>Cliente *</label><select data-k="cliente_id" id="loc_cliente"><option value="">Carregando…</option></select></div>
+            <div class="f"><label>Título / finalidade *</label><input data-k="titulo" placeholder="Ex.: Staging cobertura Jardins"></div>
+            <div class="f"><label>Início</label><input data-k="periodo_inicio" type="date"></div>
+            <div class="f"><label>Fim</label><input data-k="periodo_fim" type="date"></div>
+            <div class="f"><label>Valor da locação (R$)</label><input data-k="valor" type="number" step="0.01"></div>
+            <div class="f"><label>Frete / logística (R$)</label><input data-k="valor_frete" type="number" step="0.01"></div>
+            <div class="f"><label>Caução / depósito (R$)</label><input data-k="caucao" type="number" step="0.01"></div>
+            <div class="f"><label>Validade da proposta</label><input data-k="validade" type="date"></div>
+            <div class="f full"><label>Itens (um por linha: descrição; qtd; valor)</label><textarea data-k="itens" rows="3" placeholder="Sofá Milano; 1; 1200&#10;Mesa de centro; 1; 400"></textarea></div>
+            <div class="f full"><label>Condições / observações</label><textarea data-k="condicoes" rows="2" placeholder="Montagem e retirada por conta da KM. Seguro do período incluso."></textarea></div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="loc_salvar">Gerar proposta</button></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Propostas de locação <span class="tagreal">● tempo real</span></h3>
+          <table><thead><tr><th>Nº</th><th>Cliente</th><th>Finalidade</th><th>Período</th><th>Valor</th><th>Caução</th><th>Status</th><th style="text-align:right">Ação</th></tr></thead>
+          <tbody id="locPropBody"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody></table>
+        </div>
+        <div class="panel">
+          <h3>Contratos de locação ativos</h3>
+          <table><thead><tr><th>Nº</th><th>Cliente</th><th>Período</th><th>Valor</th><th>Caução</th><th>Status</th><th style="text-align:right">Ação</th></tr></thead>
+          <tbody id="locCtrBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody></table>
+        </div>
+      </section>
+
+      <!-- ===== PROGRAMAS COMPLEMENTARES ===== -->
+      <section class="view" data-v="programas" hidden>
+        <div class="h1">Programas KM <span class="tagreal" style="vertical-align:middle">receita recorrente</span></div>
+        <div class="sub">KM Care (manutenção premium) · KM Signature (olfativo/lifestyle) · KM Curadoria (arte & tapetes, consignação)</div>
+        <div class="panel">
+          <div class="modbar"><h3>Novo contrato de programa</h3><span class="modmsg" id="msg-prog"></span></div>
+          <div class="modform" id="form-prog">
+            <div class="f"><label>Programa *</label><select data-k="programa" id="prog_tipo">
+              <option value="km_care">KM Care — Manutenção Premium</option>
+              <option value="km_signature">KM Signature — Olfativo & Lifestyle</option>
+              <option value="km_curadoria">KM Curadoria — Arte & Tapetes (consignação)</option></select></div>
+            <div class="f"><label>Cliente *</label><select data-k="cliente_id" id="prog_cliente"><option value="">Carregando…</option></select></div>
+            <div class="f"><label>Plano / modalidade</label><select data-k="plano" id="prog_plano"></select></div>
+            <div class="f"><label>Adesão / 1º pagamento (R$)</label><input data-k="valor_adesao" type="number" step="0.01"></div>
+            <div class="f"><label>Recorrente (R$/mês ou ano)</label><input data-k="valor_recorrente" type="number" step="0.01"></div>
+            <div class="f"><label>Início</label><input data-k="inicio" type="date"></div>
+            <div class="f"><label>Fim / renovação</label><input data-k="fim" type="date"></div>
+            <div class="f full" id="prog_meta_wrap"><label id="prog_meta_lbl">Detalhe específico</label><input data-k="meta_detalhe" id="prog_meta" placeholder=""></div>
+            <div class="f full"><label>Observações</label><textarea data-k="observacoes" rows="2"></textarea></div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="prog_salvar">Criar contrato</button></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Contratos de programas <span class="tagreal">● tempo real</span></h3>
+          <table><thead><tr><th>Nº</th><th>Programa</th><th>Cliente</th><th>Plano</th><th>Adesão</th><th>Recorrente</th><th>Status</th></tr></thead>
+          <tbody id="progBody"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody></table>
+        </div>
+      </section>
     </div>
     <div class="demo">Leads em tempo real do banco · KPIs do funil ilustrativos · governança IA propõe → Edson aprova</div>
   </div>
@@ -316,12 +380,12 @@
   var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Vendedores'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['produtos','Produtos'],
-    ['estoque','Estoque'],['pedidos','Pedidos'],['financeiro','Financeiro'],
+    ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['programas','Programas KM'],['financeiro','Financeiro'],
     ['agentes','Agentes de IA'],['relatorios','Relatórios']];
   var ACCESS_DEFAULT={
-    vendas:        ['funil','clientes','produtos','estoque','pedidos'],
-    representante: ['funil','clientes','produtos','estoque','pedidos'],
-    curadoria:     ['funil','clientes','produtos','estoque','pedidos','leads']
+    vendas:        ['funil','clientes','produtos','estoque','pedidos','locacao','programas'],
+    representante: ['funil','clientes','produtos','estoque','pedidos','locacao'],
+    curadoria:     ['funil','clientes','produtos','estoque','pedidos','leads','locacao','programas']
   };
   var ME_ROLE='', ME_ACESSOS=null;
   function allowedViews(){
@@ -659,6 +723,8 @@
     if(v==='produtos') renderProdutos();
     if(v==='funil') initFunil();
     if(v==='pedidos') loadPedidos();
+    if(v==='locacao') loadLocacao();
+    if(v==='programas') loadProgramas();
     if(v==='financeiro') loadFinanceiro();
     if(v==='relatorios') loadRelatorios();
     if(v==='equipe') loadEquipe();
@@ -1060,6 +1126,204 @@
     .then(function(r){ var cr=r.headers.get('content-range')||''; var n=cr.split('/')[1]; el.textContent=(n&&n!=='*'?n:'—')+' peças no catálogo'; })
     .catch(function(){ el.textContent='catálogo conectado'; });
   }
+  // ===== Cache de clientes (para selects de Locação e Programas) =====
+  var CLI_CACHE=null;
+  function ensureClientes(cb){
+    if(CLI_CACHE){ cb(); return; }
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/clientes?select=id,nome&order=nome.asc&limit=2000',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){ CLI_CACHE=Array.isArray(rows)?rows:[]; cb(); })
+    .catch(function(){ CLI_CACHE=[]; cb(); });
+  }
+  function cliOptions(sel){ return '<option value="">— selecione —</option>'+(CLI_CACHE||[]).map(function(c){ return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.nome||'(sem nome)')+'</option>'; }).join(''); }
+  function parseItens(txt){
+    return (txt||'').split(/\n/).map(function(l){return l.trim();}).filter(Boolean).map(function(l){
+      var p=l.split(';'); return {item:(p[0]||'').trim(), qtd:Number((p[1]||'1').trim())||1, valor:Number((p[2]||'0').toString().replace(',','.'))||0};
+    });
+  }
+  function itensResumo(arr){ try{ arr=(typeof arr==='string')?JSON.parse(arr):arr; }catch(e){ arr=[]; } if(!Array.isArray(arr)||!arr.length) return '—'; return arr.map(function(i){ return (i.qtd||1)+'× '+(i.item||''); }).join(', '); }
+  function periodoTxt(a,b){ function d(x){ return x?new Date(x+'T00:00:00').toLocaleDateString('pt-BR'):'—'; } return d(a)+' → '+d(b); }
+  function rpc(name, body){ var tok=localStorage.getItem(TOKKEY); return fetch(SB+'/rest/v1/rpc/'+name,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify(body||{})}).then(function(r){ return r.json(); }); }
+
+  // ===== LOCAÇÃO (Pilar 2) =====
+  var LOC_PROP_STATUS={rascunho:'Rascunho',enviada:'Enviada',aceita:'Aceita',recusada:'Recusada'};
+  function loadLocacao(){
+    var sel=$('loc_cliente');
+    ensureClientes(function(){ if(sel) sel.innerHTML=cliOptions(); });
+    var tok=localStorage.getItem(TOKKEY);
+    // Propostas de locação
+    fetch(SB+'/rest/v1/propostas?select=*,clientes(nome)&tipo=eq.locacao&order=created_at.desc&limit=100',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      var tb=$('locPropBody'); rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhuma proposta de locação ainda. Crie acima.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(p){
+        var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
+        var st=LOC_PROP_STATUS[p.status]||p.status||'—';
+        var acao=(p.status==='aceita')?'<span class="ia-tag ok">✓ contrato gerado</span>':'<button class="ia-btn sug" data-act="converter" data-id="'+p.id+'">→ Gerar contrato</button>';
+        return '<tr><td style="color:var(--text)">'+esc(p.numero||'—')+'</td><td>'+esc(cli)+'</td><td>'+esc(p.titulo||'—')+'<div style="font-size:11px;color:var(--ouro)">'+esc(itensResumo(p.itens))+'</div></td><td>'+esc(periodoTxt(p.periodo_inicio,p.periodo_fim))+'</td><td style="color:var(--accent)">'+brl(p.valor)+'</td><td>'+brl(p.caucao)+'</td><td><span class="badge">'+esc(st)+'</span></td><td style="text-align:right">'+acao+'</td></tr>';
+      }).join('');
+    })
+    .catch(function(){ $('locPropBody').innerHTML='<tr><td colspan="8" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; });
+    // Contratos de locação
+    fetch(SB+'/rest/v1/contratos?select=*,clientes(nome)&tipo=eq.locacao&order=created_at.desc&limit=100',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      var tb=$('locCtrBody'); rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="7" class="empty">Nenhum contrato de locação ainda.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(c){
+        var cli=(c.clientes&&c.clientes.nome)?c.clientes.nome:'—';
+        var ativo=(c.status==='ativo');
+        var cau='<span style="font-size:11px;color:var(--ouro)">'+esc(c.caucao_status||'retida')+'</span> '+brl(c.caucao);
+        var st=ativo?'<span class="ia-tag ok">ativo</span>':'<span class="badge">'+esc(c.status||'—')+(c.devolvido_em?(' · '+new Date(c.devolvido_em+'T00:00:00').toLocaleDateString('pt-BR')):'')+'</span>';
+        var acao=ativo?'<button class="ia-btn" data-act="devolver" data-id="'+c.id+'">Registrar devolução</button>':'—';
+        return '<tr><td style="color:var(--text)">'+esc(c.numero||'—')+'</td><td>'+esc(cli)+'</td><td>'+esc(periodoTxt(c.inicio,c.fim))+'</td><td style="color:var(--accent)">'+brl(c.valor_adesao)+'</td><td>'+cau+'</td><td>'+st+'</td><td style="text-align:right">'+acao+'</td></tr>';
+      }).join('');
+    })
+    .catch(function(){ $('locCtrBody').innerHTML='<tr><td colspan="7" class="empty">Sem permissão ou erro de conexão.</td></tr>'; });
+  }
+  (function(){
+    var btn=$('loc_salvar'); if(!btn) return;
+    btn.addEventListener('click', function(){
+      var form=$('form-loc'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
+      var cliente=g('cliente_id'), titulo=g('titulo');
+      if(!cliente){ $('msg-loc').textContent='Selecione o cliente.'; return; }
+      if(!titulo){ $('msg-loc').textContent='Informe o título/finalidade.'; return; }
+      btn.disabled=true; var old=btn.textContent; btn.textContent='Gerando…'; $('msg-loc').textContent='';
+      rpc('criar_proposta_locacao',{ p_cliente_id:cliente, p_titulo:titulo, p_itens:parseItens(g('itens')),
+        p_valor:Number(g('valor'))||0, p_caucao:Number(g('caucao'))||0, p_inicio:g('periodo_inicio')||null,
+        p_fim:g('periodo_fim')||null, p_frete:Number(g('valor_frete'))||0, p_condicoes:g('condicoes'),
+        p_validade:g('validade')||null, p_observacoes:'' })
+      .then(function(j){ btn.disabled=false; btn.textContent=old;
+        if(j&&j.ok){ $('msg-loc').textContent='Proposta '+j.numero+' criada ✓';
+          form.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; });
+          loadLocacao(); setTimeout(function(){ $('msg-loc').textContent=''; },3000); }
+        else { $('msg-loc').textContent='Não foi possível: '+((j&&j.erro)||'erro'); } })
+      .catch(function(){ btn.disabled=false; btn.textContent=old; $('msg-loc').textContent='Erro de conexão.'; });
+    });
+    var pb=$('locPropBody'); if(pb) pb.addEventListener('click', function(e){
+      var b=e.target.closest?e.target.closest('button[data-act="converter"]'):null; if(!b) return;
+      if(!confirm('Converter esta proposta em contrato de locação ativo? Será gerado o recebível no Financeiro.')) return;
+      b.disabled=true; b.textContent='Convertendo…';
+      rpc('converter_proposta_em_contrato',{p_proposta_id:b.getAttribute('data-id')})
+      .then(function(j){ if(j&&j.ok){ loadLocacao(); } else { alert('Não foi possível: '+((j&&j.erro)||'erro')); b.disabled=false; b.textContent='→ Gerar contrato'; } })
+      .catch(function(){ alert('Erro de conexão.'); b.disabled=false; b.textContent='→ Gerar contrato'; });
+    });
+    var cb=$('locCtrBody'); if(cb) cb.addEventListener('click', function(e){
+      var b=e.target.closest?e.target.closest('button[data-act="devolver"]'):null; if(!b) return;
+      var st=prompt('Devolução da caução — digite: devolvida, parcial ou retida','devolvida'); if(st===null) return;
+      st=({devolvida:'devolvida',parcial:'retida_parcial',retida:'retida'})[st.trim().toLowerCase()]||'devolvida';
+      var obs=prompt('Observação da vistoria de devolução (opcional):','')||'';
+      b.disabled=true; b.textContent='Registrando…';
+      rpc('registrar_devolucao',{p_contrato_id:b.getAttribute('data-id'),p_caucao_status:st,p_observacoes:obs})
+      .then(function(j){ if(j&&j.ok){ loadLocacao(); } else { alert('Não foi possível: '+((j&&j.erro)||'erro')); b.disabled=false; b.textContent='Registrar devolução'; } })
+      .catch(function(){ alert('Erro de conexão.'); b.disabled=false; b.textContent='Registrar devolução'; });
+    });
+  })();
+
+  // ===== PROGRAMAS COMPLEMENTARES =====
+  var PROG_LABEL={km_care:'KM Care',km_signature:'KM Signature',km_curadoria:'KM Curadoria'};
+  var PROG_PLANOS={
+    km_care:['Black — 1 visita técnica/ano','Platinum — 2 visitas técnicas/ano'],
+    km_signature:['Residencial básico','Residencial premium','Corporativo (B2B)'],
+    km_curadoria:['Consignação — Obras de arte','Consignação — Tapetes premium','Consignação — Arte & Tapetes']
+  };
+  var PROG_META={ km_care:'Nº de peças / inventário (Anexo I)', km_signature:'Fragrância / pirâmide olfativa', km_curadoria:'Consignante (artista/importador) + % comissão' };
+  function progSyncCampos(){
+    var t=$('prog_tipo'); if(!t) return; var k=t.value;
+    var pl=$('prog_plano'); if(pl) pl.innerHTML=(PROG_PLANOS[k]||[]).map(function(o){ return '<option>'+esc(o)+'</option>'; }).join('');
+    var lbl=$('prog_meta_lbl'); if(lbl) lbl.textContent=PROG_META[k]||'Detalhe específico';
+    var mi=$('prog_meta'); if(mi) mi.placeholder=PROG_META[k]||'';
+  }
+  function loadProgramas(){
+    var sel=$('prog_cliente');
+    ensureClientes(function(){ if(sel) sel.innerHTML=cliOptions(); });
+    progSyncCampos();
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/contratos?select=*,clientes(nome)&tipo=in.(km_care,km_signature,km_curadoria)&order=created_at.desc&limit=100',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      var tb=$('progBody'); rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="7" class="empty">Nenhum contrato de programa ainda. Crie acima.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(c){
+        var cli=(c.clientes&&c.clientes.nome)?c.clientes.nome:'—';
+        var st=(c.status==='ativo')?'<span class="ia-tag ok">ativo</span>':'<span class="badge">'+esc(c.status||'—')+'</span>';
+        return '<tr><td style="color:var(--text)">'+esc(c.numero||'—')+'</td><td><span class="badge">'+esc(PROG_LABEL[c.tipo]||c.tipo)+'</span></td><td>'+esc(cli)+'</td><td>'+esc(c.plano||'—')+'</td><td>'+brl(c.valor_adesao)+'</td><td style="color:var(--accent)">'+brl(c.valor_recorrente)+'</td><td>'+st+'</td></tr>';
+      }).join('');
+    })
+    .catch(function(){ $('progBody').innerHTML='<tr><td colspan="7" class="empty">Sem permissão ou erro de conexão.</td></tr>'; });
+  }
+  (function(){
+    var t=$('prog_tipo'); if(t) t.addEventListener('change', progSyncCampos);
+    var btn=$('prog_salvar'); if(!btn) return;
+    btn.addEventListener('click', function(){
+      var form=$('form-prog'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
+      var cliente=g('cliente_id');
+      if(!cliente){ $('msg-prog').textContent='Selecione o cliente.'; return; }
+      btn.disabled=true; var old=btn.textContent; btn.textContent='Criando…'; $('msg-prog').textContent='';
+      var meta={}; if(g('meta_detalhe')) meta.detalhe=g('meta_detalhe');
+      rpc('criar_contrato_programa',{ p_programa:g('programa'), p_cliente_id:cliente, p_plano:g('plano'),
+        p_valor_adesao:Number(g('valor_adesao'))||0, p_valor_recorrente:Number(g('valor_recorrente'))||0,
+        p_inicio:g('inicio')||null, p_fim:g('fim')||null, p_meta:meta, p_observacoes:g('observacoes') })
+      .then(function(j){ btn.disabled=false; btn.textContent=old;
+        if(j&&j.ok){ $('msg-prog').textContent='Contrato '+j.numero+' criado ✓';
+          form.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; });
+          loadProgramas(); setTimeout(function(){ $('msg-prog').textContent=''; },3000); }
+        else { $('msg-prog').textContent='Não foi possível: '+((j&&j.erro)||'erro'); } })
+      .catch(function(){ btn.disabled=false; btn.textContent=old; $('msg-prog').textContent='Erro de conexão.'; });
+    });
+  })();
+
+  // ===== Senha: esqueci / trocar =====
+  (function(){
+    var fg=$('g_forgot');
+    if(fg) fg.addEventListener('click', function(){
+      var email=($('g_email').value||'').trim();
+      if(!email){ $('g_msg').textContent='Digite seu e-mail acima e clique novamente em "Esqueci minha senha".'; return; }
+      $('g_msg').textContent='Enviando link de redefinição…';
+      fetch(SB+'/auth/v1/recover?redirect_to='+encodeURIComponent('https://www.kminteriores.com.br/redefinir-senha.html'),
+        {method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email})})
+      .then(function(){ $('g_msg').textContent='Se este e-mail tiver conta, enviamos um link para redefinir a senha. Verifique a caixa de entrada (e o spam).'; })
+      .catch(function(){ $('g_msg').textContent='Não foi possível enviar agora. Tente novamente em instantes.'; });
+    });
+    var ts=$('trocarSenha');
+    if(ts) ts.addEventListener('click', function(){
+      var m=$('pwModal');
+      if(!m){
+        m=document.createElement('div'); m.id='pwModal';
+        m.style.cssText='position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.66);display:flex;align-items:center;justify-content:center;padding:20px';
+        m.innerHTML='<div style="max-width:420px;width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:6px;overflow:hidden">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line)"><b style="font-family:var(--serif);color:var(--accent);font-size:16px">Trocar senha</b><span id="pwX" style="cursor:pointer;color:var(--muted)">✕</span></div>'
+          +'<div style="padding:20px 22px">'
+          +'<label style="display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);margin-bottom:7px">Nova senha (mín. 6)</label>'
+          +'<input id="pw_new" type="password" style="width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:4px;outline:none;margin-bottom:14px">'
+          +'<label style="display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);margin-bottom:7px">Confirmar nova senha</label>'
+          +'<input id="pw_new2" type="password" style="width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:4px;outline:none">'
+          +'<div id="pw_msg" style="font-size:12px;color:var(--ouro);min-height:16px;margin-top:12px"></div>'
+          +'<div style="display:flex;gap:10px;margin-top:14px"><button id="pw_ok" class="ia-btn sug" style="padding:11px 22px">Salvar nova senha</button><button id="pw_cancel" class="ia-btn" style="padding:11px 18px">Cancelar</button></div>'
+          +'</div></div>';
+        document.body.appendChild(m);
+        m.addEventListener('click', function(e){ if(e.target===m) m.style.display='none'; });
+        $('pwX').onclick=function(){ m.style.display='none'; };
+        $('pw_cancel').onclick=function(){ m.style.display='none'; };
+        $('pw_ok').onclick=function(){
+          var a=$('pw_new').value, b=$('pw_new2').value;
+          if(a.length<6){ $('pw_msg').textContent='A senha precisa ter ao menos 6 caracteres.'; return; }
+          if(a!==b){ $('pw_msg').textContent='As senhas não conferem.'; return; }
+          var tok=localStorage.getItem(TOKKEY); $('pw_ok').disabled=true; $('pw_msg').textContent='Salvando…';
+          fetch(SB+'/auth/v1/user',{method:'PUT',headers:{apikey:KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({password:a})})
+          .then(function(r){ return r.json().then(function(j){return {ok:r.ok,j:j};}); })
+          .then(function(res){ $('pw_ok').disabled=false;
+            if(res.ok){ $('pw_msg').style.color='#bcd39a'; $('pw_msg').textContent='✓ Senha alterada com sucesso.'; setTimeout(function(){ m.style.display='none'; $('pw_new').value=''; $('pw_new2').value=''; $('pw_msg').style.color='var(--ouro)'; },1200); }
+            else { $('pw_msg').textContent=(res.j&&(res.j.msg||res.j.error_description||res.j.error))||'Não foi possível alterar.'; } })
+          .catch(function(){ $('pw_ok').disabled=false; $('pw_msg').textContent='Erro de conexão.'; });
+        };
+      }
+      $('pw_new').value=''; $('pw_new2').value=''; $('pw_msg').textContent=''; m.style.display='flex';
+    });
+  })();
+
   (function(){
     var tok=localStorage.getItem(TOKKEY);
     if(!tok){ showGate(); return; }
