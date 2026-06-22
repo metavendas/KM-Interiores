@@ -153,6 +153,7 @@
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
       <a href="#" data-view="relatorios"><span class="dot"></span> Relatórios</a>
+      <a href="#" data-view="equipe"><span class="dot"></span> Equipe &amp; Acessos</a>
     </nav>
   </aside>
   <div class="main">
@@ -275,6 +276,15 @@
         <div class="sub">Panorama do negócio em tempo real</div>
         <div class="kpis" id="relKpis"><div class="kpi"><div class="l">Carregando…</div><div class="n">—</div></div></div>
         <div class="panel" style="margin-top:14px"><h3>Relatórios sob demanda</h3><div style="padding:20px;color:var(--muted);font-size:13.5px;line-height:1.8">Briefing semanal · Análise financeira por pilar · Review de OKRs (QBR) · Performance de campanhas.<br><span style="color:var(--ouro)">Gerados sob demanda pela assessoria de IA.</span></div></div>
+      </section>
+      <section class="view" data-v="equipe" hidden>
+        <div class="h1">Equipe &amp; Acessos</div>
+        <div class="sub">Quem pode usar o painel e em qual nível · só administradores gerenciam · ninguém altera o próprio nível</div>
+        <div class="panel"><h3>Pessoas com acesso</h3><table>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Nível</th><th>Acesso</th></tr></thead>
+          <tbody id="equipeBody"><tr><td colspan="4" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
+        </table></div>
+        <div class="panel" style="margin-top:14px"><h3>Como adicionar uma pessoa</h3><div style="padding:16px 20px;color:var(--muted);font-size:13px;line-height:1.7">1) A pessoa cria o login em <b style="color:var(--text)">/crm.html</b> (equipe) ou <b style="color:var(--text)">/area-restrita.html</b> (parceiro) — entra como <b>cliente</b>, sem acesso.<br>2) Aqui você define o <b>nível</b> dela. Níveis: <b>admin</b> (tudo), <b>gestor</b>, <b>vendas</b>, <b>curadoria</b>, <b>representante</b>, <b>parceiro</b>.</div></div>
       </section>
     </div>
     <div class="demo">Leads em tempo real do banco · KPIs do funil ilustrativos · governança IA propõe → Edson aprova</div>
@@ -435,6 +445,46 @@
       .catch(function(e){ agRS.disabled=false; agRS.textContent=old; out.textContent='Erro de conexão ao enviar.'; console.error(e); });
     });
   })();
+  // ===== Equipe & Acessos (admin) =====
+  var EQ_ROLES=['admin','gestor','vendas','curadoria','representante','parceiro','cliente'];
+  function loadEquipe(){
+    var tb=$('equipeBody'); if(!tb) return;
+    var tok=localStorage.getItem(TOKKEY); var meId='';
+    tb.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
+    fetch(SB+'/auth/v1/user',{headers:authHeaders(tok)}).then(function(r){ return r.ok?r.json():null; })
+    .then(function(u){ meId=(u&&u.id)||''; return fetch(SB+'/rest/v1/rpc/listar_equipe',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'}); })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d || d.erro){ tb.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:18px">'+(d&&d.erro==='sem_permissao'?'Apenas administradores podem gerenciar acessos.':'Não foi possível carregar.')+'</td></tr>'; return; }
+      var lista=d.equipe||[];
+      if(!lista.length){ tb.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:18px">Ninguém com acesso ainda.</td></tr>'; return; }
+      tb.innerHTML=lista.map(function(p){
+        var self=(p.id===meId); var ativo=(p.ativo!==false);
+        var sel='<select class="eq-role" data-id="'+p.id+'"'+(self?' disabled title="Você não pode alterar o próprio nível"':'')+'>'+EQ_ROLES.map(function(r){ return '<option value="'+r+'"'+(r===p.role?' selected':'')+'>'+r+'</option>'; }).join('')+'</select>';
+        var acc=self?'<span style="color:var(--muted)">— você —</span>':('<button class="eq-ativo" data-id="'+p.id+'" data-ativo="'+(ativo?'1':'0')+'" style="background:var(--bg3,#221b10);border:1px solid var(--line);color:var(--text);border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px">'+(ativo?'Desativar':'Ativar')+'</button>');
+        var badge=ativo?'<span style="color:#7CCB8C">●</span> ':'<span style="color:#C98C8C">●</span> ';
+        return '<tr><td style="color:var(--text)">'+esc(p.nome||'—')+'</td><td>'+esc(p.email||'')+'</td><td>'+sel+'</td><td>'+badge+acc+'</td></tr>';
+      }).join('');
+    })
+    .catch(function(e){ tb.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:18px">Erro ao carregar.</td></tr>'; console.error(e); });
+  }
+  (function(){
+    var tb=document.getElementById('equipeBody'); if(!tb) return;
+    tb.addEventListener('change',function(e){
+      var s=e.target.closest?e.target.closest('.eq-role'):null; if(!s) return;
+      var tok=localStorage.getItem(TOKKEY); var id=s.getAttribute('data-id'); var role=s.value; s.disabled=true;
+      fetch(SB+'/rest/v1/rpc/definir_papel',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({p_user_id:id,p_role:role})})
+      .then(function(r){ return r.json(); }).then(function(j){ s.disabled=false; if(!j||!j.ok){ console.error(j); loadEquipe(); } })
+      .catch(function(){ s.disabled=false; loadEquipe(); });
+    });
+    tb.addEventListener('click',function(e){
+      var b=e.target.closest?e.target.closest('.eq-ativo'):null; if(!b) return;
+      var tok=localStorage.getItem(TOKKEY); var id=b.getAttribute('data-id'); var novo=(b.getAttribute('data-ativo')!=='1'); b.disabled=true;
+      fetch(SB+'/rest/v1/rpc/definir_ativo',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({p_user_id:id,p_ativo:novo})})
+      .then(function(r){ return r.json(); }).then(function(){ loadEquipe(); })
+      .catch(function(){ b.disabled=false; loadEquipe(); });
+    });
+  })();
   // ===== Agente Sentinela (QA/Segurança) =====
   (function(){
     var agS=document.getElementById('agSentinela'); if(!agS) return;
@@ -525,6 +575,7 @@
     if(v==='pedidos') loadPedidos();
     if(v==='financeiro') loadFinanceiro();
     if(v==='relatorios') loadRelatorios();
+    if(v==='equipe') loadEquipe();
     if(typeof MODS!=='undefined' && MODS[v]) renderMod(v);
     var c=document.querySelector('.content'); if(c) c.scrollTop=0;
   }
