@@ -207,7 +207,7 @@
         <div class="sub">Camada C4 · Ferramentas · governança <b style="color:var(--accent)">IA propõe → Edson aprova</b></div>
         <div class="agents">
           <div class="ag on"><div class="agh">Qualificador de Leads <span class="agtag ok">ativo</span></div><p>Classifica o lead (Quente/Morno/Frio + score), propõe resposta on-brand e o próximo passo. Lê o catálogo real como contexto.</p><button class="ia-btn" id="agRunLatest">✦ Rodar no lead mais recente</button></div>
-          <div class="ag on"><div class="agh">Curador de Produto <span class="agtag ok">ativo</span></div><p>Gera descrição editorial de luxo para peças do catálogo, no tom da marca. Sugere → você publica.</p></div>
+          <div class="ag on"><div class="agh">Curador de Produto <span class="agtag ok">ativo</span></div><p>Gera descrição editorial de luxo para peças do catálogo, no tom da marca. Sugere → você publica.</p><button class="ia-btn" id="agCurador">✦ Rodar numa peça do catálogo</button><div id="curadorOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
           <div class="ag on"><div class="agh">Briefing 360 <span class="agtag ok">ativo</span></div><p>Consolida o histórico do cliente (pedidos, interações) num resumo executivo antes do atendimento.</p><button class="ia-btn" id="agBriefing">✦ Gerar briefing do cliente mais recente</button><div id="briefingOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
           <div class="ag"><div class="agh">Régua / Lifecycle <span class="agtag soon">em ativação</span></div><p>Propõe e-mails de relacionamento e reengajamento (boas-vindas, pós-venda, KM Care). Depende de integração de e-mail.</p></div>
           <div class="ag"><div class="agh">Sentinela (QA/Segurança) <span class="agtag soon">em ativação</span></div><p>Revisa conteúdo e segurança (RLS, governança) antes de qualquer publicação.</p></div>
@@ -374,6 +374,33 @@
   document.getElementById('leadsBody').addEventListener('click',function(e){
     var b=e.target.closest?e.target.closest('.ia-btn'):null; if(b) openIA(b.getAttribute('data-id'));
   });
+  // ===== Agente Curador de Produto =====
+  (function(){
+    var agC=document.getElementById('agCurador'); if(!agC) return;
+    agC.addEventListener('click',function(){
+      var tok=localStorage.getItem(TOKKEY); var out=$('curadorOut'); var old=agC.textContent;
+      agC.disabled=true; agC.textContent='Gerando…'; out.style.display='block'; out.textContent='Selecionando uma peça e consultando o Curador…';
+      fetch(SB+'/rest/v1/produtos?select=id,nome&destaque=eq.true&limit=1',{headers:authHeaders(tok)})
+      .then(function(r){ return r.json(); })
+      .then(function(a){
+        if(Array.isArray(a)&&a[0]) return a[0];
+        return fetch(SB+'/rest/v1/produtos?select=id,nome&order=created_at.desc&limit=1',{headers:authHeaders(tok)}).then(function(r){return r.json();}).then(function(b){ return (Array.isArray(b)&&b[0])?b[0]:null; });
+      })
+      .then(function(prod){
+        if(!prod){ agC.disabled=false; agC.textContent=old; out.textContent='Nenhum produto no catálogo.'; return; }
+        return fetch(SB+'/functions/v1/agente-curador',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({produto_id:prod.id})})
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          agC.disabled=false; agC.textContent=old;
+          if(!j||j.ok===false){ out.textContent=(j&&j.error)||'Não foi possível gerar.'; return; }
+          var via=(j._fonte||'').indexOf('groq')===0?'Groq · Llama 3.3':'fallback (configure GROQ_API_KEY p/ IA real)';
+          var tags=Array.isArray(j.tags)?j.tags.join(', '):(j.tags||'');
+          out.textContent='Peça: '+(j.produto||'')+'\n\nTítulo editorial: '+(j.titulo_editorial||'')+'\n\nDescrição: '+(j.descricao_curada||'')+'\n\nTags: '+tags+'\n\n✓ Salvo como sugestão (revisar e publicar na aba Produtos) · '+via;
+        });
+      })
+      .catch(function(e){ agC.disabled=false; agC.textContent=old; out.textContent='Erro de conexão com o agente.'; console.error(e); });
+    });
+  })();
   // ===== Agente Briefing 360 =====
   (function(){
     var agB=document.getElementById('agBriefing'); if(!agB) return;
