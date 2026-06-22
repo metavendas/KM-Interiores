@@ -252,13 +252,11 @@
       </section>
       <section class="view" data-v="pedidos" hidden>
         <div class="h1">Pedidos</div>
-        <div class="sub">Acompanhamento de produção e entrega · <span style="color:var(--ouro)">módulo em ativação · prévia ilustrativa</span></div>
+        <div class="sub">Pedidos do site em tempo real · status atualizado pelo pagamento (Mercado Pago)</div>
         <div class="panel"><h3>Pedidos recentes</h3><table>
-          <thead><tr><th>Peça</th><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td style="color:var(--text)">Sofá Milano — Nogueira</td><td>#KM-2041</td><td>Sr. Eduardo</td><td>R$ 51.300</td><td><span class="badge">Em produção</span></td></tr>
-            <tr><td style="color:var(--text)">Cabeceira Vitória — Marfim</td><td>#KM-2038</td><td>Família Tavares</td><td>R$ 18.900</td><td><span class="ia-tag ok">Entregue</span></td></tr>
-          </tbody></table></div>
+          <thead><tr><th>Pedido</th><th>Data</th><th>Cliente</th><th>Canal</th><th>Valor</th><th>Status</th></tr></thead>
+          <tbody id="pedidosBody"><tr><td colspan="6" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
+        </table></div>
       </section>
       <section class="view" data-v="financeiro" hidden>
         <div class="h1">Financeiro</div>
@@ -425,6 +423,7 @@
     document.querySelectorAll('.nav a[data-view]').forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-view')===v); });
     if(v==='produtos') renderProdutos();
     if(v==='funil') initFunil();
+    if(v==='pedidos') loadPedidos();
     if(typeof MODS!=='undefined' && MODS[v]) renderMod(v);
     var c=document.querySelector('.content'); if(c) c.scrollTop=0;
   }
@@ -713,6 +712,28 @@
       funilDnD(k); funilCounts(k);
     })
     .catch(function(e){ k.innerHTML='<div class="empty" style="grid-column:1/-1">Não foi possível carregar o funil (entre como equipe).</div>'; console.error(e); });
+  }
+  // ===== Pedidos reais (loja) =====
+  var PED_STATUS={novo:'Novo',aguardando_pagamento:'Aguardando pagamento',pago:'Pago',pagamento_recusado:'Pagamento recusado',cancelado:'Cancelado'};
+  function loadPedidos(){
+    var tb=$('pedidosBody'); if(!tb) return;
+    var tok=localStorage.getItem(TOKKEY);
+    tb.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
+    fetch(SB+'/rest/v1/pedidos?select=numero,valor,status,canal,created_at,clientes(nome)&order=created_at.desc&limit=100',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(rows){
+      rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:18px">Nenhum pedido ainda. Os pedidos feitos na loja aparecem aqui automaticamente.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(p){
+        var dt=p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'';
+        var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
+        var val='R$ '+Number(p.valor||0).toLocaleString('pt-BR');
+        var st=PED_STATUS[p.status]||p.status||'—';
+        var cls=(p.status==='pago')?'ia-tag ok':'badge';
+        return '<tr><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+esc(cli)+'</td><td>'+esc(p.canal||'')+'</td><td style="color:var(--accent)">'+val+'</td><td><span class="'+cls+'">'+esc(st)+'</span></td></tr>';
+      }).join('');
+    })
+    .catch(function(e){ tb.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:18px">Não foi possível carregar os pedidos (entre como equipe).</td></tr>'; console.error(e); });
   }
   document.querySelectorAll('.nav a[data-view]').forEach(function(a){
     a.addEventListener('click', function(e){ e.preventDefault(); showView(a.getAttribute('data-view')); });
