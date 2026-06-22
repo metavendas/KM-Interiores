@@ -210,7 +210,7 @@
           <div class="ag on"><div class="agh">Curador de Produto <span class="agtag ok">ativo</span></div><p>Gera descrição editorial de luxo para peças do catálogo, no tom da marca. Sugere → você publica.</p><button class="ia-btn" id="agCurador">✦ Rodar numa peça do catálogo</button><div id="curadorOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
           <div class="ag on"><div class="agh">Briefing 360 <span class="agtag ok">ativo</span></div><p>Consolida o histórico do cliente (pedidos, interações) num resumo executivo antes do atendimento.</p><button class="ia-btn" id="agBriefing">✦ Gerar briefing do cliente mais recente</button><div id="briefingOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
           <div class="ag on"><div class="agh">Régua / Lifecycle <span class="agtag ok">ativo</span></div><p>Propõe e-mails de relacionamento (boas-vindas, pós-venda, reengajamento). IA rascunha → você aprova → envia.</p><button class="ia-btn" id="agRegua">✦ Propor e-mail de boas-vindas</button> <button class="ia-btn" id="agReguaSend" style="display:none">✓ Aprovar e enviar</button><div id="reguaOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
-          <div class="ag"><div class="agh">Sentinela (QA/Segurança) <span class="agtag soon">em ativação</span></div><p>Revisa conteúdo e segurança (RLS, governança) antes de qualquer publicação.</p></div>
+          <div class="ag on"><div class="agh">Sentinela (QA/Segurança) <span class="agtag ok">ativo</span></div><p>Audita os invariantes de segurança (RLS, helpers, gatilho anti-autopromoção, políticas) e entrega um parecer.</p><button class="ia-btn" id="agSentinela">✦ Rodar auditoria de segurança</button><div id="sentinelaOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.7"></div></div>
         </div>
       </section>
 
@@ -433,6 +433,24 @@
         out.textContent='Não foi possível enviar: '+((j&&(j.detalhe||j.error))||'erro');
       })
       .catch(function(e){ agRS.disabled=false; agRS.textContent=old; out.textContent='Erro de conexão ao enviar.'; console.error(e); });
+    });
+  })();
+  // ===== Agente Sentinela (QA/Segurança) =====
+  (function(){
+    var agS=document.getElementById('agSentinela'); if(!agS) return;
+    agS.addEventListener('click',function(){
+      var tok=localStorage.getItem(TOKKEY); var out=$('sentinelaOut'); var old=agS.textContent;
+      agS.disabled=true; agS.textContent='Auditando…'; out.style.display='block'; out.textContent='Rodando auditoria de segurança…';
+      fetch(SB+'/rest/v1/rpc/auditoria_seguranca',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        agS.disabled=false; agS.textContent=old;
+        if(!d||d.erro){ out.textContent=(d&&d.erro==='sem_permissao'?'Entre como equipe para auditar.':'Não foi possível auditar.'); return; }
+        var linhas=(d.checks||[]).map(function(c){ return (c.ok?'✓ ':'⚠ ')+c.nome+' — '+c.detalhe; });
+        var cab=(d.status==='ok'?'PARECER: TUDO OK ✓':'PARECER: ATENÇÃO ⚠')+'  ·  '+(d.total_tabelas||0)+' tabelas · '+(d.total_politicas||0)+' políticas';
+        out.textContent=cab+'\n\n'+linhas.join('\n');
+      })
+      .catch(function(e){ agS.disabled=false; agS.textContent=old; out.textContent='Erro de conexão.'; console.error(e); });
     });
   })();
   // ===== Agente Briefing 360 =====
