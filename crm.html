@@ -227,7 +227,7 @@
       <!-- ===== AGENTES DE IA ===== -->
       <section class="view" data-v="agentes" hidden>
         <div class="h1">Agentes de IA</div>
-        <div class="sub">Camada C4 · Ferramentas · governança <b style="color:var(--accent)">IA propõe → Edson aprova</b></div>
+        <div class="sub">Camada C4 · Ferramentas · governança <b style="color:var(--accent)">IA propõe → Kathleen aprova</b></div>
         <div class="agents">
           <div class="ag on"><div class="agh">Qualificador de Leads <span class="agtag ok">ativo</span></div><p>Classifica o lead (Quente/Morno/Frio + score), propõe resposta on-brand e o próximo passo. Lê o catálogo real como contexto.</p><button class="ia-btn" id="agRunLatest">✦ Rodar no lead mais recente</button></div>
           <div class="ag on"><div class="agh">Curador de Produto <span class="agtag ok">ativo</span></div><p>Gera descrição editorial de luxo para peças do catálogo, no tom da marca. Sugere → você publica.</p><button class="ia-btn" id="agCurador">✦ Rodar numa peça do catálogo</button><div id="curadorOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
@@ -296,7 +296,7 @@
       </section>
       <section class="view" data-v="cobranca" hidden>
         <div class="h1">Cobrança (IA)</div>
-        <div class="sub">Recebíveis em aberto (locação · programas · 3D) · governança <b style="color:var(--accent)">IA propõe → Edson aprova → envia</b></div>
+        <div class="sub">Recebíveis em aberto (locação · programas · 3D) · governança <b style="color:var(--accent)">IA propõe → Kathleen aprova → envia</b></div>
         <div class="kpis" id="cobKpis"><div class="kpi"><div class="l">Carregando…</div><div class="n">—</div></div></div>
         <div class="panel" style="margin-top:14px">
           <h3>Sugestões de cobrança</h3>
@@ -494,7 +494,7 @@
         </div>
       </section>
     </div>
-    <div class="demo">Leads em tempo real do banco · KPIs do funil ilustrativos · governança IA propõe → Edson aprova</div>
+    <div class="demo">Leads em tempo real do banco · KPIs do funil ilustrativos · governança IA propõe → Kathleen aprova</div>
   </div>
 </div></div>
 
@@ -560,7 +560,7 @@
     })
     .catch(function(e){ $('leadsBody').innerHTML='<tr><td colspan="6" class="empty">Sem permissão para ler os leads (seu usuário ainda não é staff) ou erro de conexão.</td></tr>'; console.error(e); });
   }
-  // ===== C4/C5 · IA propõe → Edson aprova =====
+  // ===== C4/C5 · IA propõe → Kathleen aprova =====
   var iaLead=null, leadsById={};
   function iaModal(){
     var m=$('iaModal'); if(m) return m;
@@ -910,7 +910,7 @@
       $('g_btn').disabled=false; $('g_btn').textContent= mode==='login'?'Entrar':'Criar conta de admin';
       if(!res.ok){ $('g_msg').textContent = res.j.msg||res.j.error_description||res.j.error||'Não foi possível. Verifique os dados.'; return; }
       if(mode==='signup'){
-        $('g_msg').textContent='Conta criada. Avise o Edson/admin para liberar seu acesso de equipe; depois faça login.';
+        $('g_msg').textContent='Conta criada. Avise o Kathleen/admin para liberar seu acesso de equipe; depois faça login.';
         mode='login'; return;
       }
       var tok=res.j.access_token;
