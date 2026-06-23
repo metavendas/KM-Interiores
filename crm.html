@@ -2064,5 +2064,14 @@
     });
   })();
 </script>
+<script>
+/* ===== KM Interiores · CRM · Patch do modulo Produtos (busca + edicao visivel) — inline ===== */
+(function(){"use strict";
+function prodMatch(tr,q){var btn=tr.querySelector('button[data-id]');var p=(btn&&window.prodById)?window.prodById[btn.getAttribute('data-id')]:null;var hay=p?((p.nome||'')+' '+(p.categoria||'')+' '+(p.sku||'')).toLowerCase():tr.textContent.toLowerCase();return !q||hay.indexOf(q)>=0;}
+function injectProdSearch(){var host=document.getElementById('mod-produtos');if(!host||document.getElementById('search-prod'))return;var table=host.querySelector('table');if(!table)return;var bar=document.createElement('div');bar.style.cssText='display:flex;gap:10px;align-items:center;margin:12px 0 4px';bar.innerHTML='<input id="search-prod" placeholder="\uD83D\uDD0D Buscar produto por nome, categoria ou SKU\u2026" autocomplete="off" style="flex:1;background:#221b10;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:9px 12px;font-size:13px"><span id="search-prod-count" style="color:var(--ouro);font-size:12px;white-space:nowrap"></span>';table.parentNode.insertBefore(bar,table);document.getElementById('search-prod').addEventListener('input',function(){var q=this.value.trim().toLowerCase();var rows=document.querySelectorAll('#body-prod tr');var vis=0,tot=0;rows.forEach(function(tr){if(tr.querySelector('td.empty'))return;tot++;var show=prodMatch(tr,q);tr.style.display=show?'':'none';if(show)vis++;});var c=document.getElementById('search-prod-count');if(c)c.textContent=q?(vis+' de '+tot):'';});}
+function apply(){if(typeof window.renderProdutos==='function'&&!window.__prodPatched){window.__prodPatched=true;var _r=window.renderProdutos;window.renderProdutos=function(){var x=_r.apply(this,arguments);setTimeout(injectProdSearch,0);return x;};if(typeof window.editProduto==='function'){var _e=window.editProduto;window.editProduto=function(id){var x=_e.apply(this,arguments);var f=document.getElementById('form-prod');if(f&&f.scrollIntoView)f.scrollIntoView({behavior:'smooth',block:'center'});return x;};}}setTimeout(injectProdSearch,0);}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',apply);}else{apply();}
+})();
+</script>
 </body>
 </html>
