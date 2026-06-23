@@ -206,7 +206,7 @@
 <section class="catalogo" id="catalogo">
   <div class="wrap">
     <div class="sec-head"><span class="eyebrow">Direto do catálogo oficial</span><div class="gold-rule"></div><h2>Peças em Destaque</h2><p>Sofás, cabeceiras e coleções autorais com acabamentos nobres e curadoria de especialista.</p></div>
-    <div class="cat-grid">
+    <div class="cat-grid" id="featGrid">
       <div class="cat-card"><img src="cat-milano.jpg" alt="Sofá Milano"></div>
       <div class="cat-card"><img src="cat-zarath.jpg" alt="Sofá Zarath"></div>
       <div class="cat-card"><img src="cat-clark.jpg" alt="Sofá Clark"></div>
@@ -252,5 +252,36 @@
 </div></footer>
 
 <script defer src="assistente.js"></script>
+<script>
+/* Página principal controlada pelo CRM:
+   - "Peças em Destaque" = produtos marcados como Destaque na home (CRM > Produtos)
+   - Fotos dos 6 ambientes = uma peça real por categoria (fallback: imagens fixas) */
+(function(){
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+  function brl(v){var n=Number(v||0); if(!n) return ''; try{return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}catch(e){return 'R$ '+n;}}
+  // Peças em destaque (o dono escolhe no CRM)
+  fetch(SB+'/rest/v1/produtos?select=nome,categoria,foto_url,preco&ativo=eq.true&destaque=eq.true&order=ranking.asc.nullslast,nome.asc&limit=8',{headers:{apikey:KEY}})
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){
+    rows=(rows||[]).filter(function(p){return p.foto_url;});
+    var grid=document.getElementById('featGrid'); if(!grid||!rows.length) return; // sem destaques: mantém as fixas
+    grid.innerHTML=rows.map(function(p){
+      var cap='<div style="padding:13px 15px;font-family:Georgia,serif;color:#F1E4C9;display:flex;justify-content:space-between;align-items:center;gap:10px"><span>'+esc(p.nome)+'</span>'+(p.preco?'<span style="color:#CB984C;font-size:13px;white-space:nowrap">'+brl(p.preco)+'</span>':'')+'</div>';
+      return '<div class="cat-card"><img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'" loading="lazy">'+cap+'</div>';
+    }).join('');
+  }).catch(function(){});
+  // Fotos dos 6 ambientes por categoria (prefere itens em destaque)
+  fetch(SB+'/rest/v1/produtos?select=categoria,foto_url,destaque,ranking&ativo=eq.true&order=destaque.desc,ranking.asc.nullslast&limit=400',{headers:{apikey:KEY}})
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){
+    rows=rows||[]; var byCat={};
+    rows.forEach(function(p){ if(p.foto_url && !byCat[p.categoria]) byCat[p.categoria]=p.foto_url; });
+    var map=['Sofás','Mesas','Colchões','Cabeceiras','Banquetas','Guarda-Roupas']; // ordem dos quadros
+    var phs=document.querySelectorAll('.amb .ph');
+    map.forEach(function(cat,i){ var url=byCat[cat]; if(url && phs[i]) phs[i].style.backgroundImage="linear-gradient(0deg,rgba(8,8,7,.12),rgba(8,8,7,.12)),url('"+url.replace(/'/g,"%27")+"')"; });
+  }).catch(function(){});
+})();
+</script>
 </body>
 </html>
