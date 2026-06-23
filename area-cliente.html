@@ -19,33 +19,52 @@
   .nav{display:flex;align-items:center;justify-content:space-between;height:92px}
   .brand-logo{height:72px;width:auto;display:block}
   nav.menu{display:flex;gap:30px}nav.menu a{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text);opacity:.85}nav.menu a:hover{opacity:1;color:var(--accent)}
-  .icons{display:flex;gap:20px;align-items:center}.icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85}
+  .icons{display:flex;gap:14px;align-items:center}.icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85}
+  .btn{font-family:var(--sans);font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;border-radius:3px;cursor:pointer;border:1px solid var(--line);background:transparent;color:inherit;transition:.2s}
+  .btn-primary{background:#14100a;color:var(--champagne);border-color:#14100a}
+  .btn-primary:hover{background:#000}
+  .btn-ghost:hover{border-color:var(--accent);color:#000}
 
   .greet{padding:54px 0 30px}
   .greet .eyebrow{color:var(--ouro-antigo)}
   .greet h1{font-family:var(--serif);font-weight:500;font-size:clamp(30px,4vw,46px);margin-top:12px}
   .greet p{font-family:var(--serif-accent);font-size:19px;color:var(--champagne);margin-top:6px}
 
-  .dash{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;padding-bottom:30px}
+  .dash{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;padding-bottom:30px}
   .stat{background:var(--bg2);border:1px solid var(--line);padding:26px}
   .stat .n{font-family:var(--serif);font-size:34px;color:var(--accent)}
   .stat .l{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:6px}
 
   .panel{background:var(--bg2);border:1px solid var(--line);margin-bottom:24px}
   .panel h3{font-family:var(--serif);font-weight:500;font-size:20px;padding:22px 26px;border-bottom:1px solid var(--line)}
+  .empty{padding:22px 26px;color:var(--muted);font-size:13.5px}
   table{width:100%;border-collapse:collapse}
   th,td{text-align:left;padding:16px 26px;font-size:13.5px;border-bottom:1px solid var(--line)}
   th{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ouro-antigo);font-weight:500}
   td{color:var(--muted)}
-  .tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:2px}
+  .tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:2px;white-space:nowrap}
   .t-prod{background:rgba(203,152,76,.16);color:var(--accent)}
   .t-ok{background:rgba(120,160,90,.18);color:#bcd39a}
   .t-open{background:rgba(241,228,201,.12);color:var(--champagne)}
-  .linkrow td a{color:var(--accent);font-size:12px;letter-spacing:.08em}
+
+  /* Login */
+  .auth-wrap{max-width:430px;margin:70px auto;padding:0 24px}
+  .auth-card{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:38px 34px}
+  .auth-card h2{font-family:var(--serif);font-weight:500;font-size:26px;margin-bottom:6px}
+  .auth-card .sub{color:var(--muted);font-size:13.5px;margin-bottom:24px}
+  .auth-card label{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro-antigo);margin:14px 0 6px}
+  .auth-card input{width:100%;padding:12px 14px;background:#14100a;border:1px solid var(--line);border-radius:4px;color:var(--text);font-size:14px;font-family:var(--sans)}
+  .auth-card input:focus{outline:none;border-color:var(--accent)}
+  .auth-card .btn{width:100%;margin-top:22px;padding:13px}
+  .auth-msg{margin-top:16px;font-size:13px;min-height:18px}
+  .auth-msg.err{color:#e0a0a0}.auth-msg.ok{color:#bcd39a}
+  .auth-foot{margin-top:18px;font-size:12.5px;color:var(--muted);text-align:center}
+  .auth-foot a{color:var(--accent)}
+  .hidden{display:none!important}
 
   footer{background:var(--bg2);border-top:1px solid var(--line);padding:44px 0;text-align:center;margin-top:40px}
   footer p{font-size:12px;color:var(--muted)}footer .tag2{font-family:var(--serif-accent);font-size:16px;color:var(--accent);margin-top:8px}
-  @media(max-width:960px){.wrap{padding:0 18px}nav.menu{display:none}.dash{grid-template-columns:1fr}th:nth-child(3),td:nth-child(3){display:none}}
+  @media(max-width:960px){.wrap{padding:0 18px}nav.menu{display:none}.dash{grid-template-columns:1fr 1fr}th:nth-child(3),td:nth-child(3){display:none}}
   /* ===== TEMA DOURADO (brand book) ===== */
   :root{--bg:#14100a;--bg2:#1b160d;--text:#F1E4C9;--muted:rgba(241,228,201,.74);--accent:#CB984C;--champagne:#F1E4C9;--ouro-antigo:#9D7D31;--line:rgba(203,152,76,.26)}
   .announce{background:#0f0c07;color:rgba(241,228,201,.72)}
@@ -53,56 +72,178 @@
   header nav.menu a{color:#14100a!important;opacity:.92!important}
   header nav.menu a:hover{color:#000!important;opacity:1!important}
   header .icons svg{stroke:#14100a!important}
+  header .icons .btn{border-color:rgba(20,16,10,.45)!important;color:#14100a!important}
+  header .icons .btn:hover{background:#14100a!important;color:var(--champagne)!important}
 </style>
 </head>
 <body>
 <div class="announce">Área do Cliente · Acesso exclusivo KM</div>
 <header><div class="wrap nav">
-  <a class="brand" href="home_comparador.html"><img class="brand-logo" src="logo-dourado.png" alt="KM Interiores"></a>
-  <nav class="menu"><a href="#">Ambientes</a><a href="catalogo.html">Coleções</a><a href="institucional.html#locacao">Locação</a><a href="institucional.html#atelier">Atelier 3D</a><a href="institucional.html">A Marca</a><a href="area-restrita.html">Área Restrita</a></nav>
-  <div class="icons"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+  <a class="brand" href="index.html"><img class="brand-logo" src="logo-dourado.png" alt="KM Interiores"></a>
+  <nav class="menu"><a href="catalogo.html">Coleções</a><a href="institucional.html#locacao">Locação</a><a href="institucional.html#atelier">Atelier 3D</a><a href="institucional.html">A Marca</a><a href="area-restrita.html">Área Restrita</a></nav>
+  <div class="icons"><button id="btnSair" class="btn btn-ghost hidden" onclick="acSair()">Sair</button></div>
 </div></header>
 
-<section class="wrap greet">
-  <span class="eyebrow">Área do Cliente</span>
-  <h1>Bem-vindo, Sr. Eduardo.</h1>
-  <p>Acompanhe seus pedidos, propostas e projetos em um só lugar.</p>
-</section>
-
-<section class="wrap">
-  <div class="dash">
-    <div class="stat"><div class="n">2</div><div class="l">Pedidos ativos</div></div>
-    <div class="stat"><div class="n">1</div><div class="l">Proposta em aberto</div></div>
-    <div class="stat"><div class="n">3</div><div class="l">Projetos no histórico</div></div>
-  </div>
-
-  <div class="panel">
-    <h3>Meus Pedidos</h3>
-    <table>
-      <tr><th>Peça</th><th>Pedido</th><th>Data</th><th>Status</th></tr>
-      <tr><td>Sofá Milano — acab. Nogueira</td><td>#KM-2041</td><td>12/06/2026</td><td><span class="tag t-prod">Em produção</span></td></tr>
-      <tr><td>Cabeceira Vitória — Marfim</td><td>#KM-2038</td><td>28/05/2026</td><td><span class="tag t-ok">Entregue</span></td></tr>
-    </table>
-  </div>
-
-  <div class="panel">
-    <h3>Propostas</h3>
-    <table>
-      <tr><th>Descrição</th><th>Proposta</th><th>Valor</th><th>Status</th></tr>
-      <tr class="linkrow"><td>Curadoria sala de estar — projeto Arq. Marina</td><td>#PROP-318</td><td>R$ 86.400</td><td><span class="tag t-open">Aguardando</span> &nbsp;<a href="#">Ver →</a></td></tr>
-    </table>
-  </div>
-
-  <div class="panel">
-    <h3>Meus Projetos</h3>
-    <table>
-      <tr><th>Projeto</th><th>Arquiteto(a)</th><th>Ano</th><th></th></tr>
-      <tr class="linkrow"><td>Cobertura Jardins</td><td>Marina Alvarez</td><td>2026</td><td><a href="#">Documentos →</a></td></tr>
-      <tr class="linkrow"><td>Casa de Campo Itaipava</td><td>Studio Lumière</td><td>2025</td><td><a href="#">Documentos →</a></td></tr>
-    </table>
+<!-- ===== LOGIN ===== -->
+<section id="acLogin" class="auth-wrap">
+  <div class="auth-card">
+    <span class="eyebrow" style="color:var(--ouro-antigo)">Área do Cliente</span>
+    <h2 style="margin-top:10px">Acesse sua conta</h2>
+    <div class="sub">Acompanhe seus pedidos, propostas e projetos KM em um só lugar.</div>
+    <label for="acEmail">E-mail</label>
+    <input id="acEmail" type="email" autocomplete="email" placeholder="seu@email.com">
+    <label for="acSenha">Senha</label>
+    <input id="acSenha" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn btn-primary" onclick="acEntrar()">Entrar</button>
+    <div id="acMsg" class="auth-msg"></div>
+    <div class="auth-foot">
+      <a href="#" onclick="acRecuperar();return false;">Esqueci minha senha</a><br><br>
+      Ainda não tem acesso? Fale com a KM para liberar sua conta.
+    </div>
   </div>
 </section>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="acApp" class="hidden">
+  <section class="wrap greet">
+    <span class="eyebrow">Área do Cliente</span>
+    <h1 id="acNome">Bem-vindo.</h1>
+    <p>Acompanhe seus pedidos, propostas e projetos em um só lugar.</p>
+  </section>
+
+  <section class="wrap">
+    <div class="dash" id="acStats"></div>
+    <div class="panel"><h3>Meus Pedidos</h3><div id="acPedidos"><div class="empty">Carregando…</div></div></div>
+    <div class="panel"><h3>Propostas</h3><div id="acPropostas"><div class="empty">Carregando…</div></div></div>
+    <div class="panel"><h3>Contratos &amp; Programas</h3><div id="acContratos"><div class="empty">Carregando…</div></div></div>
+    <div class="panel"><h3>Atelier 3D — Meus Projetos</h3><div id="acProjetos3d"><div class="empty">Carregando…</div></div></div>
+  </section>
+</div>
 
 <footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p><p class="tag2">Design que inspira. Sofisticação que permanece.</p></div></footer>
+
+<script>
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var TOKKEY='km_cliente_token', RTKEY='km_cliente_refresh';
+  var REDIR='https://www.kminteriores.com.br/redefinir-senha.html';
+  function $(id){return document.getElementById(id);}
+  function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+  function moneyBR(v){var n=Number(v||0);try{return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}catch(e){return 'R$ '+n;}}
+  function dataBR(s){if(!s)return '—';try{return new Date(s).toLocaleDateString('pt-BR');}catch(e){return s;}}
+  function authHeaders(){return {apikey:KEY,Authorization:'Bearer '+(localStorage.getItem(TOKKEY)||'')};}
+
+  // ---- statuses ----
+  function pedidoTag(st){st=(st||'').toLowerCase();
+    if(st.indexOf('entreg')>=0) return '<span class="tag t-ok">Entregue</span>';
+    if(st.indexOf('pago')>=0) return '<span class="tag t-ok">Pago</span>';
+    if(st.indexOf('produc')>=0||st.indexOf('produç')>=0) return '<span class="tag t-prod">Em produção</span>';
+    return '<span class="tag t-open">'+esc(st||'em aberto')+'</span>';}
+
+  // ---- keep-alive de token (renova access_token sozinho) ----
+  function setSessao(j){ if(j&&j.access_token){localStorage.setItem(TOKKEY,j.access_token);} if(j&&j.refresh_token){localStorage.setItem(RTKEY,j.refresh_token);} }
+  function refreshToken(){
+    var rt=localStorage.getItem(RTKEY); if(!rt) return Promise.resolve(false);
+    return fetch(SB+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})})
+      .then(function(r){return r.ok?r.json():null;}).then(function(j){ if(j&&j.access_token){setSessao(j);return true;} return false; }).catch(function(){return false;});
+  }
+  setInterval(function(){ if(localStorage.getItem(RTKEY)) refreshToken(); }, 14*60*1000);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden && localStorage.getItem(RTKEY)) refreshToken(); });
+
+  // ---- login ----
+  function acEntrar(){
+    var email=($('acEmail').value||'').trim(), senha=$('acSenha').value||'';
+    var msg=$('acMsg'); msg.className='auth-msg'; msg.textContent='';
+    if(!email||!senha){ msg.className='auth-msg err'; msg.textContent='Informe e-mail e senha.'; return; }
+    msg.textContent='Entrando…';
+    fetch(SB+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email,password:senha})})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(j&&j.access_token){ setSessao(j); msg.className='auth-msg ok'; msg.textContent='Acesso liberado.'; iniciar(); }
+      else { msg.className='auth-msg err'; msg.textContent=(j&&(j.error_description||j.msg||j.error))||'E-mail ou senha inválidos.'; }
+    }).catch(function(){ msg.className='auth-msg err'; msg.textContent='Falha de conexão. Tente novamente.'; });
+  }
+  // Enter envia
+  document.addEventListener('keydown',function(e){ if(e.key==='Enter' && !$('acLogin').classList.contains('hidden')){ acEntrar(); } });
+
+  function acRecuperar(){
+    var email=($('acEmail').value||'').trim(); var msg=$('acMsg');
+    if(!email){ msg.className='auth-msg err'; msg.textContent='Digite seu e-mail acima e clique novamente.'; return; }
+    msg.className='auth-msg'; msg.textContent='Enviando link de redefinição…';
+    fetch(SB+'/auth/v1/recover?redirect_to='+encodeURIComponent(REDIR),{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email})})
+    .then(function(){ msg.className='auth-msg ok'; msg.textContent='Se o e-mail tiver cadastro, enviamos um link para redefinir a senha.'; })
+    .catch(function(){ msg.className='auth-msg err'; msg.textContent='Não foi possível enviar agora.'; });
+  }
+
+  function acSair(){ localStorage.removeItem(TOKKEY); localStorage.removeItem(RTKEY); location.reload(); }
+
+  // ---- carregamento dos dados (RLS garante: só os do próprio cliente) ----
+  function get(path){ return fetch(SB+'/rest/v1/'+path,{headers:authHeaders()}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];}); }
+
+  function iniciar(){
+    $('acLogin').classList.add('hidden');
+    $('acApp').classList.remove('hidden');
+    $('btnSair').classList.remove('hidden');
+    // vincula o cadastro pelo e-mail (idempotente) e então carrega
+    fetch(SB+'/rest/v1/rpc/vincular_meu_cadastro',{method:'POST',headers:Object.assign(authHeaders(),{'Content-Type':'application/json'}),body:'{}'})
+      .then(function(){return carregar();}).catch(function(){return carregar();});
+  }
+
+  function carregar(){
+    // nome do cliente
+    get('clientes?select=nome,email,cidade&limit=1').then(function(a){
+      var c=Array.isArray(a)&&a[0]?a[0]:null;
+      var nome=c&&c.nome?String(c.nome).split(' ')[0]:'';
+      $('acNome').textContent='Bem-vindo'+(nome?(', '+nome):'')+'.';
+    });
+    Promise.all([
+      get('pedidos?select=numero,valor,status,canal,created_at&order=created_at.desc'),
+      get('propostas?select=numero,titulo,valor,status,tipo,created_at&order=created_at.desc'),
+      get('contratos?select=numero,tipo,valor_recorrente,valor_adesao,status,inicio,fim&order=created_at.desc'),
+      get('pedidos_3d?select=titulo,status,valor_estimado,valor_final,created_at&order=created_at.desc')
+    ]).then(function(res){
+      var ped=res[0]||[], prop=res[1]||[], con=res[2]||[], p3=res[3]||[];
+      // stats
+      var pedAtivos=ped.filter(function(p){var s=(p.status||'').toLowerCase();return s.indexOf('entreg')<0 && s.indexOf('cancel')<0;}).length;
+      var propAbertas=prop.filter(function(p){var s=(p.status||'').toLowerCase();return s.indexOf('aprov')<0 && s.indexOf('recus')<0 && s.indexOf('fechad')<0;}).length;
+      var conAtivos=con.filter(function(c){return (c.status||'').toLowerCase()==='ativo';}).length;
+      $('acStats').innerHTML=[
+        ['Pedidos ativos',pedAtivos],['Propostas em aberto',propAbertas],['Contratos ativos',conAtivos],['Projetos 3D',p3.length]
+      ].map(function(s){return '<div class="stat"><div class="n">'+s[1]+'</div><div class="l">'+s[0]+'</div></div>';}).join('');
+
+      // pedidos
+      $('acPedidos').innerHTML = ped.length ? ('<table><tr><th>Pedido</th><th>Valor</th><th>Data</th><th>Status</th></tr>'+
+        ped.map(function(p){return '<tr><td style="color:var(--text)">'+esc(p.numero||'—')+'</td><td>'+moneyBR(p.valor)+'</td><td>'+dataBR(p.created_at)+'</td><td>'+pedidoTag(p.status)+'</td></tr>';}).join('')+'</table>')
+        : '<div class="empty">Você ainda não tem pedidos registrados.</div>';
+
+      // propostas
+      $('acPropostas').innerHTML = prop.length ? ('<table><tr><th>Descrição</th><th>Proposta</th><th>Valor</th><th>Status</th></tr>'+
+        prop.map(function(p){return '<tr><td style="color:var(--text)">'+esc(p.titulo||(p.tipo?('Proposta de '+p.tipo):'Proposta'))+'</td><td>'+esc(p.numero||'—')+'</td><td>'+moneyBR(p.valor)+'</td><td>'+pedidoTag(p.status)+'</td></tr>';}).join('')+'</table>')
+        : '<div class="empty">Nenhuma proposta no momento.</div>';
+
+      // contratos
+      $('acContratos').innerHTML = con.length ? ('<table><tr><th>Contrato</th><th>Tipo</th><th>Mensalidade</th><th>Vigência</th><th>Status</th></tr>'+
+        con.map(function(c){var vig=(c.inicio?dataBR(c.inicio):'—')+(c.fim?(' – '+dataBR(c.fim)):'');return '<tr><td style="color:var(--text)">'+esc(c.numero||'—')+'</td><td>'+esc(c.tipo||'—')+'</td><td>'+(Number(c.valor_recorrente)>0?moneyBR(c.valor_recorrente):'—')+'</td><td>'+vig+'</td><td>'+pedidoTag(c.status)+'</td></tr>';}).join('')+'</table>')
+        : '<div class="empty">Nenhum contrato ou programa ativo.</div>';
+
+      // 3d
+      $('acProjetos3d').innerHTML = p3.length ? ('<table><tr><th>Projeto</th><th>Status</th><th>Valor</th><th>Data</th></tr>'+
+        p3.map(function(p){var val=Number(p.valor_final)>0?p.valor_final:p.valor_estimado;return '<tr><td style="color:var(--text)">'+esc(p.titulo||'Peça 3D')+'</td><td>'+pedidoTag(p.status)+'</td><td>'+(Number(val)>0?moneyBR(val):'—')+'</td><td>'+dataBR(p.created_at)+'</td></tr>';}).join('')+'</table>')
+        : '<div class="empty">Nenhum projeto no atelier 3D.</div>';
+    });
+  }
+
+  // ---- bootstrap: se já há sessão válida, entra direto ----
+  (function(){
+    var tok=localStorage.getItem(TOKKEY);
+    if(!tok){ return; }
+    fetch(SB+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+tok}})
+    .then(function(r){
+      if(r.ok) return r.json();
+      return refreshToken().then(function(ok){ return ok?fetch(SB+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+localStorage.getItem(TOKKEY)}}).then(function(r2){return r2.ok?r2.json():null;}):null; });
+    })
+    .then(function(u){ if(u&&u.id){ iniciar(); } })
+    .catch(function(){});
+  })();
+</script>
 </body>
 </html>
