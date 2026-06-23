@@ -48,6 +48,23 @@
   .topbar .who{font-size:12px;color:var(--muted)}
   .topbar .out{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ouro);border:1px solid var(--line);padding:7px 12px;border-radius:3px;cursor:pointer}
   .topbar .out:hover{border-color:var(--accent);color:var(--accent)}
+  .bell{position:relative;cursor:pointer;font-size:18px;line-height:1;user-select:none}
+  .bell-badge{position:absolute;top:-8px;right:-9px;background:#b3331f;color:#fff;font-size:10px;min-width:16px;height:16px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:600}
+  .bell-pop{position:absolute;top:32px;right:0;width:300px;background:var(--bg2,#1b160d);border:1px solid var(--line);border-radius:6px;box-shadow:0 12px 34px rgba(0,0,0,.5);z-index:120;overflow:hidden}
+  .bell-pop .nh{padding:12px 16px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro)}
+  .bell-pop a{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--text);cursor:pointer}
+  .bell-pop a:hover{background:rgba(203,152,76,.08)}
+  .bell-pop .cnt{color:var(--accent);font-weight:600;margin-left:10px}
+  .bell-pop .none{padding:16px;color:var(--muted);font-size:13px}
+  .chatbox{display:flex;flex-direction:column;height:62vh;background:var(--bg2,#1b160d);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:14px}
+  .chatmsgs{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+  .cmsg{max-width:80%;padding:9px 13px;border-radius:8px;background:#241c10;border:1px solid var(--line);font-size:13.5px;line-height:1.5;align-self:flex-start}
+  .cmsg .ca{font-size:11px;color:var(--ouro);font-weight:600;margin-bottom:3px}
+  .cmsg .ct{font-size:10px;color:var(--muted);margin-top:4px;text-align:right}
+  .chatinput{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+  .chatinput input{flex:1;background:#14100a;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:11px 14px;font-size:14px}
+  .chatinput button{background:#14100a;color:var(--champagne,#F1E4C9);border:1px solid var(--line);border-radius:4px;padding:0 20px;cursor:pointer;font-size:13px}
+  .chatinput button:hover{border-color:var(--accent)}
   .content{padding:28px 30px;overflow:auto}
   .h1{font-family:var(--serif);font-weight:500;font-size:26px}.sub{font-size:13px;color:var(--muted);margin:4px 0 24px}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px}
@@ -168,6 +185,7 @@
       <a href="#" data-view="programas"><span class="dot"></span> Programas KM</a>
       <a href="#" data-view="treinamentos"><span class="dot"></span> Treinamentos</a>
       <a href="#" data-view="tarefas"><span class="dot"></span> Tarefas</a>
+      <a href="#" data-view="chat"><span class="dot"></span> Bate-papo</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
       <a href="#" data-view="cobranca"><span class="dot"></span> Cobrança (IA)</a>
       <div class="sec">Inteligência</div>
@@ -181,7 +199,7 @@
     <div class="topbar">
       <button id="sideToggle" title="Recolher / expandir o menu">☰</button>
       <input class="search" id="search" placeholder="Buscar lead por nome, contato, interesse...">
-      <div class="right"><span class="ai" id="aiBtn">✦ Assistente IA</span><span class="who" id="who"></span><span class="out" id="trocarSenha">Trocar senha</span><span class="out" id="logout">Sair</span></div>
+      <div class="right"><span class="ai" id="aiBtn">✦ Assistente IA</span><span class="bell" id="bell" title="Notificações" onclick="abreSino()">🔔<span class="bell-badge" id="bellBadge" style="display:none">0</span><div class="bell-pop" id="bellPop" style="display:none"></div></span><span class="who" id="who"></span><span class="out" id="trocarSenha">Trocar senha</span><span class="out" id="logout">Sair</span></div>
     </div>
     <div class="content">
       <!-- ===== DASHBOARD ===== -->
@@ -306,6 +324,14 @@
             <span id="cobMsg" style="margin-left:auto;color:var(--ouro);font-size:13px"></span>
           </div>
           <div id="cobLista" style="padding:6px 4px"></div>
+        </div>
+      </section>
+      <section class="view" data-v="chat" hidden>
+        <div class="h1">Bate-papo da Equipe</div>
+        <div class="sub">Canal interno · toda a equipe conversa aqui · histórico registrado</div>
+        <div class="chatbox">
+          <div class="chatmsgs" id="chatMsgs"><div style="color:var(--muted);font-size:13px;padding:10px">Carregando…</div></div>
+          <div class="chatinput"><input id="chatInput" placeholder="Escreva uma mensagem para a equipe…" maxlength="2000"><button onclick="chatSend()">Enviar</button></div>
         </div>
       </section>
       <section class="view" data-v="relatorios" hidden>
@@ -512,12 +538,12 @@
   var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['produtos','Produtos'],
-    ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],
+    ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
     ['agentes','Agentes de IA'],['relatorios','Relatórios']];
   var ACCESS_DEFAULT={
-    vendas:        ['funil','clientes','ficha360','produtos','estoque','pedidos','locacao','pedidos3d','programas','treinamentos','tarefas'],
-    representante: ['funil','clientes','ficha360','produtos','estoque','pedidos','locacao','pedidos3d','treinamentos','tarefas'],
-    curadoria:     ['funil','clientes','ficha360','produtos','estoque','pedidos','leads','locacao','pedidos3d','programas','treinamentos','tarefas']
+    vendas:        ['funil','clientes','ficha360','produtos','estoque','pedidos','locacao','pedidos3d','programas','treinamentos','tarefas','chat'],
+    representante: ['funil','clientes','ficha360','produtos','estoque','pedidos','locacao','pedidos3d','treinamentos','tarefas','chat'],
+    curadoria:     ['funil','clientes','ficha360','produtos','estoque','pedidos','leads','locacao','pedidos3d','programas','treinamentos','tarefas','chat']
   };
   var ME_ROLE='', ME_ACESSOS=null;
   function allowedViews(){
@@ -772,6 +798,65 @@
       }).catch(function(e){ b.disabled=false; b.textContent=old; if(msg) msg.textContent='Erro de conexão com o agente.'; console.error(e); });
     });
   })();
+  // ===== Bate-papo interno + Sininho de notificações =====
+  var CHAT_TIMER=null;
+  function notifTok(){ return localStorage.getItem(TOKKEY); }
+  function loadChat(){ chatFetch(); if(CHAT_TIMER) clearInterval(CHAT_TIMER);
+    CHAT_TIMER=setInterval(function(){ var v=document.querySelector('.view[data-v="chat"]'); if(v && !v.hidden){ chatFetch(); } else { clearInterval(CHAT_TIMER); CHAT_TIMER=null; } }, 8000); }
+  function chatFetch(){
+    var tok=notifTok(); var box=$('chatMsgs'); if(!box) return;
+    fetch(SB+'/rest/v1/chat_mensagens?select=autor_nome,conteudo,created_at&order=created_at.desc&limit=80',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      if(!Array.isArray(rows)) rows=[]; rows.reverse();
+      var atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 70;
+      box.innerHTML = rows.length ? rows.map(function(m){
+        var t=''; try{ t=new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){}
+        return '<div class="cmsg"><div class="ca">'+esc(m.autor_nome||'Equipe')+'</div>'+esc(m.conteudo)+'<div class="ct">'+t+'</div></div>';
+      }).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px">Nenhuma mensagem ainda. Comece a conversa da equipe.</div>';
+      if(atBottom) box.scrollTop=box.scrollHeight;
+      marcarVisto('chat');
+    }).catch(function(){});
+  }
+  function chatSend(){
+    var inp=$('chatInput'); if(!inp) return; var txt=(inp.value||'').trim(); if(!txt) return;
+    var tok=notifTok(); inp.value='';
+    fetch(SB+'/rest/v1/chat_mensagens',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({conteudo:txt})})
+    .then(function(r){ if(!r.ok){ inp.value=txt; } chatFetch(); }).catch(function(){ inp.value=txt; });
+  }
+  function marcarVisto(tipo){
+    var tok=notifTok(); if(!tok) return;
+    fetch(SB+'/rest/v1/rpc/marcar_visto',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({p_tipo:tipo})})
+    .then(function(){ atualizaSino(); }).catch(function(){});
+  }
+  function atualizaSino(){
+    var tok=notifTok(); if(!tok) return;
+    fetch(SB+'/rest/v1/rpc/get_notificacoes',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if(!d) return; window._notif=d; var b=$('bellBadge'); if(!b) return; var n=Number(d.total||0);
+      if(n>0){ b.textContent=n>99?'99+':String(n); b.style.display='flex'; } else { b.style.display='none'; } })
+    .catch(function(){});
+  }
+  function abreSino(){
+    var pop=$('bellPop'); if(!pop) return;
+    if(pop.style.display==='block'){ pop.style.display='none'; return; }
+    var d=window._notif||{}; var rows=[
+      ['Mensagens novas no chat', d.chat||0, 'chat'],
+      ['Novos leads no funil', d.leads||0, 'funil'],
+      ['Cobranças pendentes', d.cobrancas||0, 'cobranca'],
+      ['Tarefas atrasadas', d.tarefas||0, 'tarefas']
+    ].filter(function(r){ return r[1]>0; });
+    pop.innerHTML='<div class="nh">Notificações</div>'+(rows.length?rows.map(function(r){
+      return '<a onclick="abreNotif(\''+r[2]+'\')">'+r[0]+'<span class="cnt">'+r[1]+'</span></a>'; }).join('')
+      : '<div class="none">Tudo em dia. Sem novidades.</div>');
+    pop.style.display='block';
+  }
+  function abreNotif(view){ var pop=$('bellPop'); if(pop) pop.style.display='none'; showView(view); }
+  document.addEventListener('click',function(e){ var pop=$('bellPop'), bell=$('bell'); if(pop && bell && pop.style.display==='block' && !bell.contains(e.target)){ pop.style.display='none'; } });
+  document.addEventListener('keydown',function(e){ if(e.key==='Enter'){ var inp=$('chatInput'); if(inp && document.activeElement===inp){ e.preventDefault(); chatSend(); } } });
+  setTimeout(function(){ if(notifTok()) atualizaSino(); }, 1800);
+  setInterval(function(){ if(notifTok()) atualizaSino(); }, 30000);
+
   // ===== Equipe & Acessos (admin) =====
   var EQ_ROLES=['admin','gestor','vendas','curadoria','representante','parceiro','cliente'];
   var EQ_BYID={};
@@ -955,6 +1040,8 @@
     if(v==='ficha360') initFicha360();
     if(v==='financeiro') loadFinanceiro();
     if(v==='cobranca') loadCobranca();
+    if(v==='chat') loadChat();
+    if(v==='funil'||v==='leads') marcarVisto('leads');
     if(v==='relatorios') loadRelatorios();
     if(v==='equipe') loadEquipe();
     if(typeof MODS!=='undefined' && MODS[v]) renderMod(v);
