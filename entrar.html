@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar · KM Interiores</title>
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#14100a;--bg2:#1b160d;--text:#F1E4C9;--muted:rgba(241,228,201,.74);--accent:#CB984C;--champagne:#F1E4C9;--ouro-antigo:#9D7D31;--line:rgba(203,152,76,.26);
+    --serif:'Playfair Display',Georgia,serif;--serif-accent:'Cormorant Garamond',Georgia,serif;--sans:'Inter',system-ui,sans-serif;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+  a{color:inherit;text-decoration:none}
+  .announce{background:#0f0c07;border-bottom:1px solid var(--line);text-align:center;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding:10px 0}
+  header{background:linear-gradient(90deg,#CB984C,#9D7D31);border-bottom:1px solid rgba(20,16,10,.3)}
+  .nav{display:flex;align-items:center;justify-content:center;height:92px}
+  .brand-logo{height:72px;width:auto;display:block}
+  .auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px}
+  .auth-card{width:100%;max-width:430px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:38px 34px}
+  .eyebrow{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--ouro-antigo);font-weight:500}
+  .auth-card h2{font-family:var(--serif);font-weight:500;font-size:26px;margin:10px 0 6px}
+  .auth-card .sub{color:var(--muted);font-size:13.5px;margin-bottom:24px}
+  label{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro-antigo);margin:14px 0 6px}
+  input{width:100%;padding:12px 14px;background:#14100a;border:1px solid var(--line);border-radius:4px;color:var(--text);font-size:14px;font-family:var(--sans)}
+  input:focus{outline:none;border-color:var(--accent)}
+  .btn{width:100%;margin-top:22px;padding:13px;font-family:var(--sans);font-size:12px;letter-spacing:.12em;text-transform:uppercase;border-radius:3px;cursor:pointer;border:1px solid #14100a;background:#14100a;color:var(--champagne);transition:.2s}
+  .btn:hover{background:#000}
+  .msg{margin-top:16px;font-size:13px;min-height:18px}.msg.err{color:#e0a0a0}.msg.ok{color:#bcd39a}
+  .foot{margin-top:18px;font-size:12.5px;color:var(--muted);text-align:center}.foot a{color:var(--accent)}
+  footer{text-align:center;padding:26px 0;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="announce">Acesso · KM Interiores</div>
+<header><div class="nav"><a href="index.html"><img class="brand-logo" src="logo-dourado.png" alt="KM Interiores"></a></div></header>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <span class="eyebrow">Acesso</span>
+    <h2>Entrar</h2>
+    <div class="sub">Cliente, equipe ou parceiro — um único acesso. Direcionamos você para o lugar certo.</div>
+    <label for="email">E-mail</label>
+    <input id="email" type="email" autocomplete="email" placeholder="seu@email.com">
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn" onclick="entrar()">Entrar</button>
+    <div id="msg" class="msg"></div>
+    <div class="foot"><a href="#" onclick="recuperar();return false;">Esqueci minha senha</a></div>
+  </div>
+</div>
+<footer>© 2026 KM Interiores · A arte de habitar o extraordinário</footer>
+
+<script>
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var REDIR='https://www.kminteriores.com.br/redefinir-senha.html';
+  var STAFF=['admin','gestor','vendas','curadoria','representante'];
+  function $(id){return document.getElementById(id);}
+
+  // grava a sessão nas chaves de TODOS os destinos (cada página lê a sua)
+  function setSessaoTudo(j){
+    if(!j||!j.access_token) return;
+    var pairs=[['km_crm_token','km_crm_refresh'],['km_portal_token','km_portal_refresh'],['km_cliente_token','km_cliente_refresh']];
+    pairs.forEach(function(p){ localStorage.setItem(p[0],j.access_token); if(j.refresh_token) localStorage.setItem(p[1],j.refresh_token); });
+  }
+  function rota(role){
+    if(STAFF.indexOf(role)>=0) return 'crm.html';
+    if(role==='parceiro') return 'area-restrita.html';
+    return 'area-cliente.html'; // cliente (ou sem papel definido)
+  }
+  function entrar(){
+    var email=($('email').value||'').trim(), senha=$('senha').value||'';
+    var msg=$('msg'); msg.className='msg';
+    if(!email||!senha){ msg.className='msg err'; msg.textContent='Informe e-mail e senha.'; return; }
+    msg.textContent='Entrando…';
+    fetch(SB+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email,password:senha})})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(!j||!j.access_token){ msg.className='msg err'; msg.textContent=(j&&(j.error_description||j.msg||j.error))||'E-mail ou senha inválidos.'; return; }
+      setSessaoTudo(j);
+      var uid=j.user&&j.user.id;
+      msg.className='msg ok'; msg.textContent='Acesso liberado. Redirecionando…';
+      // descobre o papel para rotear
+      fetch(SB+'/rest/v1/perfis?select=role&id=eq.'+uid,{headers:{apikey:KEY,Authorization:'Bearer '+j.access_token}})
+      .then(function(r){return r.json();})
+      .then(function(a){ var role=(Array.isArray(a)&&a[0])?a[0].role:''; location.href=rota(role); })
+      .catch(function(){ location.href='area-cliente.html'; });
+    }).catch(function(){ msg.className='msg err'; msg.textContent='Falha de conexão. Tente novamente.'; });
+  }
+  document.addEventListener('keydown',function(e){ if(e.key==='Enter') entrar(); });
+  function recuperar(){
+    var email=($('email').value||'').trim(); var msg=$('msg');
+    if(!email){ msg.className='msg err'; msg.textContent='Digite seu e-mail acima e clique novamente.'; return; }
+    msg.className='msg'; msg.textContent='Enviando link…';
+    fetch(SB+'/auth/v1/recover?redirect_to='+encodeURIComponent(REDIR),{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({email:email})})
+    .then(function(){ msg.className='msg ok'; msg.textContent='Se houver cadastro, enviamos um link para redefinir a senha.'; })
+    .catch(function(){ msg.className='msg err'; msg.textContent='Não foi possível enviar agora.'; });
+  }
+
+  // se já há sessão, rotear direto
+  (function(){
+    var tok=localStorage.getItem('km_crm_token')||localStorage.getItem('km_cliente_token')||localStorage.getItem('km_portal_token');
+    if(!tok) return;
+    fetch(SB+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+tok}})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(u){ if(!u||!u.id) return; return fetch(SB+'/rest/v1/perfis?select=role&id=eq.'+u.id,{headers:{apikey:KEY,Authorization:'Bearer '+tok}}).then(function(r){return r.json();}).then(function(a){ var role=(Array.isArray(a)&&a[0])?a[0].role:''; location.href=rota(role); }); })
+    .catch(function(){});
+  })();
+</script>
+</body>
+</html>
