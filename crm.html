@@ -226,6 +226,13 @@
           <div class="col"><h4>Negociação <span>2</span></h4><div class="lead"><div class="nm">Incorp. Vista Real</div><div class="mt">Decorado 3 unid.</div><div class="val">R$ 198.000</div></div></div>
           <div class="col"><h4>Ganho <span>5</span></h4><div class="lead"><div class="nm">Sr. Eduardo M.</div><div class="mt">Sofá Milano</div><div class="val">R$ 51.300</div></div></div>
         </div>
+        <div class="panel" style="margin-top:14px"><h3>Visão gráfica <span class="tagreal">● dados reais</span></h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;padding:16px 18px">
+            <div><div style="color:var(--muted);font-size:12.5px;margin-bottom:8px">Conversão do funil · oportunidades por estágio</div><div style="position:relative;height:240px"><canvas id="chDashFunil"></canvas></div></div>
+            <div><div style="color:var(--muted);font-size:12.5px;margin-bottom:8px">Meta vs. realizado por vendedor (R$)</div><div style="position:relative;height:240px"><canvas id="chDashMetas"></canvas></div></div>
+            <div><div style="color:var(--muted);font-size:12.5px;margin-bottom:8px">Faturamento do mês por pilar (R$)</div><div id="chDashPilarWrap" style="position:relative;height:240px"><canvas id="chDashPilar"></canvas></div></div>
+          </div>
+        </div>
       </section>
 
       <!-- ===== LEADS & ATENDIMENTO ===== -->
@@ -1864,20 +1871,43 @@
   // ===== DASHBOARD — KPIs reais =====
   function loadDashboard(){
     var tok=localStorage.getItem(TOKKEY);
-    // Pipeline ponderado (staff lê oportunidades)
+    var ordemF=['novo_lead','curadoria','proposta','negociacao','ganho','perdido'];
+    // Pipeline ponderado + Conversão do funil (staff lê oportunidades)
     fetch(SB+'/rest/v1/oportunidades?select=valor,probabilidade,estagio&limit=1000',{headers:authHeaders(tok)})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){ rows=Array.isArray(rows)?rows:[];
       var pond=0; rows.forEach(function(o){ if(o.estagio!=='ganho'&&o.estagio!=='perdido') pond+=Number(o.valor||0)*(Number(o.probabilidade||0)/100); });
       if($('kpiPipe')) $('kpiPipe').textContent='R$ '+Math.round(pond).toLocaleString('pt-BR');
+      var mq=kmTally(rows,'estagio'); var L=Object.keys(mq).sort(function(a,b){return ordemF.indexOf(a)-ordemF.indexOf(b);});
+      kmChart('chDashFunil','bar',L.map(rotuloEstagio),L.map(function(k){return mq[k];}),false);
     }).catch(function(){});
-    // Faturamento + MRR (admin)
+    // Meta vs. realizado por vendedor (staff lê vendedores)
+    fetch(SB+'/rest/v1/vendedores?select=nome,meta_mensal,realizado_mes&order=realizado_mes.desc&limit=12',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){ rows=Array.isArray(rows)?rows:[]; if(typeof Chart==='undefined')return;
+      var cv=document.getElementById('chDashMetas'); if(!cv)return; kmDestroy('chDashMetas');
+      var labels=rows.map(function(v){return (v.nome||'—').split(' ')[0];});
+      KMCH['chDashMetas']=new Chart(cv.getContext('2d'),{ type:'bar',
+        data:{labels:labels,datasets:[
+          {label:'Meta',data:rows.map(function(v){return Number(v.meta_mensal||0);}),backgroundColor:'#5E3D12',borderRadius:3},
+          {label:'Realizado',data:rows.map(function(v){return Number(v.realizado_mes||0);}),backgroundColor:'#CB984C',borderRadius:3}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:true,position:'bottom',labels:{color:'#E9D9BC',font:{size:11},boxWidth:12}},
+            tooltip:{callbacks:{label:function(c){return c.dataset.label+': R$ '+Number(c.parsed.y).toLocaleString('pt-BR');}}}},
+          scales:{x:{ticks:{color:'#C9B79A',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#C9B79A',font:{size:10},callback:function(v){return 'R$ '+Number(v).toLocaleString('pt-BR');}},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}}}
+      });
+    }).catch(function(){});
+    // Faturamento + MRR (admin) + Faturamento por pilar
     fetch(SB+'/rest/v1/rpc/get_financeiro_resumo',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'})
     .then(function(r){ return r.json(); })
     .then(function(d){
-      if(!d||d.erro){ if($('kpiFat')){ $('kpiFat').textContent='restrito'; $('kpiFatD').textContent='só admin'; } if($('kpiMrr')){ $('kpiMrr').textContent='restrito'; $('kpiMrrD').textContent='só admin'; } return; }
+      if(!d||d.erro){ if($('kpiFat')){ $('kpiFat').textContent='restrito'; $('kpiFatD').textContent='só admin'; } if($('kpiMrr')){ $('kpiMrr').textContent='restrito'; $('kpiMrrD').textContent='só admin'; }
+        var w=$('chDashPilarWrap'); if(w) w.innerHTML='<div style="color:var(--muted);font-size:12px;display:flex;align-items:center;justify-content:center;height:100%;text-align:center;padding:0 10px">Faturamento por pilar — visível para administradores.</div>'; return; }
       if($('kpiFat')) $('kpiFat').textContent='R$ '+Number(d.receita_mes||0).toLocaleString('pt-BR');
       if($('kpiMrr')){ $('kpiMrr').textContent='R$ '+Number(d.mrr||0).toLocaleString('pt-BR'); $('kpiMrrD').textContent=(d.contratos_ativos||0)+' contratos ativos'; }
+      var loja=Number(d.receita_loja_mes||0), pil=Number(d.receita_pilares_mes||0);
+      kmChart('chDashPilar','bar',['Loja','Locação/Prog./3D'],[Math.round(loja),Math.round(pil)],true);
     }).catch(function(){});
   }
 
