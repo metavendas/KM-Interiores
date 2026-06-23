@@ -65,6 +65,10 @@
   .chatinput input{flex:1;background:#14100a;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:11px 14px;font-size:14px}
   .chatinput button{background:#14100a;color:var(--champagne,#F1E4C9);border:1px solid var(--line);border-radius:4px;padding:0 20px;cursor:pointer;font-size:13px}
   .chatinput button:hover{border-color:var(--accent)}
+  .mention-pop{position:absolute;bottom:48px;left:0;right:0;background:var(--bg2,#1b160d);border:1px solid var(--line);border-radius:6px;max-height:190px;overflow-y:auto;z-index:30;box-shadow:0 -6px 24px rgba(0,0,0,.4)}
+  .mention-pop div{padding:9px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}
+  .mention-pop div:hover{background:rgba(203,152,76,.12);color:var(--accent)}
+  .cmsg .mention{color:var(--accent);font-weight:600}
   .content{padding:28px 30px;overflow:auto}
   .h1{font-family:var(--serif);font-weight:500;font-size:26px}.sub{font-size:13px;color:var(--muted);margin:4px 0 24px}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px}
@@ -148,6 +152,7 @@
 </head>
 <body>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <div id="gate">
   <div class="gatecard">
     <img src="logo.png" alt="KM">
@@ -331,7 +336,7 @@
         <div class="sub">Canal interno · toda a equipe conversa aqui · histórico registrado</div>
         <div class="chatbox">
           <div class="chatmsgs" id="chatMsgs"><div style="color:var(--muted);font-size:13px;padding:10px">Carregando…</div></div>
-          <div class="chatinput"><input id="chatInput" placeholder="Escreva uma mensagem para a equipe…" maxlength="2000"><button onclick="chatSend()">Enviar</button></div>
+          <div class="chatinput"><div style="flex:1;position:relative"><div id="chatMentions" class="mention-pop" style="display:none"></div><input id="chatInput" oninput="onChatInput()" placeholder="Escreva… digite @ para mencionar alguém" maxlength="2000" style="width:100%"></div><button onclick="chatSend()">Enviar</button></div>
         </div>
       </section>
       <section class="view" data-v="relatorios" hidden>
@@ -801,8 +806,22 @@
   // ===== Bate-papo interno + Sininho de notificações =====
   var CHAT_TIMER=null;
   function notifTok(){ return localStorage.getItem(TOKKEY); }
-  function loadChat(){ chatFetch(); if(CHAT_TIMER) clearInterval(CHAT_TIMER);
-    CHAT_TIMER=setInterval(function(){ var v=document.querySelector('.view[data-v="chat"]'); if(v && !v.hidden){ chatFetch(); } else { clearInterval(CHAT_TIMER); CHAT_TIMER=null; } }, 8000); }
+  var CHAT_RT=null, TEAM=[];
+  function loadChat(){ loadTeam(); setupRealtime(); chatFetch(); if(CHAT_TIMER) clearInterval(CHAT_TIMER);
+    CHAT_TIMER=setInterval(function(){ var v=document.querySelector('.view[data-v="chat"]'); if(v && !v.hidden){ chatFetch(); } else { clearInterval(CHAT_TIMER); CHAT_TIMER=null; } }, 20000); }
+  function loadTeam(){ if(TEAM.length) return; var tok=notifTok();
+    fetch(SB+'/rest/v1/rpc/listar_equipe_basico',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'})
+    .then(function(r){ return r.ok?r.json():[]; }).then(function(a){ TEAM=Array.isArray(a)?a:[]; }).catch(function(){}); }
+  function setupRealtime(){
+    if(CHAT_RT || !window.supabase) return; var tok=notifTok(); if(!tok) return;
+    try{
+      var c=window.supabase.createClient(SB,KEY); if(c.realtime&&c.realtime.setAuth) c.realtime.setAuth(tok);
+      CHAT_RT=c.channel('km-chat').on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_mensagens'},function(){
+        var v=document.querySelector('.view[data-v="chat"]'); if(v&&!v.hidden) chatFetch(); atualizaSino();
+      }).subscribe();
+    }catch(e){ /* sem realtime -> cai no poll */ }
+  }
+  function chatHL(s){ s=esc(s); return s.replace(/@([\wÀ-ÿ][\wÀ-ÿ.\-]{1,40})/g,'<span class="mention">@$1</span>'); }
   function chatFetch(){
     var tok=notifTok(); var box=$('chatMsgs'); if(!box) return;
     fetch(SB+'/rest/v1/chat_mensagens?select=autor_nome,conteudo,created_at&order=created_at.desc&limit=80',{headers:authHeaders(tok)})
@@ -812,16 +831,33 @@
       var atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 70;
       box.innerHTML = rows.length ? rows.map(function(m){
         var t=''; try{ t=new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){}
-        return '<div class="cmsg"><div class="ca">'+esc(m.autor_nome||'Equipe')+'</div>'+esc(m.conteudo)+'<div class="ct">'+t+'</div></div>';
+        return '<div class="cmsg"><div class="ca">'+esc(m.autor_nome||'Equipe')+'</div>'+chatHL(m.conteudo)+'<div class="ct">'+t+'</div></div>';
       }).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px">Nenhuma mensagem ainda. Comece a conversa da equipe.</div>';
       if(atBottom) box.scrollTop=box.scrollHeight;
       marcarVisto('chat');
     }).catch(function(){});
   }
+  function chatMencionados(txt){
+    var ids=[], low=txt.toLowerCase();
+    TEAM.forEach(function(p){ var nome=(p.nome||'').toLowerCase(), first=nome.split(' ')[0]; if(!first) return;
+      if(low.indexOf('@'+nome)>=0 || low.indexOf('@'+first)>=0){ if(ids.indexOf(p.id)<0) ids.push(p.id); } });
+    return ids;
+  }
+  function onChatInput(){
+    var inp=$('chatInput'), pop=$('chatMentions'); if(!inp||!pop) return;
+    var m=(inp.value||'').match(/@([\wÀ-ÿ.\-]*)$/); if(!m){ hideMentions(); return; }
+    var q=m[1].toLowerCase();
+    var list=TEAM.filter(function(p){ return (p.nome||'').toLowerCase().indexOf(q)>=0; }).slice(0,6);
+    if(!list.length){ hideMentions(); return; }
+    pop.innerHTML=list.map(function(p){ return '<div data-nome="'+esc(p.nome)+'" onclick="pickMention(this)">'+esc(p.nome)+'</div>'; }).join('');
+    pop.style.display='block';
+  }
+  function pickMention(el){ var inp=$('chatInput'); inp.value=inp.value.replace(/@([\wÀ-ÿ.\-]*)$/, '@'+el.getAttribute('data-nome')+' '); hideMentions(); inp.focus(); }
+  function hideMentions(){ var pop=$('chatMentions'); if(pop){ pop.style.display='none'; pop.innerHTML=''; } }
   function chatSend(){
     var inp=$('chatInput'); if(!inp) return; var txt=(inp.value||'').trim(); if(!txt) return;
-    var tok=notifTok(); inp.value='';
-    fetch(SB+'/rest/v1/chat_mensagens',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({conteudo:txt})})
+    var tok=notifTok(); var ment=chatMencionados(txt); inp.value=''; hideMentions();
+    fetch(SB+'/rest/v1/chat_mensagens',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({conteudo:txt,mencionados:ment})})
     .then(function(r){ if(!r.ok){ inp.value=txt; } chatFetch(); }).catch(function(){ inp.value=txt; });
   }
   function marcarVisto(tipo){
@@ -841,6 +877,7 @@
     var pop=$('bellPop'); if(!pop) return;
     if(pop.style.display==='block'){ pop.style.display='none'; return; }
     var d=window._notif||{}; var rows=[
+      ['Menções a você (@)', d.mencoes||0, 'chat'],
       ['Mensagens novas no chat', d.chat||0, 'chat'],
       ['Novos leads no funil', d.leads||0, 'funil'],
       ['Cobranças pendentes', d.cobrancas||0, 'cobranca'],
