@@ -169,6 +169,7 @@
       <a href="#" data-view="treinamentos"><span class="dot"></span> Treinamentos</a>
       <a href="#" data-view="tarefas"><span class="dot"></span> Tarefas</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
+      <a href="#" data-view="cobranca"><span class="dot"></span> Cobrança (IA)</a>
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
       <a href="#" data-view="relatorios"><span class="dot"></span> Relatórios</a>
@@ -233,6 +234,7 @@
           <div class="ag on"><div class="agh">Briefing 360 <span class="agtag ok">ativo</span></div><p>Consolida o histórico do cliente (pedidos, interações) num resumo executivo antes do atendimento.</p><button class="ia-btn" id="agBriefing">✦ Gerar briefing do cliente mais recente</button><div id="briefingOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
           <div class="ag on"><div class="agh">Régua / Lifecycle <span class="agtag ok">ativo</span></div><p>Propõe e-mails de relacionamento (boas-vindas, pós-venda, reengajamento). IA rascunha → você aprova → envia.</p><button class="ia-btn" id="agRegua">✦ Propor e-mail de boas-vindas</button> <button class="ia-btn" id="agReguaSend" style="display:none">✓ Aprovar e enviar</button><div id="reguaOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.6"></div></div>
           <div class="ag on"><div class="agh">Sentinela (QA/Segurança) <span class="agtag ok">ativo</span></div><p>Audita os invariantes de segurança (RLS, helpers, gatilho anti-autopromoção, políticas) e entrega um parecer.</p><button class="ia-btn" id="agSentinela">✦ Rodar auditoria de segurança</button><div id="sentinelaOut" style="display:none;white-space:pre-wrap;margin-top:10px;padding:12px 14px;background:#1b160d;border:1px solid var(--line);border-radius:4px;font-size:13px;color:var(--text);line-height:1.7"></div></div>
+          <div class="ag on"><div class="agh">Cobrança &amp; Recebíveis <span class="agtag ok">ativo</span></div><p>Varre os recebíveis em aberto (locação, programas, 3D) e rascunha cobranças cordiais on-brand. IA propõe → você aprova → envia.</p><button class="ia-btn" onclick="showView('cobranca')">✦ Abrir tela de Cobrança</button></div>
         </div>
       </section>
 
@@ -291,6 +293,20 @@
             <b style="color:var(--text)">A pagar</b> = lançamentos do financeiro ainda em aberto.<br>
             Os números atualizam sozinhos conforme o Mercado Pago confirma cada pagamento.
           </div></div>
+      </section>
+      <section class="view" data-v="cobranca" hidden>
+        <div class="h1">Cobrança (IA)</div>
+        <div class="sub">Recebíveis em aberto (locação · programas · 3D) · governança <b style="color:var(--accent)">IA propõe → Edson aprova → envia</b></div>
+        <div class="kpis" id="cobKpis"><div class="kpi"><div class="l">Carregando…</div><div class="n">—</div></div></div>
+        <div class="panel" style="margin-top:14px">
+          <h3>Sugestões de cobrança</h3>
+          <div style="padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)">
+            <button class="ia-btn" id="cobGerar">✦ Gerar cobranças (IA)</button>
+            <span style="color:var(--muted);font-size:12.5px">A IA rascunha mensagens cordiais on-brand para os recebíveis em aberto. Nada é enviado sem sua aprovação.</span>
+            <span id="cobMsg" style="margin-left:auto;color:var(--ouro);font-size:13px"></span>
+          </div>
+          <div id="cobLista" style="padding:6px 4px"></div>
+        </div>
       </section>
       <section class="view" data-v="relatorios" hidden>
         <div class="h1">Relatórios</div>
@@ -496,7 +512,7 @@
   var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Vendedores'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['produtos','Produtos'],
-    ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],
+    ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],
     ['agentes','Agentes de IA'],['relatorios','Relatórios']];
   var ACCESS_DEFAULT={
     vendas:        ['funil','clientes','ficha360','produtos','estoque','pedidos','locacao','pedidos3d','programas','treinamentos','tarefas'],
@@ -665,6 +681,95 @@
         out.textContent='Não foi possível enviar: '+((j&&(j.detalhe||j.error))||'erro');
       })
       .catch(function(e){ agRS.disabled=false; agRS.textContent=old; out.textContent='Erro de conexão ao enviar.'; console.error(e); });
+    });
+  })();
+  // ===== Agente de Cobrança / Recebíveis =====
+  function cobEsc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
+  function cobStrip(h){ var d=document.createElement('div'); d.innerHTML=h||''; return (d.textContent||d.innerText||'').trim(); }
+  function cobNivelBadge(nv){
+    var m={a_vencer:['A vencer','#3a3320'],vence_hoje:['Vence hoje','#4a3a12'],atraso_leve:['Atraso leve','#5a3a12'],atraso_grave:['Em atraso','#5a1f1f']};
+    var x=m[nv]||['—','#2a2a2a']; return '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:'+x[1]+';color:#f1e3c4">'+x[0]+'</span>';
+  }
+  function loadCobranca(){
+    var box=$('cobKpis'); var lista=$('cobLista'); if(!box||!lista) return;
+    var tok=localStorage.getItem(TOKKEY);
+    box.innerHTML=kpiCard('Carregando…','—','');
+    fetch(SB+'/rest/v1/rpc/get_financeiro_resumo',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d||d.erro){ box.innerHTML=kpiCard('Sem permissão','—','acesso de gestão'); return; }
+      box.innerHTML=[
+        kpiCard('Recebíveis vencidos',moneyBR(d.recebiveis_vencidos),'prioridade de cobrança'),
+        kpiCard('Recebíveis (total)',moneyBR(d.recebiveis),'em aberto'),
+        kpiCard('Receita recorrente (MRR)',moneyBR(d.mrr),(d.contratos_ativos||0)+' contratos ativos')
+      ].join('');
+    }).catch(function(){ box.innerHTML=kpiCard('Erro','—',''); });
+    cobRenderLista();
+  }
+  function cobRenderLista(){
+    var lista=$('cobLista'); if(!lista) return; var tok=localStorage.getItem(TOKKEY);
+    lista.innerHTML='<div style="padding:18px;color:var(--muted);font-size:13px">Carregando sugestões…</div>';
+    fetch(SB+'/rest/v1/cobranca_sugestoes?status=eq.pendente&select=*&order=created_at.desc&limit=50',{headers:authHeaders(tok)})
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      if(!Array.isArray(rows)||!rows.length){ lista.innerHTML='<div style="padding:20px;color:var(--muted);font-size:13.5px">Nenhuma sugestão pendente. Clique em <b style="color:var(--ouro)">Gerar cobranças (IA)</b> para a IA rascunhar as cobranças dos recebíveis em aberto.</div>'; return; }
+      lista.innerHTML=rows.map(function(s){
+        var via=(s.fonte||'').indexOf('groq')===0?'Groq · Llama 3.3':'rascunho padrão';
+        return '<div class="panel" data-cob="'+s.id+'" style="margin:12px 8px;border:1px solid var(--line)">'+
+          '<div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)">'+
+            '<b style="color:var(--text)">'+cobEsc(s.nome||'(cliente sem nome)')+'</b> '+cobNivelBadge(s.nivel)+
+            '<span style="color:var(--ouro);font-weight:600">'+moneyBR(s.valor||0)+'</span>'+
+            '<span style="color:var(--muted);font-size:12px">'+(s.destinatario?cobEsc(s.destinatario):'sem e-mail')+'</span>'+
+            '<span style="margin-left:auto;color:var(--muted);font-size:11px">'+via+'</span>'+
+          '</div>'+
+          '<div style="padding:12px 16px">'+
+            '<label style="font-size:11px;color:var(--muted)">Assunto</label>'+
+            '<input id="cobA_'+s.id+'" value="'+cobEsc(s.assunto||'')+'" style="width:100%;margin:4px 0 10px;padding:8px 10px;background:#1b160d;border:1px solid var(--line);border-radius:4px;color:var(--text);font-size:13px">'+
+            '<label style="font-size:11px;color:var(--muted)">Mensagem (editável)</label>'+
+            '<textarea id="cobM_'+s.id+'" rows="5" style="width:100%;margin-top:4px;padding:10px 12px;background:#1b160d;border:1px solid var(--line);border-radius:4px;color:var(--text);font-size:13px;line-height:1.6">'+cobEsc(cobStrip(s.mensagem))+'</textarea>'+
+            '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+
+              '<button class="ia-btn" onclick="cobEnviar(\''+s.id+'\')">✓ Aprovar e enviar por e-mail</button>'+
+              '<button class="ia-btn" style="background:transparent;border:1px solid var(--line);color:var(--muted)" onclick="cobRecusar(\''+s.id+'\')">Recusar</button>'+
+              '<span id="cobR_'+s.id+'" style="align-self:center;font-size:12.5px;color:var(--ouro)"></span>'+
+            '</div>'+
+          '</div></div>';
+      }).join('');
+    }).catch(function(e){ lista.innerHTML='<div style="padding:18px;color:#c66">Erro ao carregar sugestões.</div>'; console.error(e); });
+  }
+  function cobEnviar(id){
+    var tok=localStorage.getItem(TOKKEY); var st=$('cobR_'+id);
+    var assunto=($('cobA_'+id)||{}).value||''; var corpoTxt=($('cobM_'+id)||{}).value||'';
+    var corpoHtml='<div style="font-family:Georgia,serif;color:#2b2620;line-height:1.7;font-size:15px">'+corpoTxt.split(/\n{2,}/).map(function(p){return '<p>'+cobEsc(p).replace(/\n/g,'<br>')+'</p>';}).join('')+'</div>';
+    if(st) st.textContent='Salvando edições…';
+    fetch(SB+'/rest/v1/cobranca_sugestoes?id=eq.'+id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({assunto:assunto,mensagem:corpoHtml})})
+    .then(function(){ if(st) st.textContent='Enviando…';
+      return fetch(SB+'/functions/v1/agente-cobranca',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'enviar',sugestao_id:id})});
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j&&j.ok){ if(st) st.textContent='✓ Enviado.'; setTimeout(loadCobranca,900); return; }
+      if(j&&j.error==='credenciais_ausentes'){ if(st) st.textContent='Aprovado, mas falta BREVO_API_KEY nos secrets para enviar.'; return; }
+      if(st) st.textContent='Falha: '+((j&&(j.detalhe||j.error))||'erro');
+    }).catch(function(e){ if(st) st.textContent='Erro de conexão.'; console.error(e); });
+  }
+  function cobRecusar(id){
+    var tok=localStorage.getItem(TOKKEY); var st=$('cobR_'+id);
+    fetch(SB+'/rest/v1/cobranca_sugestoes?id=eq.'+id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({status:'recusado'})})
+    .then(function(){ loadCobranca(); }).catch(function(){ if(st) st.textContent='Erro.'; });
+  }
+  (function(){
+    var b=document.getElementById('cobGerar'); if(!b) return;
+    b.addEventListener('click',function(){
+      var tok=localStorage.getItem(TOKKEY); var msg=$('cobMsg'); var old=b.textContent;
+      b.disabled=true; b.textContent='Gerando…'; if(msg) msg.textContent='A IA está redigindo as cobranças…';
+      fetch(SB+'/functions/v1/agente-cobranca',{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'propor'})})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        b.disabled=false; b.textContent=old;
+        if(!j||j.ok===false){ if(msg) msg.textContent=(j&&j.error)||'Não foi possível gerar.'; return; }
+        if(msg) msg.textContent=(j.gerados||0)+' sugestão(ões) gerada(s).'+(j.msg?(' '+j.msg):'');
+        loadCobranca();
+      }).catch(function(e){ b.disabled=false; b.textContent=old; if(msg) msg.textContent='Erro de conexão com o agente.'; console.error(e); });
     });
   })();
   // ===== Equipe & Acessos (admin) =====
@@ -849,6 +954,7 @@
     if(v==='tarefas') loadTarefas();
     if(v==='ficha360') initFicha360();
     if(v==='financeiro') loadFinanceiro();
+    if(v==='cobranca') loadCobranca();
     if(v==='relatorios') loadRelatorios();
     if(v==='equipe') loadEquipe();
     if(typeof MODS!=='undefined' && MODS[v]) renderMod(v);
@@ -1186,13 +1292,13 @@
     .then(function(d){
       if(!d || d.erro){ box.innerHTML=kpiCard('Sem permissão','—','entre como equipe'); return; }
       box.innerHTML=[
-        kpiCard('Receita (mês)',moneyBR(d.receita_mes),'pedidos pagos'),
+        kpiCard('Faturamento (mês)',moneyBR(d.faturamento_mes),'loja + locação/programas/3D'),
         kpiCard('Receita recorrente (MRR)',moneyBR(d.mrr),(d.contratos_ativos||0)+' contratos ativos'),
+        kpiCard('Receita loja (mês)',moneyBR(d.receita_loja_mes),'pedidos pagos'),
+        kpiCard('Receita pilares (mês)',moneyBR(d.receita_pilares_mes),'recebido: locação/programas/3D'),
         kpiCard('Recebíveis',moneyBR(d.recebiveis),'loja + contratos'),
-        kpiCard('Recebíveis de contratos',moneyBR(d.recebiveis_contratos),'locação/programas/3D'),
-        kpiCard('Receita total',moneyBR(d.receita_total),'acumulado (loja)'),
+        kpiCard('Recebíveis vencidos',moneyBR(d.recebiveis_vencidos),'em atraso · ver Cobrança'),
         kpiCard('Ticket médio',moneyBR(d.ticket_medio),'por pedido pago'),
-        kpiCard('Pedidos (mês)',d.pedidos_mes,(d.pedidos_pagos||0)+' pagos'),
         kpiCard('A pagar',moneyBR(d.a_pagar),'em aberto')
       ].join('');
     })
