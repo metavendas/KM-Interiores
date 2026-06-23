@@ -803,7 +803,7 @@
         if(full){ areas='<span style="color:var(--muted)">tudo (gestão)</span>'; }
         else { areas='<span style="color:var(--muted)">'+acessosDe(p).length+' área(s)</span> <button class="eq-acessos" data-id="'+p.id+'" style="background:var(--accent);border:none;color:#14100a;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;font-weight:600">Configurar</button>'; }
         var badge=ativo?'<span style="color:#7CCB8C">●</span> ':'<span style="color:#C98C8C">●</span> ';
-        return '<tr><td style="color:var(--text)">'+esc(p.nome||'—')+(prot?' <span style="font-size:10px;color:var(--ouro)">DONO</span>':'')+'</td><td>'+esc(p.email||'')+'</td><td>'+sel+'</td><td>'+badge+acc+'</td><td>'+areas+'</td></tr>';
+        return '<tr><td style="color:var(--text)">'+esc(p.nome||'—')+(prot?' <span style="font-size:10px;color:var(--ouro)">ADM</span>':'')+'</td><td>'+esc(p.email||'')+'</td><td>'+sel+'</td><td>'+badge+acc+'</td><td>'+areas+'</td></tr>';
       }).join('');
     })
     .catch(function(e){ tb.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:18px">Erro ao carregar.</td></tr>'; console.error(e); });
