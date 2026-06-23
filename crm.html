@@ -153,6 +153,7 @@
 <body>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <div id="gate">
   <div class="gatecard">
     <img src="logo.png" alt="KM">
@@ -343,6 +344,14 @@
         <div class="h1">Relatórios</div>
         <div class="sub">Panorama do negócio em tempo real</div>
         <div class="kpis" id="relKpis"><div class="kpi"><div class="l">Carregando…</div><div class="n">—</div></div></div>
+        <div class="panel" style="margin-top:14px"><h3>Visão gráfica</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;padding:16px 18px">
+            <div><div style="color:var(--muted);font-size:12.5px;margin-bottom:8px">Leads por canal de origem</div><div style="position:relative;height:240px"><canvas id="chLeads"></canvas></div></div>
+            <div><div style="color:var(--muted);font-size:12.5px;margin-bottom:8px">Oportunidades por estágio do funil</div><div style="position:relative;height:240px"><canvas id="chFunilQtd"></canvas></div></div>
+            <div><div style="color:var(--muted);font-size:12.5px;margin-bottom:8px">Valor do pipeline por estágio (R$)</div><div style="position:relative;height:240px"><canvas id="chFunilVal"></canvas></div></div>
+          </div>
+          <div style="padding:0 18px 14px;color:var(--muted);font-size:11.5px">Dados em tempo real do funil e dos leads. Atualiza ao abrir esta aba.</div>
+        </div>
         <div class="panel" style="margin-top:14px"><h3>Relatórios sob demanda</h3><div style="padding:20px;color:var(--muted);font-size:13.5px;line-height:1.8">Briefing semanal · Análise financeira por pilar · Review de OKRs (QBR) · Performance de campanhas.<br><span style="color:var(--ouro)">Gerados sob demanda pela assessoria de IA.</span></div></div>
       </section>
       <section class="view" data-v="equipe" hidden>
@@ -1451,6 +1460,30 @@
     return fetch(SB+'/rest/v1/'+table+'?select=id',{method:'HEAD',headers:Object.assign(authHeaders(tok),{Prefer:'count=exact','Range-Unit':'items',Range:'0-0'})})
       .then(function(r){ var cr=r.headers.get('content-range')||''; var n=cr.split('/')[1]; return n&&n!=='*'?Number(n):0; }).catch(function(){ return 0; });
   }
+  // ===== Gráficos dos Relatórios (Chart.js) =====
+  var KMCH={};
+  function kmDestroy(id){ if(KMCH[id]){ try{KMCH[id].destroy();}catch(e){} KMCH[id]=null; } }
+  function kmTally(rows,key){ var m={}; (rows||[]).forEach(function(r){ var k=r[key]||'—'; m[k]=(m[k]||0)+1; }); return m; }
+  function kmSum(rows,key,val){ var m={}; (rows||[]).forEach(function(r){ var k=r[key]||'—'; m[k]=(m[k]||0)+Number(r[val]||0); }); return m; }
+  function rotuloOrigem(k){ var m={'site-chat':'Site (chat)','site-curadoria':'Site (curadoria)','site':'Site','whatsapp':'WhatsApp','instagram':'Instagram','indicacao':'Indicação'}; return m[k]||k; }
+  function rotuloEstagio(k){ var m={'novo_lead':'Novo lead','curadoria':'Curadoria','proposta':'Proposta','negociacao':'Negociação','ganho':'Ganho','perdido':'Perdido'}; return m[k]||k; }
+  var KMPAL=['#CB984C','#9D7D31','#F1E4C9','#5E3D12','#C9A86A','#7A5C24','#A98545'];
+  function kmChart(id,type,labels,data,money){
+    if(typeof Chart==='undefined'){ return; }
+    var cv=document.getElementById(id); if(!cv) return;
+    kmDestroy(id);
+    var isBar=(type==='bar');
+    KMCH[id]=new Chart(cv.getContext('2d'),{
+      type:type,
+      data:{labels:labels,datasets:[{data:data,backgroundColor:isBar?'#CB984C':KMPAL,borderColor:'rgba(203,152,76,.85)',borderWidth:isBar?0:1}]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:!isBar,position:'bottom',labels:{color:'#E9D9BC',font:{size:11},boxWidth:12}},
+          tooltip:{callbacks:{label:function(c){var v=(c.parsed&&c.parsed.y!=null)?c.parsed.y:c.parsed; return (money?('R$ '+Number(v).toLocaleString('pt-BR')):v)+'';}}}},
+        scales:isBar?{x:{ticks:{color:'#C9B79A',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#C9B79A',font:{size:10},callback:function(v){return money?('R$ '+Number(v).toLocaleString('pt-BR')):v;}},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}}:{}
+      }
+    });
+  }
   function loadRelatorios(){
     var box=$('relKpis'); if(!box) return;
     var tok=localStorage.getItem(TOKKEY);
@@ -1466,6 +1499,23 @@
         kpiCard('Parceiros',c[5],'arquitetos')
       ].join('');
     });
+    // Gráfico 1 — Leads por canal de origem
+    fetch(SB+'/rest/v1/leads?select=origem',{headers:authHeaders(tok)})
+      .then(function(r){return r.json();})
+      .then(function(rows){ if(!Array.isArray(rows))return; var m=kmTally(rows,'origem'); var L=Object.keys(m); kmChart('chLeads','doughnut',L.map(rotuloOrigem),L.map(function(k){return m[k];}),false); })
+      .catch(function(){});
+    // Gráficos 2 e 3 — Oportunidades por estágio (quantidade e valor R$)
+    fetch(SB+'/rest/v1/oportunidades?select=estagio,valor',{headers:authHeaders(tok)})
+      .then(function(r){return r.json();})
+      .then(function(rows){ if(!Array.isArray(rows))return;
+        var ordem=['novo_lead','curadoria','proposta','negociacao','ganho','perdido'];
+        function ord(a,b){return ordem.indexOf(a)-ordem.indexOf(b);}
+        var mq=kmTally(rows,'estagio'); var Lq=Object.keys(mq).sort(ord);
+        kmChart('chFunilQtd','bar',Lq.map(rotuloEstagio),Lq.map(function(k){return mq[k];}),false);
+        var mv=kmSum(rows,'estagio','valor'); var Lv=Object.keys(mv).sort(ord);
+        kmChart('chFunilVal','bar',Lv.map(rotuloEstagio),Lv.map(function(k){return Math.round(mv[k]);}),true);
+      })
+      .catch(function(){});
   }
   document.querySelectorAll('.nav a[data-view]').forEach(function(a){
     a.addEventListener('click', function(e){ e.preventDefault(); showView(a.getAttribute('data-view')); });
