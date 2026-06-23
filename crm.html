@@ -433,6 +433,24 @@
         <div class="sub">Vídeos (YouTube), apresentações e PDFs · publicados aqui aparecem no portal da equipe (Área Restrita)</div>
 
         <div class="panel">
+          <div class="modbar"><h3>📣 Quadro de Avisos — Lives, Treinamentos &amp; Reuniões</h3><span class="modmsg" id="msg-aviso"></span></div>
+          <div class="modform" id="form-aviso">
+            <div class="f"><label>Tipo</label><select data-k="tipo" id="aviso_tipo">
+              <option value="🔴 Live">🔴 Live</option>
+              <option value="🎓 Treinamento">🎓 Treinamento</option>
+              <option value="📅 Reunião">📅 Reunião</option>
+              <option value="📣 Aviso">📣 Aviso</option></select></div>
+            <div class="f"><label>Título *</label><input data-k="titulo" placeholder="Ex.: Live de lançamento da coleção"></div>
+            <div class="f"><label>Quando (data e hora)</label><input data-k="quando" type="datetime-local"></div>
+            <div class="f"><label>Fixar no topo</label><select data-k="destaque"><option value="nao">Não</option><option value="sim">Sim (destaque)</option></select></div>
+            <div class="f full"><label>Mensagem</label><textarea data-k="corpo" rows="2" placeholder="Detalhes, link da sala, pauta…"></textarea></div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="aviso_salvar">Publicar aviso</button></div>
+          </div>
+          <table><thead><tr><th>Aviso</th><th>Publicado</th><th style="text-align:right">Ações</th></tr></thead>
+          <tbody id="avisoBody"><tr><td colspan="3" class="empty">Carregando…</td></tr></tbody></table>
+        </div>
+
+        <div class="panel">
           <div class="modbar"><h3>Adicionar vídeo (YouTube / Vimeo)</h3><span class="modmsg" id="msg-vid"></span></div>
           <div class="modform" id="form-vid">
             <div class="f"><label>Título *</label><input data-k="titulo" placeholder="Ex.: Técnica de fechamento de venda"></div>
@@ -891,8 +909,8 @@
   function abreNotif(view){ var pop=$('bellPop'); if(pop) pop.style.display='none'; showView(view); }
   document.addEventListener('click',function(e){ var pop=$('bellPop'), bell=$('bell'); if(pop && bell && pop.style.display==='block' && !bell.contains(e.target)){ pop.style.display='none'; } });
   document.addEventListener('keydown',function(e){ if(e.key==='Enter'){ var inp=$('chatInput'); if(inp && document.activeElement===inp){ e.preventDefault(); chatSend(); } } });
-  setTimeout(function(){ if(notifTok()) atualizaSino(); }, 1800);
-  setInterval(function(){ if(notifTok()) atualizaSino(); }, 30000);
+  setTimeout(function(){ if(notifTok()){ atualizaSino(); setupRealtime(); } }, 1800);
+  setInterval(function(){ if(notifTok()){ atualizaSino(); setupRealtime(); } }, 15000);
 
   // ===== Equipe & Acessos (admin) =====
   var EQ_ROLES=['admin','gestor','vendas','curadoria','representante','parceiro','cliente'];
@@ -1716,8 +1734,42 @@
       }).join('');
     })
     .catch(function(){ $('matBodyAdm').innerHTML='<tr><td colspan="5" class="empty">Sem permissão ou erro de conexão.</td></tr>'; });
+    // Quadro de Avisos
+    fetch(SB+'/rest/v1/portal_comunicados?select=*&order=destaque.desc,created_at.desc&limit=100',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      var tb=$('avisoBody'); if(!tb) return; rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="3" class="empty">Nenhum aviso publicado. Crie acima.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(c){
+        var d=new Date(c.created_at); var dt=isNaN(d)?'':d.toLocaleDateString('pt-BR');
+        var corpo=(c.corpo||'').replace(/\n/g,' · ');
+        return '<tr><td style="color:var(--text)">'+(c.destaque?'<span style="color:var(--accent)">★ </span>':'')+esc(c.titulo||'')+'<div style="color:var(--muted);font-size:12px;margin-top:3px">'+esc(corpo.slice(0,120))+'</div></td><td>'+dt+'</td><td style="text-align:right"><button class="ia-btn" data-act="delaviso" data-id="'+c.id+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button></td></tr>';
+      }).join('');
+    })
+    .catch(function(){ var tb=$('avisoBody'); if(tb) tb.innerHTML='<tr><td colspan="3" class="empty">Sem permissão ou erro.</td></tr>'; });
   }
   (function(){
+    var ab=$('aviso_salvar'); if(ab){
+      ab.addEventListener('click', function(){
+        var form=$('form-aviso'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
+        if(!g('titulo')){ $('msg-aviso').textContent='Informe ao menos o título.'; return; }
+        var tipo=g('tipo')||'📣 Aviso', quando=g('quando'), corpo=g('corpo'), dest=g('destaque')==='sim';
+        var qtxt=''; if(quando){ try{ qtxt='🗓 '+new Date(quando).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+'\n\n'; }catch(e){ qtxt='🗓 '+quando+'\n\n'; } }
+        var titulo=tipo+' — '+g('titulo');
+        var tok=localStorage.getItem(TOKKEY); ab.disabled=true; var old=ab.textContent; ab.textContent='Publicando…';
+        fetch(SB+'/rest/v1/portal_comunicados',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({titulo:titulo,corpo:qtxt+corpo,destaque:dest})})
+        .then(function(r){ ab.disabled=false; ab.textContent=old;
+          if(r.ok){ $('msg-aviso').textContent='Aviso publicado ✓ (aparece no portal da equipe)'; form.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; }); loadTreinamentos(); setTimeout(function(){ $('msg-aviso').textContent=''; },3000); }
+          else r.text().then(function(t){ $('msg-aviso').textContent='Erro: '+t.slice(0,90); }); })
+        .catch(function(){ ab.disabled=false; ab.textContent=old; $('msg-aviso').textContent='Erro de conexão.'; });
+      });
+      document.addEventListener('click', function(e){
+        var b=e.target.closest?e.target.closest('button[data-act="delaviso"]'):null; if(!b) return;
+        if(!confirm('Excluir este aviso?')) return;
+        var tok=localStorage.getItem(TOKKEY);
+        fetch(SB+'/rest/v1/portal_comunicados?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})}).then(function(){ loadTreinamentos(); });
+      });
+    }
     var vb=$('vid_salvar');
     if(vb) vb.addEventListener('click', function(){
       var form=$('form-vid'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
