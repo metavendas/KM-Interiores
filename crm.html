@@ -141,14 +141,15 @@
   .modbar h3{font-family:var(--serif);font-weight:500;font-size:16px}
   .modmsg{font-size:11.5px;color:var(--ouro)}
   .modform{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);background:var(--bg3)}
-  .modform .f{display:flex;flex-direction:column;gap:5px}
+  .modform .f{display:flex;flex-direction:column;gap:5px;min-width:0}
   .modform .f.full{grid-column:1/-1}
   .modform label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro)}
-  .modform input,.modform select,.modform textarea{background:var(--bg2);border:1px solid var(--line);color:var(--text);padding:9px 11px;font-family:var(--sans);font-size:12.5px;border-radius:3px;outline:none}
+  .modform input,.modform select,.modform textarea{width:100%;max-width:100%;min-width:0;box-sizing:border-box;background:var(--bg2);border:1px solid var(--line);color:var(--text);padding:9px 11px;font-family:var(--sans);font-size:12.5px;border-radius:3px;outline:none}
   .modform input:focus,.modform select:focus,.modform textarea:focus{border-color:var(--accent)}
   .modform .btn{background:var(--accent);color:#080807;border:none;padding:10px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-radius:3px;cursor:pointer}
   .modform .btn:hover{background:var(--champagne)}
   @media(max-width:1000px){.modform{grid-template-columns:1fr 1fr}}
+  @media(max-width:640px){.modform{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
