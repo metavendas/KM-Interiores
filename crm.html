@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KM CRM · Painel</title>
+<meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@0,400;0,500;0,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -306,11 +307,66 @@
         <div id="mod-estoque"></div>
       </section>
       <section class="view" data-v="pedidos" hidden>
-        <div class="h1">Pedidos</div>
-        <div class="sub">Pedidos do site em tempo real · status atualizado pelo pagamento (Mercado Pago)</div>
-        <div class="panel"><h3>Pedidos recentes</h3><table>
-          <thead><tr><th>Pedido</th><th>Data</th><th>Cliente</th><th>Canal</th><th>Valor</th><th>Status</th></tr></thead>
-          <tbody id="pedidosBody"><tr><td colspan="6" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
+        <div class="h1">Pedidos &amp; Vendas</div>
+        <div class="sub">Lance aqui as vendas do dia (showroom, WhatsApp, B2B, locação, 3D) · os pedidos do site entram sozinhos via Mercado Pago</div>
+
+        <!-- ===== LANÇAR VENDA ===== -->
+        <div class="panel">
+          <div class="modbar"><h3>＋ Lançar venda</h3><span class="modmsg" id="msg-venda"></span></div>
+          <div class="modform" id="form-venda">
+            <div class="f"><label>Cliente</label><select data-k="cliente_id" id="venda_cliente"><option value="">— selecione —</option></select></div>
+            <div class="f"><label>Vendedor *</label><select data-k="vendedor_id" id="venda_vendedor"><option value="">— selecione —</option></select></div>
+            <div class="f"><label>Pilar / linha *</label><select data-k="pilar" id="venda_pilar">
+              <option value="p1">Pilar 1 — Venda de Móveis</option>
+              <option value="p2">Pilar 2 — Locação (entrada)</option>
+              <option value="p3">Pilar 3 — Impressão 3D</option>
+              <option value="curadoria">KM Curadoria</option>
+              <option value="care">KM Care</option>
+              <option value="signature">KM Signature</option>
+            </select></div>
+            <div class="f"><label>Canal / origem</label><select data-k="canal" id="venda_canal">
+              <option value="showroom">Showroom</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="instagram">Instagram</option>
+              <option value="telefone">Telefone</option>
+              <option value="b2b">B2B / Corporativo</option>
+              <option value="arquiteto">Indicação de arquiteto</option>
+              <option value="indicacao">Indicação (cliente)</option>
+              <option value="site">Site</option>
+            </select></div>
+            <div class="f"><label>Valor da venda (R$) *</label><input data-k="valor" id="venda_valor" type="number" step="0.01" placeholder="0,00"></div>
+            <div class="f"><label>Forma de pagamento</label><select data-k="forma_pagamento" id="venda_forma">
+              <option value="pix">Pix</option>
+              <option value="cartao">Cartão</option>
+              <option value="dinheiro">Dinheiro</option>
+              <option value="transferencia">Transferência</option>
+              <option value="boleto">Boleto</option>
+              <option value="a_prazo">A prazo / parcelado</option>
+            </select></div>
+            <div class="f"><label>Status</label><select data-k="status" id="venda_status">
+              <option value="pago">Pago / recebido</option>
+              <option value="aguardando_pagamento">Aguardando pagamento</option>
+              <option value="producao">Em produção</option>
+            </select></div>
+            <div class="f"><label>Data da venda</label><input data-k="data_venda" id="venda_data" type="date"></div>
+            <div class="f"><label>Arquiteto / parceiro (opcional)</label><select data-k="parceiro_id" id="venda_parceiro"><option value="">— nenhum —</option></select></div>
+            <div class="f"><label>Produto (opcional)</label><select data-k="produto_id" id="venda_produto"><option value="">— nenhum —</option></select></div>
+            <div class="f full"><label>Observação</label><input data-k="observacao" id="venda_obs" placeholder="Ex.: entrada de projeto / sinal 50% / showroom Ubá"></div>
+            <div class="f full" id="venda_preview" style="background:#1b160d;border:1px solid var(--line);border-radius:4px;padding:12px 14px;font-size:13px;color:var(--champagne);line-height:1.6">Preencha o valor para ver a estimativa de comissão.</div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="venda_salvar">Registrar venda</button></div>
+          </div>
+        </div>
+
+        <!-- ===== FECHAMENTO DO DIA ===== -->
+        <div class="panel">
+          <div class="modbar"><h3>Fechamento do dia</h3><span class="modmsg" id="fechData"></span></div>
+          <div class="kpis" id="fechKpis" style="padding:14px"><div class="kpi"><div class="l">Carregando…</div><div class="n">—</div></div></div>
+          <div id="fechDetalhe" style="padding:0 14px 14px;font-size:13px;color:var(--muted)"></div>
+        </div>
+
+        <div class="panel"><h3>Pedidos &amp; vendas recentes</h3><table>
+          <thead><tr><th>Nº</th><th>Data</th><th>Cliente</th><th>Pilar</th><th>Canal</th><th>Vendedor</th><th>Valor</th><th>Comissão</th><th>Status</th></tr></thead>
+          <tbody id="pedidosBody"><tr><td colspan="9" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
         </table></div>
       </section>
       <section class="view" data-v="financeiro" hidden>
@@ -1416,28 +1472,124 @@
     })
     .catch(function(e){ k.innerHTML='<div class="empty" style="grid-column:1/-1">Não foi possível carregar o funil (entre como equipe).</div>'; console.error(e); });
   }
-  // ===== Pedidos reais (loja) =====
-  var PED_STATUS={novo:'Novo',aguardando_pagamento:'Aguardando pagamento',pago:'Pago',pagamento_recusado:'Pagamento recusado',cancelado:'Cancelado'};
+  // ===== Pedidos & Vendas =====
+  var PED_STATUS={novo:'Novo',aguardando_pagamento:'Aguardando pagamento',pago:'Pago',producao:'Em produção',expedido:'Expedido',entregue:'Entregue',pagamento_recusado:'Pagamento recusado',cancelado:'Cancelado'};
+  var PILAR_LABEL={p1:'Móveis',p2:'Locação',p3:'3D',curadoria:'Curadoria',care:'Care',signature:'Signature'};
+  var VEND_CACHE=null, PARC_CACHE=null, PROD_CACHE=null;
+  function ensureVendedores(cb){
+    if(VEND_CACHE){ cb(); return; }
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/colaboradores?select=id,nome&ativo=eq.true&order=nome.asc&limit=500',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; }).then(function(rows){ VEND_CACHE=Array.isArray(rows)?rows:[]; cb(); })
+    .catch(function(){ VEND_CACHE=[]; cb(); });
+  }
+  function ensureParceiros(cb){
+    if(PARC_CACHE){ cb(); return; }
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/parceiros?select=id,nome&ativo=eq.true&order=nome.asc&limit=500',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; }).then(function(rows){ PARC_CACHE=Array.isArray(rows)?rows:[]; cb(); })
+    .catch(function(){ PARC_CACHE=[]; cb(); });
+  }
+  function ensureProdutos(cb){
+    if(PROD_CACHE){ cb(); return; }
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/produtos?select=id,nome&order=nome.asc&limit=500',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; }).then(function(rows){ PROD_CACHE=Array.isArray(rows)?rows:[]; cb(); })
+    .catch(function(){ PROD_CACHE=[]; cb(); });
+  }
+  function optsFrom(cache,empty,sel){ return '<option value="">'+(empty||'— selecione —')+'</option>'+(cache||[]).map(function(c){ return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.nome||'(sem nome)')+'</option>'; }).join(''); }
+  function vendNome(id){ var a=(VEND_CACHE||[]).filter(function(c){return c.id===id;}); return a.length?a[0].nome:'—'; }
+  // Estimativa de comissão (espelha calc_comissao do servidor; valor oficial vem do banco)
+  // Regra: arquiteto NÃO reduz o consultor — consultor recebe % cheio + arquiteto por cima.
+  function estComissao(pilar,valor,comArq){
+    var v=Number(valor)||0, c=0, a=0;
+    if(pilar==='p1'){ if(v<=20000){c=3.0;a=0.5;}else if(v<=40000){c=3.5;a=1.0;}else if(v<=60000){c=4.0;a=1.0;}else if(v<=80000){c=4.5;a=1.0;}else{c=5.0;a=1.0;} }
+    else if(pilar==='p3'){ if(v<=9000){c=6.0;a=1.0;}else if(v<=15000){c=6.5;a=1.0;}else if(v<=20000){c=7.0;a=1.0;}else{c=8.0;a=1.0;} }
+    else if(pilar==='p2'){ c=5.0;a=1.0; }
+    else if(pilar==='curadoria'){ c=7.0;a=1.0; }
+    else if(pilar==='signature'){ c=12.0;a=1.0; }
+    else { c=10.0;a=1.0; }
+    if(!comArq) a=0;
+    return {pctC:c, valC:Math.round(v*c)/100, pctA:a, valA:Math.round(v*a)/100};
+  }
   function loadPedidos(){
     var tb=$('pedidosBody'); if(!tb) return;
     var tok=localStorage.getItem(TOKKEY);
-    tb.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
-    fetch(SB+'/rest/v1/pedidos?select=numero,valor,status,canal,created_at,clientes(nome)&order=created_at.desc&limit=100',{headers:authHeaders(tok)})
+    // preenche dropdowns do formulário
+    ensureClientes(function(){ var s=$('venda_cliente'); if(s) s.innerHTML=cliOptions(); });
+    ensureVendedores(function(){ var s=$('venda_vendedor'); if(s) s.innerHTML=optsFrom(VEND_CACHE); });
+    ensureParceiros(function(){ var s=$('venda_parceiro'); if(s) s.innerHTML=optsFrom(PARC_CACHE,'— nenhum —'); });
+    ensureProdutos(function(){ var s=$('venda_produto'); if(s) s.innerHTML=optsFrom(PROD_CACHE,'— nenhum —'); });
+    var di=$('venda_data'); if(di&&!di.value){ di.value=new Date().toISOString().slice(0,10); }
+    loadFechamento();
+    tb.innerHTML='<tr><td colspan="9" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
+    fetch(SB+'/rest/v1/pedidos?select=numero,valor,status,canal,pilar,vendedor_id,comissao_valor,data_venda,created_at,clientes(nome)&order=created_at.desc&limit=100',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
       rows=Array.isArray(rows)?rows:[];
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:18px">Nenhum pedido ainda. Os pedidos feitos na loja aparecem aqui automaticamente.</td></tr>'; return; }
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="9" style="color:var(--muted);padding:18px">Nenhuma venda ainda. Lance a primeira no formulário acima.</td></tr>'; return; }
       tb.innerHTML=rows.map(function(p){
-        var dt=p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'';
+        var dt=p.data_venda?new Date(p.data_venda+'T00:00:00').toLocaleDateString('pt-BR'):(p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'');
         var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
         var val='R$ '+Number(p.valor||0).toLocaleString('pt-BR');
+        var com=Number(p.comissao_valor||0)>0?('R$ '+Number(p.comissao_valor).toLocaleString('pt-BR')):'—';
         var st=PED_STATUS[p.status]||p.status||'—';
         var cls=(p.status==='pago')?'ia-tag ok':'badge';
-        return '<tr><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+esc(cli)+'</td><td>'+esc(p.canal||'')+'</td><td style="color:var(--accent)">'+val+'</td><td><span class="'+cls+'">'+esc(st)+'</span></td></tr>';
+        var pil=PILAR_LABEL[p.pilar]||p.pilar||'—';
+        return '<tr><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+esc(cli)+'</td><td>'+esc(pil)+'</td><td>'+esc(p.canal||'')+'</td><td>'+esc(vendNome(p.vendedor_id))+'</td><td style="color:var(--accent)">'+val+'</td><td style="color:var(--ouro)">'+com+'</td><td><span class="'+cls+'">'+esc(st)+'</span></td></tr>';
       }).join('');
     })
-    .catch(function(e){ tb.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:18px">Não foi possível carregar os pedidos (entre como equipe).</td></tr>'; console.error(e); });
+    .catch(function(e){ tb.innerHTML='<tr><td colspan="9" style="color:var(--muted);padding:18px">Não foi possível carregar (entre como equipe).</td></tr>'; console.error(e); });
   }
+  function loadFechamento(){
+    var box=$('fechKpis'); if(!box) return;
+    rpc('fechamento_dia',{}).then(function(d){
+      if(!d || d.erro){ box.innerHTML=kpiCard('Sem permissão','—','entre como equipe'); return; }
+      var hoje=new Date().toLocaleDateString('pt-BR'); var dl=$('fechData'); if(dl) dl.textContent=hoje;
+      box.innerHTML=[
+        kpiCard('Vendido hoje',moneyBR(d.total),(d.qtd||0)+' venda(s)'),
+        kpiCard('Comissão gerada',moneyBR(d.comissao_total),'consultores'),
+        kpiCard('Ticket do dia',moneyBR((d.qtd? (Number(d.total)/Number(d.qtd)) : 0)),'média por venda')
+      ].join('');
+      var det='';
+      var pv=d.por_vendedor||[]; if(pv.length){ det+='<b style="color:var(--text)">Por vendedor:</b> '+pv.map(function(x){return esc(x.vendedor)+' '+moneyBR(x.total)+' ('+x.qtd+')';}).join(' · ')+'<br>'; }
+      var pp=d.por_pilar||[]; if(pp.length){ det+='<b style="color:var(--text)">Por pilar:</b> '+pp.map(function(x){return (PILAR_LABEL[x.pilar]||x.pilar)+' '+moneyBR(x.total)+' ('+x.qtd+')';}).join(' · '); }
+      var dd=$('fechDetalhe'); if(dd) dd.innerHTML=det||'Nenhuma venda lançada hoje ainda.';
+    }).catch(function(){ box.innerHTML=kpiCard('Erro','—',''); });
+  }
+  // ===== Lançar venda (submit + preview) =====
+  (function(){
+    var form=$('form-venda'); if(!form) return;
+    var btn=$('venda_salvar');
+    function g(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; }
+    function preview(){
+      var box=$('venda_preview'); if(!box) return;
+      var v=Number(g('valor'))||0;
+      if(v<=0){ box.innerHTML='Preencha o valor para ver a estimativa de comissão.'; return; }
+      var e=estComissao(g('pilar'), v, !!g('parceiro_id'));
+      var txt='Estimativa: comissão do consultor <b>'+e.pctC+'%</b> = <b style="color:var(--accent)">R$ '+e.valC.toLocaleString('pt-BR')+'</b>';
+      if(g('parceiro_id')) txt+=' · arquiteto <b>'+e.pctA+'%</b> = <b>R$ '+e.valA.toLocaleString('pt-BR')+'</b>';
+      txt+=' <span style="color:var(--muted)">(valor oficial calculado no servidor ao salvar)</span>';
+      box.innerHTML=txt;
+    }
+    ['venda_valor','venda_pilar','venda_parceiro'].forEach(function(id){ var el=$(id); if(el){ el.addEventListener('input',preview); el.addEventListener('change',preview); } });
+    if(btn) btn.addEventListener('click', function(){
+      var vendedor=g('vendedor_id'), valor=Number(g('valor'))||0;
+      if(!vendedor){ $('msg-venda').textContent='Selecione o vendedor.'; return; }
+      if(valor<=0){ $('msg-venda').textContent='Informe o valor da venda.'; return; }
+      btn.disabled=true; var old=btn.textContent; btn.textContent='Registrando…'; $('msg-venda').textContent='';
+      rpc('registrar_venda',{ cliente_id:g('cliente_id')||null, vendedor_id:vendedor, parceiro_id:g('parceiro_id')||null,
+        produto_id:g('produto_id')||null, pilar:g('pilar'), canal:g('canal'), forma_pagamento:g('forma_pagamento'),
+        valor:valor, status:g('status'), data_venda:g('data_venda')||null, observacao:g('observacao') })
+      .then(function(j){ btn.disabled=false; btn.textContent=old;
+        if(j&&j.ok){ $('msg-venda').innerHTML='Venda '+esc(j.numero)+' registrada ✓ · comissão R$ '+Number(j.comissao_consultor||0).toLocaleString('pt-BR');
+          ['venda_valor','venda_obs'].forEach(function(id){ var el=$(id); if(el) el.value=''; });
+          $('venda_preview').innerHTML='Preencha o valor para ver a estimativa de comissão.';
+          loadPedidos(); setTimeout(function(){ $('msg-venda').textContent=''; },5000); }
+        else { $('msg-venda').textContent='Não foi possível: '+((j&&j.erro)||'erro'); } })
+      .catch(function(){ btn.disabled=false; btn.textContent=old; $('msg-venda').textContent='Erro de conexão.'; });
+    });
+  })();
   // ===== Financeiro real (RPC get_financeiro_resumo) =====
   function moneyBR(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR'); }
   function kpiCard(l,n,d){ return '<div class="kpi"><div class="l">'+l+'</div><div class="n">'+n+'</div>'+(d?'<div class="d">'+d+'</div>':'')+'</div>'; }
