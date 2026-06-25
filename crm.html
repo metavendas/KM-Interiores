@@ -192,7 +192,7 @@
     <nav class="nav">
       <a class="active" href="#" data-view="dashboard"><span class="dot"></span> Dashboard</a>
       <a href="#" data-view="funil"><span class="dot"></span> Funil de Vendas</a>
-      <a href="#" data-view="arquivo"><span class="dot"></span> Arquivo (perdidos)</a>
+      <a href="#" data-view="arquivo"><span class="dot"></span> Arquivo</a>
       <div class="sec">Cadastros</div>
       <a href="#" data-view="clientes"><span class="dot"></span> Clientes</a>
       <a href="#" data-view="empresas"><span class="dot"></span> Empresas (B2B)</a>
@@ -271,12 +271,16 @@
       <!-- ===== FUNIL ===== -->
       <section class="view" data-v="funil" hidden>
         <div class="h1">Funil de Vendas</div>
-        <div class="sub">Pipeline do projeto · <span style="color:var(--ouro)">arraste os cards entre as colunas — a posição é salva</span></div>
+        <div class="sub">Dois funis separados (Clientes e Parceiros) · <span style="color:var(--ouro)">arraste os cards — a posição é salva</span></div>
         <div class="funil-legenda">
           <span style="color:var(--champagne);letter-spacing:.06em;text-transform:uppercase;font-size:10px">Sinalização</span>
           <i><span class="sem sem-dot-verde"></span> Em dia (até 3 dias no estágio)</i>
           <i><span class="sem sem-dot-amarelo"></span> Atenção (4–7 dias parado)</i>
           <i><span class="sem sem-dot-vermelho"></span> Parado (+7 dias sem avanço)</i>
+        </div>
+        <div style="display:flex;gap:8px;margin:2px 0 14px">
+          <button id="funilTabCli" class="ia-btn funil-tab sug" data-pipe="projeto">Clientes</button>
+          <button id="funilTabPar" class="ia-btn funil-tab" data-pipe="parceiros">Parceiros</button>
         </div>
         <div class="kanban" id="funilKanban"><div class="empty" style="grid-column:1/-1">Carregando funil…</div></div>
       </section>
@@ -301,8 +305,8 @@
         <div class="panel">
           <h3>Fila de aprovação <span class="tagreal" id="engCount">—</span></h3>
           <table>
-            <thead><tr><th>Engajador</th><th>Cargo</th><th>Cidade</th><th>Interação</th><th>Score</th><th>Classe</th><th>Gancho</th><th>CRM · Ação</th></tr></thead>
-            <tbody id="engBody"><tr><td colspan="8" class="empty">Carregando fila…</td></tr></tbody>
+            <thead><tr><th>Engajador</th><th>Cargo</th><th>Cidade</th><th>Interação</th><th>Score</th><th>Classe</th><th>Tipo</th><th>Gancho</th><th>CRM · Ação</th></tr></thead>
+            <tbody id="engBody"><tr><td colspan="9" class="empty">Carregando fila…</td></tr></tbody>
           </table>
         </div>
         <div class="sub" style="font-size:11px">Governança: a IA nunca importa sozinha — só aprovação da equipe cria a oportunidade, a tarefa de 1º contato (SLA 24h) e a atribuição ao consultor.</div>
@@ -513,7 +517,7 @@
         <div class="panel">
           <h3>Propostas de locação <span class="tagreal">● tempo real</span></h3>
           <table><thead><tr><th>Nº</th><th>Cliente</th><th>Finalidade</th><th>Período</th><th>Valor</th><th>Caução</th><th>Status</th><th style="text-align:right">Ação</th></tr></thead>
-          <tbody id="locPropBody"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody></table>
+          <tbody id="locPropBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody></table>
         </div>
         <div class="panel">
           <h3>Contratos de locação ativos</h3>
@@ -624,7 +628,7 @@
         </div>
         <div class="panel"><h3>Pedidos 3D <span class="tagreal">● tempo real</span></h3>
           <table><thead><tr><th>Nº</th><th>Cliente</th><th>Peça</th><th>Material</th><th>Qtd</th><th>Valor</th><th>Status</th><th style="text-align:right">Ação</th></tr></thead>
-          <tbody id="td3dBody"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody></table>
+          <tbody id="td3dBody"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody></table>
         </div>
       </section>
 
@@ -682,7 +686,7 @@
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
   // ===== Controle de acesso (UI) — acessos personalizados por pessoa =====
   // Módulos que o admin pode conceder (Equipe & Acessos é sempre só de admin).
-  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['arquivo','Arquivo (perdidos)'],['clientes','Clientes'],
+  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['arquivo','Arquivo'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['engajamento','Engajamento (LinkedIn)'],['produtos','Produtos'],
     ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
@@ -1331,11 +1335,12 @@
   }
   document.addEventListener('click',function(e){
     if(!e.target||!e.target.closest) return;
-    var ed=e.target.closest('.mod-edit'), dl=e.target.closest('.mod-del'), pd=e.target.closest('.lead-perder'), ar=e.target.closest('.arq-restaurar');
+    var ed=e.target.closest('.mod-edit'), dl=e.target.closest('.mod-del'), pd=e.target.closest('.lead-perder'), ar=e.target.closest('.arq-restaurar'), ft=e.target.closest('.funil-tab');
     if(ed) modEditRow(ed.getAttribute('data-key'), ed.getAttribute('data-id'));
     if(dl) modDelRow(dl.getAttribute('data-key'), dl.getAttribute('data-id'));
     if(pd){ e.stopPropagation(); perderOportunidade(pd.getAttribute('data-id')); }
     if(ar){ restaurarArquivo(ar.getAttribute('data-id')); }
+    if(ft) initFunil(ft.getAttribute('data-pipe'));
   });
   function renderMod(key){
     var cfg=MODS[key]; var host=$('mod-'+key); if(!host) return;
@@ -1433,7 +1438,7 @@
       +'<div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><input type="file" id="csv-prod" accept=".csv,text/csv" style="display:none"><button class="btn" id="imp-prod" style="background:transparent;color:var(--accent);border:1px solid var(--accent)">Importar CSV</button><button class="btn" id="save-prod">Salvar produto</button></div>'
       +'</div>'
       +'<table><thead><tr><th>Img</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Rank</th><th>Trilha</th><th style="text-align:right">Ações</th></tr></thead>'
-      +'<tbody id="body-prod"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody></table>'
+      +'<tbody id="body-prod"><tr><td colspan="9" class="empty">Carregando…</td></tr></tbody></table>'
       +'</div>';
     $('save-prod').addEventListener('click', saveProduto);
     $('imp-prod').addEventListener('click', function(){ $('csv-prod').click(); });
@@ -1452,7 +1457,7 @@
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
       var tb=$('body-prod'); prodById={};
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhum produto. Cadastre acima.</td></tr>'; return; }
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="9" class="empty">Nenhum produto. Cadastre acima.</td></tr>'; return; }
       tb.innerHTML=rows.map(function(p){
         prodById[p.id]=p;
         var img=p.foto_url?('<img src="'+esc(p.foto_url)+'" style="width:44px;height:44px;object-fit:cover;border-radius:3px;border:1px solid var(--line)">'):'<span style="color:var(--ouro)">—</span>';
@@ -1460,7 +1465,7 @@
           +'<td style="text-align:right;white-space:nowrap"><button class="ia-btn" data-act="edit" data-id="'+p.id+'">Editar</button> <button class="ia-btn" data-act="del" data-id="'+p.id+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Deletar</button></td></tr>';
       }).join('');
     })
-    .catch(function(e){ $('body-prod').innerHTML='<tr><td colspan="8" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; console.error(e); });
+    .catch(function(e){ $('body-prod').innerHTML='<tr><td colspan="9" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; console.error(e); });
   }
   function saveProduto(){
     var tok=localStorage.getItem(TOKKEY); var form=$('form-prod');
@@ -1522,7 +1527,7 @@
     .catch(function(e){ alert('Não foi possível deletar (sem permissão de equipe ou erro de conexão).'); console.error(e); });
   }
   // ===== Kanban arrastável (funil) =====
-  var ESTAGIOS=[{k:'novo_lead',t:'Novo lead'},{k:'curadoria',t:'Curadoria'},{k:'proposta',t:'Proposta'},{k:'negociacao',t:'Negociação'},{k:'ganho',t:'Ganho'},{k:'perdido',t:'Perdido'}];
+  var ESTAGIOS=[{k:'novo_lead',t:'Novo lead'},{k:'curadoria',t:'Curadoria'},{k:'proposta',t:'Proposta'},{k:'negociacao',t:'Negociação'},{k:'ganho',t:'Ganho'},{k:'perdido',t:'Arquivando'}];
   function funilCounts(k){ k.querySelectorAll('.col').forEach(function(c){ var s=c.querySelector('h4 span'); if(s) s.textContent=c.querySelectorAll('.lead').length; }); }
   function funilDnD(k){
     var cols=[].slice.call(k.querySelectorAll('.col'));
@@ -1546,7 +1551,7 @@
     });
   }
   function perderOportunidade(id){
-    var motivo=prompt('Motivo da perda (ex.: preço, prazo, comprou de concorrente):'); if(motivo===null) return;
+    var motivo=prompt('Motivo (ex.: preço, prazo, comprou de concorrente):'); if(motivo===null) return;
     var tok=localStorage.getItem(TOKKEY);
     fetch(SB+'/rest/v1/oportunidades?id=eq.'+id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({estagio:'perdido',motivo_perda:motivo||'',perdido_em:new Date().toISOString(),updated_at:new Date().toISOString()})})
     .then(function(r){ if(r.ok) initFunil(); else alert('Não foi possível marcar como perdido (permissão?).'); })
@@ -1572,11 +1577,13 @@
     .then(function(r){ if(r.ok) loadArquivo(); else alert('Não foi possível restaurar.'); })
     .catch(function(e){ alert('Erro de conexão.'); console.error(e); });
   }
-  function initFunil(){
+  var FUNIL_PIPE='projeto';
+  function initFunil(pipe){ if(pipe) FUNIL_PIPE=pipe;
+    var _bc=$('funilTabCli'), _bp=$('funilTabPar'); if(_bc&&_bp){ _bc.className='ia-btn funil-tab'+(FUNIL_PIPE==='projeto'?' sug':''); _bp.className='ia-btn funil-tab'+(FUNIL_PIPE==='parceiros'?' sug':''); }
     var k=$('funilKanban'); if(!k) return;
     var tok=localStorage.getItem(TOKKEY);
     k.innerHTML='<div class="empty" style="grid-column:1/-1">Carregando funil…</div>';
-    fetch(SB+'/rest/v1/oportunidades?select=id,titulo,valor,estagio,origem,created_at,updated_at,perdido_em,motivo_perda&estagio=neq.arquivado&order=created_at.desc&limit=300',{headers:authHeaders(tok)})
+    fetch(SB+'/rest/v1/oportunidades?select=id,titulo,valor,estagio,origem,created_at,updated_at,perdido_em,motivo_perda&estagio=neq.arquivado&pipeline=eq.'+FUNIL_PIPE+'&order=created_at.desc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
       rows=Array.isArray(rows)?rows:[];
@@ -1590,7 +1597,7 @@
         var card=document.createElement('div'); card.className='lead sem-'+sem; card.setAttribute('draggable','true'); card.setAttribute('data-id',o.id);
         var extra='';
         if(o.estagio==='perdido'){ var _b=o.perdido_em||o.updated_at; var _d=_b?Math.max(0,30-Math.floor((Date.now()-new Date(_b).getTime())/86400000)):30; extra='<div class="mt" style="color:#e5534b">🗄 arquiva em '+_d+' dia(s)'+(o.motivo_perda?' · '+esc(o.motivo_perda):'')+'</div>'; }
-        else if(o.estagio!=='ganho'){ extra='<div style="margin-top:7px"><button class="lead-perder" data-id="'+o.id+'" style="font-size:10px;color:#e5534b;background:transparent;border:1px solid var(--line);border-radius:3px;padding:3px 8px;cursor:pointer">Perder</button></div>'; }
+        else if(o.estagio!=='ganho'){ extra='<div style="margin-top:7px"><button class="lead-perder" data-id="'+o.id+'" style="font-size:10px;color:#e5534b;background:transparent;border:1px solid var(--line);border-radius:3px;padding:3px 8px;cursor:pointer">Arquivar</button></div>'; }
         card.innerHTML='<div class="nm"><span class="sem sem-dot-'+sem+'"></span>'+esc(o.titulo||'—')+'</div><div class="mt">'+esc(o.origem||'')+'</div>'+val+extra;
         col.appendChild(card);
       });
@@ -1606,13 +1613,13 @@
   function initEngajamento(){
     var tb=$('engBody'); if(!tb) return;
     var tok=localStorage.getItem(TOKKEY);
-    tb.innerHTML='<tr><td colspan="8" class="empty">Carregando fila…</td></tr>';
-    fetch(SB+'/rest/v1/leads_engajamento?select=id,nome,cargo,empresa,cidade,interacao,score,classe,gancho,ja_no_crm&status=eq.pendente&order=score.desc,created_at.desc&limit=200',{headers:authHeaders(tok)})
+    tb.innerHTML='<tr><td colspan="9" class="empty">Carregando fila…</td></tr>';
+    fetch(SB+'/rest/v1/leads_engajamento?select=id,nome,cargo,empresa,cidade,interacao,score,classe,gancho,ja_no_crm,tipo_lead&status=eq.pendente&order=score.desc,created_at.desc&limit=200',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
       rows=Array.isArray(rows)?rows:[];
       var c=$('engCount'); if(c) c.textContent=rows.length+(rows.length===1?' pendente':' pendentes');
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhum lead na fila. Rode a skill linkedin-engajamento-post para qualificar engajadores.</td></tr>'; return; }
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="9" class="empty">Nenhum lead na fila. Rode a skill linkedin-engajamento-post para qualificar engajadores.</td></tr>'; return; }
       tb.innerHTML=rows.map(function(l){
         var crm=l.ja_no_crm?'<span class="badge" style="background:#e3b34122;color:#e3b341">reengajar</span>':'<span style="color:var(--muted)">novo</span>';
         return '<tr>'
@@ -1620,13 +1627,14 @@
           +'<td>'+esc(l.cargo||'')+'</td><td>'+esc(l.cidade||'')+'</td><td>'+esc(l.interacao||'')+'</td>'
           +'<td style="color:var(--accent);font-weight:600">'+(l.score||0)+'</td>'
           +'<td>'+engClasseBadge(l.classe)+'</td>'
+          +'<td>'+(l.tipo_lead==='parceiro'?'<span class="badge" style="background:#8a6d3b22;color:#cb984c">Parceiro</span>':'<span class="badge" style="background:#3b6e8a22;color:#6cb0e0">Cliente</span>')+'</td>'
           +'<td style="max-width:260px;color:var(--muted)">'+esc(l.gancho||'')+'</td>'
           +'<td style="white-space:nowrap">'+crm
           +' <button class="ia-btn sug eng-ap" data-id="'+l.id+'">Aprovar</button>'
           +' <button class="ia-btn eng-rc" data-id="'+l.id+'">Recusar</button></td></tr>';
       }).join('');
     })
-    .catch(function(e){ tb.innerHTML='<tr><td colspan="8" class="empty">Não foi possível carregar (entre como equipe).</td></tr>'; console.error(e); });
+    .catch(function(e){ tb.innerHTML='<tr><td colspan="9" class="empty">Não foi possível carregar (entre como equipe).</td></tr>'; console.error(e); });
   }
   function engRpc(fn,payload){
     var tok=localStorage.getItem(TOKKEY);
@@ -1912,7 +1920,7 @@
     .then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(rows){
       var tb=$('locPropBody'); rows=Array.isArray(rows)?rows:[];
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhuma proposta de locação ainda. Crie acima.</td></tr>'; return; }
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="9" class="empty">Nenhuma proposta de locação ainda. Crie acima.</td></tr>'; return; }
       tb.innerHTML=rows.map(function(p){
         var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
         var st=LOC_PROP_STATUS[p.status]||p.status||'—';
@@ -1920,7 +1928,7 @@
         return '<tr><td style="color:var(--text)">'+esc(p.numero||'—')+'</td><td>'+esc(cli)+'</td><td>'+esc(p.titulo||'—')+'<div style="font-size:11px;color:var(--ouro)">'+esc(itensResumo(p.itens))+'</div></td><td>'+esc(periodoTxt(p.periodo_inicio,p.periodo_fim))+'</td><td style="color:var(--accent)">'+brl(p.valor)+'</td><td>'+brl(p.caucao)+'</td><td><span class="badge">'+esc(st)+'</span></td><td style="text-align:right">'+acao+'</td></tr>';
       }).join('');
     })
-    .catch(function(){ $('locPropBody').innerHTML='<tr><td colspan="8" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; });
+    .catch(function(){ $('locPropBody').innerHTML='<tr><td colspan="9" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; });
     // Contratos de locação
     fetch(SB+'/rest/v1/contratos?select=*,clientes(nome)&tipo=eq.locacao&order=created_at.desc&limit=100',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw 0; return r.json(); })
@@ -2246,7 +2254,7 @@
     .then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(rows){
       var tb=$('td3dBody'); rows=Array.isArray(rows)?rows:[];
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhum pedido 3D ainda. Registre um briefing acima.</td></tr>'; return; }
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="9" class="empty">Nenhum pedido 3D ainda. Registre um briefing acima.</td></tr>'; return; }
       tb.innerHTML=rows.map(function(p){
         var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
         var val=(Number(p.valor_final)>0)?p.valor_final:p.valor_estimado;
@@ -2254,7 +2262,7 @@
         return '<tr><td style="color:var(--text)">'+esc(p.numero||'—')+'</td><td>'+esc(cli)+'</td><td>'+esc(p.titulo||'—')+(det?'<div style="font-size:11px;color:var(--ouro)">'+esc(det)+'</div>':'')+'</td><td>'+esc(p.material||'—')+'</td><td>'+(p.quantidade||1)+'</td><td style="color:var(--accent)">'+brl(val)+'</td><td><select class="td3d-st" data-id="'+p.id+'">'+st3dOptions(p.status)+'</select></td><td style="text-align:right"><button class="ia-btn" data-act="doc" data-tipo="pedido_3d" data-id="'+p.id+'" title="Gerar documento">📄</button></td></tr>';
       }).join('');
     })
-    .catch(function(){ $('td3dBody').innerHTML='<tr><td colspan="8" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; });
+    .catch(function(){ $('td3dBody').innerHTML='<tr><td colspan="9" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; });
   }
   (function(){
     var btn=$('td_salvar');
