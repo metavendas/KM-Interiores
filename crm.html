@@ -87,6 +87,9 @@
   td{color:var(--muted)}
   .badge{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:2px;background:rgba(203,152,76,.16);color:var(--accent)}
   .kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:8px}
+  #funilKanban{grid-template-columns:repeat(6,1fr)}
+  @media(max-width:1100px){ #funilKanban{grid-template-columns:repeat(3,1fr)} }
+  @media(max-width:700px){ #funilKanban{grid-template-columns:repeat(2,1fr)} }
   .col{background:var(--bg2);border:1px solid var(--line);border-radius:4px;padding:12px;min-height:120px}
   .col h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--champagne);display:flex;justify-content:space-between;padding:6px 6px 12px;border-bottom:1px solid var(--line);margin-bottom:10px}
   .col h4 span{color:var(--ouro)}
@@ -189,6 +192,7 @@
     <nav class="nav">
       <a class="active" href="#" data-view="dashboard"><span class="dot"></span> Dashboard</a>
       <a href="#" data-view="funil"><span class="dot"></span> Funil de Vendas</a>
+      <a href="#" data-view="arquivo"><span class="dot"></span> Arquivo (perdidos)</a>
       <div class="sec">Cadastros</div>
       <a href="#" data-view="clientes"><span class="dot"></span> Clientes</a>
       <a href="#" data-view="empresas"><span class="dot"></span> Empresas (B2B)</a>
@@ -275,6 +279,19 @@
           <i><span class="sem sem-dot-vermelho"></span> Parado (+7 dias sem avanço)</i>
         </div>
         <div class="kanban" id="funilKanban"><div class="empty" style="grid-column:1/-1">Carregando funil…</div></div>
+      </section>
+
+      <!-- ===== ARQUIVO (perdidos) ===== -->
+      <section class="view" data-v="arquivo" hidden>
+        <div class="h1">Arquivo — Oportunidades perdidas</div>
+        <div class="sub">Perdidas há mais de 30 dias, arquivadas automaticamente · consulta para o futuro</div>
+        <div class="panel">
+          <h3>Arquivadas <span class="tagreal" id="arqCount">—</span></h3>
+          <table>
+            <thead><tr><th>Oportunidade</th><th>Valor</th><th>Origem</th><th>Motivo da perda</th><th>Perdida em</th><th>Ação</th></tr></thead>
+            <tbody id="arqBody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
+          </table>
+        </div>
       </section>
 
       <!-- ===== ENGAJAMENTO (LinkedIn) ===== -->
@@ -665,7 +682,7 @@
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
   // ===== Controle de acesso (UI) — acessos personalizados por pessoa =====
   // Módulos que o admin pode conceder (Equipe & Acessos é sempre só de admin).
-  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['clientes','Clientes'],
+  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['arquivo','Arquivo (perdidos)'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['engajamento','Engajamento (LinkedIn)'],['produtos','Produtos'],
     ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
@@ -1192,6 +1209,7 @@
     document.querySelectorAll('.nav a[data-view]').forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-view')===v); });
     if(v==='produtos') renderProdutos();
     if(v==='funil') initFunil();
+    if(v==='arquivo') loadArquivo();
     if(v==='engajamento') initEngajamento();
     if(v==='pedidos') loadPedidos();
     if(v==='dashboard') loadDashboard();
@@ -1313,9 +1331,11 @@
   }
   document.addEventListener('click',function(e){
     if(!e.target||!e.target.closest) return;
-    var ed=e.target.closest('.mod-edit'), dl=e.target.closest('.mod-del');
+    var ed=e.target.closest('.mod-edit'), dl=e.target.closest('.mod-del'), pd=e.target.closest('.lead-perder'), ar=e.target.closest('.arq-restaurar');
     if(ed) modEditRow(ed.getAttribute('data-key'), ed.getAttribute('data-id'));
     if(dl) modDelRow(dl.getAttribute('data-key'), dl.getAttribute('data-id'));
+    if(pd){ e.stopPropagation(); perderOportunidade(pd.getAttribute('data-id')); }
+    if(ar){ restaurarArquivo(ar.getAttribute('data-id')); }
   });
   function renderMod(key){
     var cfg=MODS[key]; var host=$('mod-'+key); if(!host) return;
@@ -1502,7 +1522,7 @@
     .catch(function(e){ alert('Não foi possível deletar (sem permissão de equipe ou erro de conexão).'); console.error(e); });
   }
   // ===== Kanban arrastável (funil) =====
-  var ESTAGIOS=[{k:'novo_lead',t:'Novo lead'},{k:'curadoria',t:'Curadoria'},{k:'proposta',t:'Proposta'},{k:'negociacao',t:'Negociação'},{k:'ganho',t:'Ganho'}];
+  var ESTAGIOS=[{k:'novo_lead',t:'Novo lead'},{k:'curadoria',t:'Curadoria'},{k:'proposta',t:'Proposta'},{k:'negociacao',t:'Negociação'},{k:'ganho',t:'Ganho'},{k:'perdido',t:'Perdido'}];
   function funilCounts(k){ k.querySelectorAll('.col').forEach(function(c){ var s=c.querySelector('h4 span'); if(s) s.textContent=c.querySelectorAll('.lead').length; }); }
   function funilDnD(k){
     var cols=[].slice.call(k.querySelectorAll('.col'));
@@ -1525,11 +1545,38 @@
       });
     });
   }
+  function perderOportunidade(id){
+    var motivo=prompt('Motivo da perda (ex.: preço, prazo, comprou de concorrente):'); if(motivo===null) return;
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/oportunidades?id=eq.'+id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({estagio:'perdido',motivo_perda:motivo||'',perdido_em:new Date().toISOString(),updated_at:new Date().toISOString()})})
+    .then(function(r){ if(r.ok) initFunil(); else alert('Não foi possível marcar como perdido (permissão?).'); })
+    .catch(function(e){ alert('Erro de conexão.'); console.error(e); });
+  }
+  function loadArquivo(){
+    var tb=$('arqBody'); if(!tb) return; var tok=localStorage.getItem(TOKKEY);
+    tb.innerHTML='<tr><td colspan="6" class="empty">Carregando…</td></tr>';
+    fetch(SB+'/rest/v1/oportunidades?select=id,titulo,valor,origem,motivo_perda,perdido_em,updated_at&estagio=eq.arquivado&order=updated_at.desc&limit=300',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(rows){ rows=Array.isArray(rows)?rows:[]; var c=$('arqCount'); if(c) c.textContent=rows.length+' arquivada(s)';
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="6" class="empty">Nada arquivado ainda.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(o){ var d=o.perdido_em||o.updated_at; var dt=d?new Date(d).toLocaleDateString('pt-BR'):'—'; var val=Number(o.valor||0)>0?('R$ '+Number(o.valor).toLocaleString('pt-BR')):'—';
+        return '<tr><td style="color:var(--text)">'+esc(o.titulo||'—')+'</td><td style="color:var(--accent)">'+val+'</td><td>'+esc(o.origem||'')+'</td><td style="color:var(--muted)">'+esc(o.motivo_perda||'')+'</td><td>'+dt+'</td><td><button class="ia-btn arq-restaurar" data-id="'+o.id+'">Restaurar</button></td></tr>';
+      }).join('');
+    })
+    .catch(function(e){ tb.innerHTML='<tr><td colspan="6" class="empty">Sem permissão (entre como equipe) ou erro.</td></tr>'; console.error(e); });
+  }
+  function restaurarArquivo(id){
+    if(!confirm('Restaurar esta oportunidade para o funil (Novo lead)?')) return;
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/oportunidades?id=eq.'+id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({estagio:'novo_lead',perdido_em:null,updated_at:new Date().toISOString()})})
+    .then(function(r){ if(r.ok) loadArquivo(); else alert('Não foi possível restaurar.'); })
+    .catch(function(e){ alert('Erro de conexão.'); console.error(e); });
+  }
   function initFunil(){
     var k=$('funilKanban'); if(!k) return;
     var tok=localStorage.getItem(TOKKEY);
     k.innerHTML='<div class="empty" style="grid-column:1/-1">Carregando funil…</div>';
-    fetch(SB+'/rest/v1/oportunidades?select=id,titulo,valor,estagio,origem,created_at,updated_at&order=created_at.desc&limit=300',{headers:authHeaders(tok)})
+    fetch(SB+'/rest/v1/oportunidades?select=id,titulo,valor,estagio,origem,created_at,updated_at,perdido_em,motivo_perda&estagio=neq.arquivado&order=created_at.desc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
       rows=Array.isArray(rows)?rows:[];
@@ -1541,7 +1588,10 @@
         var ts=o.updated_at||o.created_at; var sem='neutro';
         if(o.estagio!=='ganho'&&o.estagio!=='perdido'&&ts){ var dias=(Date.now()-new Date(ts).getTime())/86400000; sem=dias>7?'vermelho':(dias>3?'amarelo':'verde'); }
         var card=document.createElement('div'); card.className='lead sem-'+sem; card.setAttribute('draggable','true'); card.setAttribute('data-id',o.id);
-        card.innerHTML='<div class="nm"><span class="sem sem-dot-'+sem+'"></span>'+esc(o.titulo||'—')+'</div><div class="mt">'+esc(o.origem||'')+'</div>'+val;
+        var extra='';
+        if(o.estagio==='perdido'){ var _b=o.perdido_em||o.updated_at; var _d=_b?Math.max(0,30-Math.floor((Date.now()-new Date(_b).getTime())/86400000)):30; extra='<div class="mt" style="color:#e5534b">🗄 arquiva em '+_d+' dia(s)'+(o.motivo_perda?' · '+esc(o.motivo_perda):'')+'</div>'; }
+        else if(o.estagio!=='ganho'){ extra='<div style="margin-top:7px"><button class="lead-perder" data-id="'+o.id+'" style="font-size:10px;color:#e5534b;background:transparent;border:1px solid var(--line);border-radius:3px;padding:3px 8px;cursor:pointer">Perder</button></div>'; }
+        card.innerHTML='<div class="nm"><span class="sem sem-dot-'+sem+'"></span>'+esc(o.titulo||'—')+'</div><div class="mt">'+esc(o.origem||'')+'</div>'+val+extra;
         col.appendChild(card);
       });
       funilDnD(k); funilCounts(k);
