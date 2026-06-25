@@ -1223,7 +1223,7 @@
       {k:'nome',l:'Nome',req:true,full:true},{k:'tipo',l:'Tipo'},{k:'fornece',l:'O que fornece'},
       {k:'prazo_medio_dias',l:'Prazo médio (dias)',type:'number'},{k:'condicoes',l:'Condições'},{k:'avaliacao',l:'Avaliação (1-5)',type:'number'},{k:'contato',l:'Contato'}],
       cols:[{k:'nome'},{k:'tipo',badge:true},{k:'fornece'},{k:'prazo_medio_dias'},{k:'contato'}] },
-    vendedores:{ table:'vendedores', fields:[
+    vendedores:{ table:'colaboradores', fields:[
       {k:'nome',l:'Nome',req:true,full:true},{k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},
       {k:'regiao',l:'Região'},{k:'meta_mensal',l:'Meta mensal (R$)',type:'number'},{k:'realizado_mes',l:'Realizado no mês (R$)',type:'number'}],
       cols:[{k:'nome'},{k:'regiao',badge:true},{k:'realizado_mes',money:true},{k:'meta_mensal',money:true},{k:'telefone'}] },
@@ -1282,6 +1282,38 @@
     rd.readAsText(file,'UTF-8');
   }
   var PROD_FIELDS=[{k:'nome',l:'Nome'},{k:'categoria',l:'Categoria'},{k:'sku',l:'SKU'},{k:'preco',l:'Preco',type:'number'},{k:'estoque_disponivel',l:'Estoque',type:'number'},{k:'ranking',l:'Rank',type:'number'},{k:'trilha',l:'Trilha'},{k:'destaque',l:'Destaque',type:'bool'},{k:'video_url',l:'Video'},{k:'foto_url',l:'Foto'},{k:'descricao',l:'Descricao'}];
+  var MOD_ROWS={}, MOD_EDIT={};
+  function modEditRow(key,id){
+    var cfg=MODS[key]; var r=(MOD_ROWS[key]||{})[id]; if(!r) return;
+    var form=$('form-'+key); if(!form) return;
+    cfg.fields.forEach(function(f){ var el=form.querySelector('[data-k="'+f.k+'"]'); if(el){ var v=r[f.k]; el.value=(v==null?'':v); } });
+    MOD_EDIT[key]=id; var sb=$('save-'+key); if(sb) sb.textContent='Salvar alterações';
+    var hb=document.querySelector('#mod-'+key+' .modbar h3'); if(hb) hb.textContent='Editando cadastro';
+    var m=$('msg-'+key); if(m) m.textContent='Editando — altere e salve, ou cancele.';
+    if(!$('cancel-'+key)){ var c=document.createElement('button'); c.className='btn'; c.id='cancel-'+key; c.textContent='Cancelar'; c.style.cssText='background:transparent;color:var(--muted);border:1px solid var(--line);margin-right:8px'; c.addEventListener('click',function(){ cancelEdit(key); }); var s=$('save-'+key); if(s&&s.parentNode) s.parentNode.insertBefore(c,s); }
+    try{ form.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
+  }
+  function cancelEdit(key){
+    var cfg=MODS[key]; MOD_EDIT[key]=null; var form=$('form-'+key);
+    if(form) cfg.fields.forEach(function(f){ var el=form.querySelector('[data-k="'+f.k+'"]'); if(el && el.tagName!=='SELECT') el.value=''; });
+    var sb=$('save-'+key); if(sb) sb.textContent='Salvar cadastro';
+    var hb=document.querySelector('#mod-'+key+' .modbar h3'); if(hb) hb.textContent='Novo cadastro';
+    var c=$('cancel-'+key); if(c) c.remove(); var m=$('msg-'+key); if(m) m.textContent='';
+  }
+  function modDelRow(key,id){
+    var cfg=MODS[key]; var r=(MOD_ROWS[key]||{})[id]||{};
+    if(!confirm('Excluir "'+(r.nome||'este registro')+'"? Esta ação não pode ser desfeita.')) return;
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/'+cfg.table+'?id=eq.'+id,{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})})
+    .then(function(r){ if(r.ok){ loadMod(key); } else { alert('Não foi possível excluir (sem permissão ou registro vinculado a outros dados).'); } })
+    .catch(function(e){ alert('Erro de conexão ao excluir.'); console.error(e); });
+  }
+  document.addEventListener('click',function(e){
+    if(!e.target||!e.target.closest) return;
+    var ed=e.target.closest('.mod-edit'), dl=e.target.closest('.mod-del');
+    if(ed) modEditRow(ed.getAttribute('data-key'), ed.getAttribute('data-id'));
+    if(dl) modDelRow(dl.getAttribute('data-key'), dl.getAttribute('data-id'));
+  });
   function renderMod(key){
     var cfg=MODS[key]; var host=$('mod-'+key); if(!host) return;
     if(host.dataset.built){ loadMod(key); return; } host.dataset.built='1';
@@ -1292,12 +1324,12 @@
       else inp='<input data-k="'+f.k+'" type="'+(f.type||'text')+'">';
       return '<div class="f'+(f.full?' full':'')+'"><label>'+f.l+(f.req?' *':'')+'</label>'+inp+'</div>';
     }).join('');
-    var ths=cfg.cols.map(function(c){ return '<th>'+esc(labelFor(cfg,c.k))+'</th>'; }).join('');
+    var ths=cfg.cols.map(function(c){ return '<th>'+esc(labelFor(cfg,c.k))+'</th>'; }).join('')+'<th style="text-align:right">Ações</th>';
     host.innerHTML='<div class="panel">'
       +'<div class="modbar"><h3>Novo cadastro</h3><span class="modmsg" id="msg-'+key+'"></span></div>'
       +'<div class="modform" id="form-'+key+'">'+ff+'<div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><input type="file" id="csv-'+key+'" accept=".csv,text/csv" style="display:none"><button class="btn" id="imp-'+key+'" style="background:transparent;color:var(--accent);border:1px solid var(--accent)">Importar CSV</button><button class="btn" id="save-'+key+'">Salvar cadastro</button></div></div>'
       +'<div style="display:flex;gap:10px;align-items:center;margin:12px 0 4px"><input id="search-'+key+'" placeholder="🔍 Buscar por nome, e-mail, cidade…" autocomplete="off" style="flex:1;background:#221b10;border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:4px;font-size:13px;outline:none"><span id="count-'+key+'" style="white-space:nowrap;color:var(--muted);font-size:12px"></span></div>'
-      +'<table><thead><tr>'+ths+'</tr></thead><tbody id="body-'+key+'"><tr><td colspan="'+cfg.cols.length+'" class="empty">Carregando…</td></tr></tbody></table>'
+      +'<table><thead><tr>'+ths+'</tr></thead><tbody id="body-'+key+'"><tr><td colspan="'+(cfg.cols.length+1)+'" class="empty">Carregando…</td></tr></tbody></table>'
       +'</div>';
     $('save-'+key).addEventListener('click', function(){ saveMod(key); });
     $('imp-'+key).addEventListener('click', function(){ $('csv-'+key).click(); });
@@ -1321,16 +1353,18 @@
     .then(function(rows){
       var tb=$('body-'+key);
       if(cnt) cnt.textContent=rows.length+(rows.length>=200?'+':'')+' resultado(s)';
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="'+cfg.cols.length+'" class="empty">'+(term?'Nada encontrado para “'+esc(term)+'”.':'Nenhum cadastro ainda. Use o formulário acima.')+'</td></tr>'; return; }
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="'+(cfg.cols.length+1)+'" class="empty">'+(term?'Nada encontrado para “'+esc(term)+'”.':'Nenhum cadastro ainda. Use o formulário acima.')+'</td></tr>'; return; }
+      MOD_ROWS[key]={};
       tb.innerHTML=rows.map(function(r){
+        MOD_ROWS[key][r.id]=r;
         return '<tr>'+cfg.cols.map(function(c,i){
           if(c.badge && r[c.k]) return '<td><span class="badge">'+esc(String(r[c.k]))+'</span></td>';
           var v=r[c.k]; if(c.date){ v=r[c.k]?new Date(r[c.k]).toLocaleDateString('pt-BR'):'—'; } else if(c.money) v=modMoney(v); else if(v==null||v==='') v='—';
           return '<td'+(i===0?' style="color:var(--text)"':'')+'>'+esc(String(v))+'</td>';
-        }).join('')+'</tr>';
+        }).join('')+'<td style="text-align:right;white-space:nowrap"><button class="ia-btn mod-edit" data-key="'+key+'" data-id="'+esc(String(r.id))+'">Editar</button> <button class="ia-btn mod-del" data-key="'+key+'" data-id="'+esc(String(r.id))+'">Excluir</button></td></tr>';
       }).join('');
     })
-    .catch(function(e){ $('body-'+key).innerHTML='<tr><td colspan="'+cfg.cols.length+'" class="empty">Sem permissão (precisa ser equipe) ou erro de conexão.</td></tr>'; console.error(e); });
+    .catch(function(e){ $('body-'+key).innerHTML='<tr><td colspan="'+(cfg.cols.length+1)+'" class="empty">Sem permissão (precisa ser equipe) ou erro de conexão.</td></tr>'; console.error(e); });
   }
   function saveMod(key){
     var cfg=MODS[key]; var tok=localStorage.getItem(TOKKEY); var form=$('form-'+key);
@@ -1341,14 +1375,15 @@
       if(v!=='') data[f.k]=(f.type==='number')?Number(v):v;
     });
     if(!ok){ $('msg-'+key).textContent='Preencha os campos obrigatórios (*).'; return; }
-    var btn=$('save-'+key); btn.disabled=true; btn.textContent='Salvando…'; $('msg-'+key).textContent='';
-    fetch(SB+'/rest/v1/'+cfg.table,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
-    .then(function(r){ btn.disabled=false; btn.textContent='Salvar cadastro';
-      if(r.ok){ $('msg-'+key).textContent='Cadastro salvo ✓';
+    var editId=MOD_EDIT[key]; var btn=$('save-'+key); btn.disabled=true; btn.textContent='Salvando…'; $('msg-'+key).textContent='';
+    var saveUrl=SB+'/rest/v1/'+cfg.table+(editId?('?id=eq.'+editId):''); var saveMethod=editId?'PATCH':'POST';
+    fetch(saveUrl,{method:saveMethod,headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
+    .then(function(r){ btn.disabled=false; btn.textContent=editId?'Salvar alterações':'Salvar cadastro';
+      if(r.ok){ $('msg-'+key).textContent=editId?'Alterações salvas ✓':'Cadastro salvo ✓'; if(editId) cancelEdit(key);
         cfg.fields.forEach(function(f){ var el=form.querySelector('[data-k="'+f.k+'"]'); if(el && el.tagName!=='SELECT') el.value=''; });
         loadMod(key); setTimeout(function(){ $('msg-'+key).textContent=''; },2500);
       } else { r.text().then(function(t){ $('msg-'+key).textContent='Erro ao salvar: '+t.slice(0,90); }); } })
-    .catch(function(e){ btn.disabled=false; btn.textContent='Salvar cadastro'; $('msg-'+key).textContent='Erro de conexão.'; console.error(e); });
+    .catch(function(e){ btn.disabled=false; btn.textContent=editId?'Salvar alterações':'Salvar cadastro'; $('msg-'+key).textContent='Erro de conexão.'; console.error(e); });
   }
   // ===== Admin de Produtos (imagem + vídeo + estoque + ranking) =====
   function brl(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
