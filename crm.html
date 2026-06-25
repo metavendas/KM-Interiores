@@ -96,6 +96,9 @@
   .empty{padding:30px 20px;text-align:center;color:var(--muted);font-size:13px}
   .demo{text-align:center;font-size:10px;letter-spacing:.1em;color:var(--ouro);padding:12px;border-top:1px solid var(--line)}
   @media(max-width:1000px){.side{position:fixed;left:0;top:0;height:100vh;z-index:120;margin-left:-260px;box-shadow:0 0 40px rgba(0,0,0,.6)}.layout.sb-open .side{margin-left:0}.layout.sb-open #sideBackdrop{display:block}.kpis{grid-template-columns:repeat(2,1fr)}.kanban{grid-template-columns:repeat(2,1fr)}}
+  /* Responsivo: tabelas largas rolam na horizontal em telas pequenas */
+  @media(max-width:1000px){ .panel{overflow-x:auto} .panel table{min-width:660px} }
+  @media(max-width:640px){ th,td{padding:11px 12px;font-size:12px} .h1{font-size:22px} }
   .vidgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
   .vidcard{background:var(--bg2);border:1px solid var(--line);border-radius:4px;overflow:hidden}
   .vidcard .frame{position:relative;padding-top:56.25%;background:#000}
