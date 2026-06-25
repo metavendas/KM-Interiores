@@ -217,6 +217,7 @@
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
       <a href="#" data-view="relatorios"><span class="dot"></span> Relatórios</a>
+      <a href="#" data-view="saude"><span class="dot"></span> Saúde do Funil</a>
       <a href="#" data-view="equipe"><span class="dot"></span> Equipe &amp; Acessos</a>
     </nav>
   </aside>
@@ -294,6 +295,23 @@
           <table>
             <thead><tr><th>Oportunidade</th><th>Valor</th><th>Origem</th><th>Motivo da perda</th><th>Perdida em</th><th>Ação</th></tr></thead>
             <tbody id="arqBody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== SAÚDE DO FUNIL ===== -->
+      <section class="view" data-v="saude" hidden>
+        <div class="h1">Saúde do Funil</div>
+        <div class="sub">Raio-x das oportunidades abertas · o que está parado, sem tarefa, sem dono ou com SLA estourado</div>
+        <div style="display:flex;gap:8px;margin:2px 0 14px">
+          <button class="ia-btn saude-tab sug" data-pipe="projeto">Clientes</button>
+          <button class="ia-btn saude-tab" data-pipe="parceiros">Parceiros</button>
+        </div>
+        <div class="panel">
+          <h3>Oportunidades com risco <span class="tagreal" id="saudeCount">—</span></h3>
+          <table>
+            <thead><tr><th>Oportunidade</th><th>Responsável</th><th>Estágio</th><th>Valor</th><th>Dias parado</th><th>Problemas</th></tr></thead>
+            <tbody id="saudeBody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -690,7 +708,7 @@
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['engajamento','Engajamento (LinkedIn)'],['produtos','Produtos'],
     ['estoque','Estoque'],['pedidos','Pedidos'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
-    ['agentes','Agentes de IA'],['relatorios','Relatórios']];
+    ['agentes','Agentes de IA'],['relatorios','Relatórios'],['saude','Saúde do Funil']];
   var ACCESS_DEFAULT={
     vendas:        ['funil','engajamento','clientes','ficha360','produtos','estoque','pedidos','locacao','pedidos3d','programas','treinamentos','tarefas','chat'],
     representante: ['funil','engajamento','clientes','ficha360','produtos','estoque','pedidos','locacao','pedidos3d','treinamentos','tarefas','chat'],
@@ -1228,6 +1246,7 @@
     if(v==='chat') loadChat();
     if(v==='funil'||v==='leads') marcarVisto('leads');
     if(v==='relatorios') loadRelatorios();
+    if(v==='saude') loadSaudePipeline();
     if(v==='equipe') loadEquipe();
     if(typeof MODS!=='undefined' && MODS[v]) renderMod(v);
     var c=document.querySelector('.content'); if(c) c.scrollTop=0;
@@ -1341,6 +1360,7 @@
     if(pd){ e.stopPropagation(); perderOportunidade(pd.getAttribute('data-id')); }
     if(ar){ restaurarArquivo(ar.getAttribute('data-id')); }
     if(ft) initFunil(ft.getAttribute('data-pipe'));
+    var st=e.target.closest('.saude-tab'); if(st) loadSaudePipeline(st.getAttribute('data-pipe'));
   });
   function renderMod(key){
     var cfg=MODS[key]; var host=$('mod-'+key); if(!host) return;
@@ -1822,6 +1842,41 @@
           tooltip:{callbacks:{label:function(c){var v=(c.parsed&&c.parsed.y!=null)?c.parsed.y:c.parsed; return (money?('R$ '+Number(v).toLocaleString('pt-BR')):v)+'';}}}},
         scales:isBar?{x:{ticks:{color:'#C9B79A',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#C9B79A',font:{size:10},callback:function(v){return money?('R$ '+Number(v).toLocaleString('pt-BR')):v;}},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}}:{}
       }
+    });
+  }
+  var SAUDE_PIPE='projeto';
+  function loadSaudePipeline(pipe){ if(pipe) SAUDE_PIPE=pipe;
+    var b1=document.querySelector('.saude-tab[data-pipe="projeto"]'), b2=document.querySelector('.saude-tab[data-pipe="parceiros"]');
+    if(b1) b1.className='ia-btn saude-tab'+(SAUDE_PIPE==='projeto'?' sug':''); if(b2) b2.className='ia-btn saude-tab'+(SAUDE_PIPE==='parceiros'?' sug':'');
+    var tb=$('saudeBody'); if(!tb) return; var tok=localStorage.getItem(TOKKEY); var H=authHeaders(tok);
+    tb.innerHTML='<tr><td colspan="6" class="empty">Analisando…</td></tr>';
+    var d7=new Date(Date.now()-7*86400000).toISOString();
+    ensureVendedores(function(){
+      Promise.all([
+        fetch(SB+"/rest/v1/oportunidades?select=id,titulo,estagio,valor,responsavel_id,cliente_id,empresa_id,updated_at&pipeline=eq."+SAUDE_PIPE+"&estagio=not.in.(ganho,perdido,arquivado)&limit=500",{headers:H}).then(function(r){return r.ok?r.json():[];}),
+        fetch(SB+"/rest/v1/tarefas?select=oportunidade_id,prazo,concluida,titulo&concluida=eq.false&limit=1000",{headers:H}).then(function(r){return r.ok?r.json():[];}),
+        fetch(SB+"/rest/v1/interacoes?select=oportunidade_id&created_at=gte."+d7+"&limit=1000",{headers:H}).then(function(r){return r.ok?r.json():[];})
+      ]).then(function(res){
+        var ops=res[0]||[], tks=res[1]||[], its=res[2]||[]; var tkBy={}, tkAtr={}, itBy={};
+        tks.forEach(function(tk){ if(!tk.oportunidade_id) return; tkBy[tk.oportunidade_id]=true; if(tk.prazo && new Date(tk.prazo)<new Date()) tkAtr[tk.oportunidade_id]=(/contato/i.test(tk.titulo||'')?'1c':true); });
+        its.forEach(function(i){ if(i.oportunidade_id) itBy[i.oportunidade_id]=true; });
+        var linhas=ops.map(function(o){ var probs=[]; var dias=o.updated_at?Math.floor((Date.now()-new Date(o.updated_at).getTime())/86400000):0;
+          if(!tkBy[o.id]) probs.push('sem tarefa');
+          if(tkAtr[o.id]) probs.push(tkAtr[o.id]==='1c'?'1º contato ATRASADO':'tarefa atrasada');
+          if(!o.responsavel_id) probs.push('sem responsável');
+          if(!o.valor||Number(o.valor)===0) probs.push('sem valor');
+          if(!o.cliente_id&&!o.empresa_id) probs.push('sem cliente');
+          if(dias>7) probs.push('parado '+dias+'d');
+          if(!itBy[o.id]) probs.push('sem interação');
+          return {o:o,probs:probs,dias:dias};
+        }).filter(function(x){return x.probs.length>0;}).sort(function(a,b){return b.probs.length-a.probs.length||b.dias-a.dias;});
+        var c=$('saudeCount'); if(c) c.textContent=linhas.length+' com risco';
+        if(!linhas.length){ tb.innerHTML='<tr><td colspan="6" class="empty">Funil limpo neste pipeline ✓</td></tr>'; return; }
+        tb.innerHTML=linhas.map(function(x){ var o=x.o; var val=Number(o.valor||0)>0?('R$ '+Number(o.valor).toLocaleString('pt-BR')):'—';
+          var badges=x.probs.map(function(p){ var crit=/ATRASADO|sem responsável|sem tarefa/.test(p); return '<span class="badge" style="background:'+(crit?'#e5534b22':'#e3b34122')+';color:'+(crit?'#e5534b':'#e3b341')+'">'+esc(p)+'</span>'; }).join(' ');
+          return '<tr><td style="color:var(--text)">'+esc(o.titulo||'—')+'</td><td>'+esc(vendNome(o.responsavel_id))+'</td><td>'+esc(o.estagio||'')+'</td><td style="color:var(--accent)">'+val+'</td><td style="color:'+(x.dias>7?'#e5534b':'var(--muted)')+'">'+x.dias+'</td><td>'+badges+'</td></tr>';
+        }).join('');
+      }).catch(function(e){ tb.innerHTML='<tr><td colspan="6" class="empty">Sem permissão (entre como equipe) ou erro.</td></tr>'; console.error(e); });
     });
   }
   function loadRelatorios(){
