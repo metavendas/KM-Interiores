@@ -119,7 +119,7 @@
         : '<div class="ph"><svg class="bf"><use href="#bf"/></svg><span>'+esc(p.nome)+'</span></div>';
       document.getElementById('main').innerHTML = main;
       // Galeria: foto principal + fotos extras (até 5)
-      var galeria=[p.foto_url].concat(Array.isArray(p.fotos_extra)?p.fotos_extra:[]).filter(Boolean);
+      var galeria=[p.foto_url].concat((Array.isArray(p.itens)?p.itens:[]).map(function(it){return it.foto;})).filter(Boolean);
       if(galeria.length>1){
         var gel=document.getElementById('galeria');
         if(!gel){ gel=document.createElement('div'); gel.id='galeria'; gel.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap'; var m=document.getElementById('main'); if(m&&m.parentNode) m.parentNode.insertBefore(gel, m.nextSibling); }
@@ -155,6 +155,54 @@
         ['Disponibilidade', p.disponibilidade==='estoque'?'Pronta-entrega':'Sob encomenda']
       ];
       document.getElementById('specs').innerHTML = specs.map(function(kv){return '<tr><td>'+esc(kv[0])+'</td><td>'+esc(kv[1])+'</td></tr>';}).join('');
+      // ====== Cores, versões e adicionais (loja) ======
+      var precoBase = Number(p.preco)||0, corSel='';
+      var PAL={branco:'#ffffff',cinza:'#9aa0a6',preto:'#1a1a1a',verde:'#2e7d32',azul:'#1565c0',marrom:'#6d4c41',vermelho:'#c62828',dourado:'#c9a227',bege:'#d8c3a5',gelo:'#eef2f3'};
+      var coresDisp=Array.isArray(p.cores_disponiveis)?p.cores_disponiveis:[];
+      var swBox=document.querySelector('.swatches'), swLabel=document.querySelector('.opt-label');
+      if(swBox){
+        if(coresDisp.length){
+          if(swLabel) swLabel.textContent='Cor';
+          swBox.innerHTML=coresDisp.map(function(c,i){ return '<div class="sw'+(i===0?' active':'')+'" data-cor="'+esc(c)+'" title="'+esc(c)+'" style="background:'+(PAL[c]||'#999')+'"></div>'; }).join('');
+          corSel=coresDisp[0];
+          Array.prototype.forEach.call(swBox.querySelectorAll('.sw'),function(s){ s.addEventListener('click',function(){ Array.prototype.forEach.call(swBox.querySelectorAll('.sw'),function(x){x.classList.remove('active');}); s.classList.add('active'); corSel=s.getAttribute('data-cor'); }); });
+        } else { if(swLabel) swLabel.style.display='none'; swBox.style.display='none'; }
+      }
+      var its=Array.isArray(p.itens)?p.itens:[];
+      var vars=its.filter(function(x){return x.tipo==='variacao';}), adis=its.filter(function(x){return x.tipo==='adicional';});
+      var optBox=null;
+      if(vars.length||adis.length){
+        optBox=document.createElement('div'); optBox.style.cssText='margin:18px 0;border-top:1px solid var(--line);padding-top:18px';
+        var oh='';
+        if(vars.length){ oh+='<div class="opt-label">Versão</div><div style="display:flex;flex-direction:column;gap:8px">';
+          oh+='<label style="font-size:14px;color:var(--text);cursor:pointer"><input type="radio" name="pdp_var" data-valor="'+precoBase+'" checked> Padrão · R$ '+precoBase.toLocaleString('pt-BR')+'</label>';
+          vars.forEach(function(a){ var v=Number(a.valor)||0; oh+='<label style="font-size:14px;color:var(--text);cursor:pointer"><input type="radio" name="pdp_var" data-valor="'+v+'"> '+esc(a.nome||'Versão')+' · R$ '+v.toLocaleString('pt-BR')+'</label>'; });
+          oh+='</div>'; }
+        if(adis.length){ oh+='<div class="opt-label" style="margin-top:16px">Adicionais</div><div style="display:flex;flex-direction:column;gap:8px">';
+          adis.forEach(function(a){ var v=Number(a.valor)||0; oh+='<label style="font-size:14px;color:var(--text);cursor:pointer"><input type="checkbox" class="pdp-adic" data-valor="'+v+'"> '+esc(a.nome||'Adicional')+' · + R$ '+v.toLocaleString('pt-BR')+'</label>'; });
+          oh+='</div>'; }
+        optBox.innerHTML=oh;
+        var pr=document.querySelector('.price-row'); if(pr&&pr.parentNode) pr.parentNode.insertBefore(optBox, pr.nextSibling);
+      }
+      function precoTotal(){
+        var base=precoBase;
+        if(optBox){ var rv=optBox.querySelector('input[name=pdp_var]:checked'); if(rv) base=Number(rv.getAttribute('data-valor'))||0; }
+        var soma=base;
+        if(optBox){ Array.prototype.forEach.call(optBox.querySelectorAll('input.pdp-adic:checked'),function(c){ soma+=Number(c.getAttribute('data-valor'))||0; }); }
+        return soma;
+      }
+      function atualizaPreco(){ if(buyable) document.getElementById('price').textContent = nl(precoTotal()); }
+      if(optBox){ Array.prototype.forEach.call(optBox.querySelectorAll('input'),function(c){ c.addEventListener('change',atualizaPreco); }); atualizaPreco(); }
+      document.getElementById('cta1').onclick = function(){
+        if(!buyable){ location.href='curadoria.html'; return; }
+        var cart; try{cart=JSON.parse(localStorage.getItem('km_cart')||'[]');}catch(e){cart=[];}
+        var adicNomes=[]; if(optBox){ Array.prototype.forEach.call(optBox.querySelectorAll('input.pdp-adic:checked'),function(c){ adicNomes.push((c.parentNode.textContent||'').trim()); }); }
+        var rv=optBox?optBox.querySelector('input[name=pdp_var]:checked'):null;
+        var versao=(rv&&rv.parentNode)?(rv.parentNode.textContent||'').trim():'';
+        cart.push({id:p.id,nome:p.nome,preco:precoTotal(),foto:p.foto_url||'',qtd:1,cor:corSel,versao:versao,adicionais:adicNomes});
+        localStorage.setItem('km_cart',JSON.stringify(cart));
+        location.href='carrinho.html';
+      };
       document.getElementById('state').style.display='none';
       document.getElementById('pdp').style.display='grid';
     })

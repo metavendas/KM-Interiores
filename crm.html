@@ -1418,7 +1418,26 @@
   // ===== Admin de Produtos (imagem + vídeo + estoque + ranking) =====
   function brl(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
   function slugSku(nome){ return 'KM-'+(nome||'PROD').toUpperCase().normalize('NFD').replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,16)+'-'+Math.random().toString(36).slice(2,5).toUpperCase(); }
-  var prodEditId=null, prodById={};
+  var prodEditId=null, prodById={}, prodEditItens=[];
+  var KM_PALETA=[['branco','#ffffff'],['cinza','#9aa0a6'],['preto','#1a1a1a'],['verde','#2e7d32'],['azul','#1565c0'],['marrom','#6d4c41'],['vermelho','#c62828'],['dourado','#c9a227'],['bege','#d8c3a5'],['gelo','#eef2f3']];
+  function itemFieldsHTML(i){
+    return '<div class="f"><select data-k="item_tipo'+i+'"><option value="">Item '+i+' — tipo</option><option value="variacao">Variação (escolhe uma)</option><option value="adicional">Adicional (soma)</option></select></div>'
+      +'<div class="f"><input data-k="item_nome'+i+'" placeholder="Item '+i+' — nome"></div>'
+      +'<div class="f"><input data-k="item_valor'+i+'" type="number" placeholder="Preço '+i+' (R$)"></div>'
+      +'<div class="f"><label style="font-size:10px;color:var(--muted)">Foto do item '+i+'<span id="item_fotoatual'+i+'"></span></label><input type="file" id="item_img'+i+'" accept="image/*"></div>';
+  }
+  function renderCores(sel){
+    var box=document.getElementById('prod_cores'); if(!box) return; sel=sel||[];
+    box.innerHTML=KM_PALETA.map(function(c){ var on=sel.indexOf(c[0])>=0;
+      return '<label style="display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;color:var(--text)"><input type="checkbox" class="prod-cor" value="'+c[0]+'"'+(on?' checked':'')+'><span style="width:16px;height:16px;border-radius:50%;background:'+c[1]+';border:1px solid var(--line);display:inline-block"></span>'+c[0]+'</label>'; }).join('');
+  }
+  function uploadFile(file){
+    if(!file) return Promise.resolve(null);
+    var tok=localStorage.getItem(TOKKEY);
+    var path='img/'+Date.now()+'_'+Math.random().toString(36).slice(2,6)+'_'+file.name.replace(/[^\w.\-]/g,'_');
+    return fetch(SB+'/storage/v1/object/produtos/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':file.type||'application/octet-stream','x-upsert':'true'}),body:file})
+      .then(function(r){ if(!r.ok) throw new Error('upload'); return SB+'/storage/v1/object/public/produtos/'+path; });
+  }
   function renderProdutos(){
     var host=$('mod-produtos'); if(!host) return;
     if(host.dataset.built){ loadProdutos(); return; } host.dataset.built='1';
@@ -1436,24 +1455,16 @@
       +'<div class="f"><label>Link de vídeo (YouTube)</label><input data-k="video_url"></div>'
       +'<div class="f"><label>URL da imagem (ou envie ao lado)</label><input data-k="foto_url"></div>'
       +'<div class="f"><label>Imagem do produto (upload)</label><input type="file" id="prod_img" accept="image/*"></div>'
-      +'<div class="f full"><label>Fotos extras — galeria (até 4 URLs)</label></div>'
-      +'<div class="f"><input data-k="foto2" placeholder="Foto extra 2 (URL)"></div>'
-      +'<div class="f"><input data-k="foto3" placeholder="Foto extra 3 (URL)"></div>'
-      +'<div class="f"><input data-k="foto4" placeholder="Foto extra 4 (URL)"></div>'
-      +'<div class="f"><input data-k="foto5" placeholder="Foto extra 5 (URL)"></div>'
-      +'<div class="f full"><label>Adicionais opcionais (nome + valor · somam no carrinho)</label></div>'
-      +'<div class="f"><input data-k="adic_nome1" placeholder="Adicional 1 — nome"></div>'
-      +'<div class="f"><input data-k="adic_valor1" type="number" placeholder="Valor 1 (R$)"></div>'
-      +'<div class="f"><input data-k="adic_nome2" placeholder="Adicional 2 — nome"></div>'
-      +'<div class="f"><input data-k="adic_valor2" type="number" placeholder="Valor 2 (R$)"></div>'
-      +'<div class="f"><input data-k="adic_nome3" placeholder="Adicional 3 — nome"></div>'
-      +'<div class="f"><input data-k="adic_valor3" type="number" placeholder="Valor 3 (R$)"></div>'
+      +'<div class="f full"><label>Variações e adicionais — cada um com foto, nome e preço</label><div style="font-size:11px;color:var(--muted);margin-top:3px">Variação = o cliente escolhe uma e o preço vira aquele. Adicional = soma ao preço base.</div></div>'
+      +itemFieldsHTML(1)+itemFieldsHTML(2)+itemFieldsHTML(3)+itemFieldsHTML(4)
+      +'<div class="f full"><label>Cores disponíveis em estoque (marque as que o cliente verá no site)</label><div id="prod_cores" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:8px"></div></div>'
       +'<div class="f full"><label>Descrição</label><textarea data-k="descricao" rows="2"></textarea></div>'
       +'<div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><input type="file" id="csv-prod" accept=".csv,text/csv" style="display:none"><button class="btn" id="imp-prod" style="background:transparent;color:var(--accent);border:1px solid var(--accent)">Importar CSV</button><button class="btn" id="save-prod">Salvar produto</button></div>'
       +'</div>'
       +'<table><thead><tr><th>Img</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Rank</th><th>Trilha</th><th style="text-align:right">Ações</th></tr></thead>'
       +'<tbody id="body-prod"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody></table>'
       +'</div>';
+    renderCores([]);
     $('save-prod').addEventListener('click', saveProduto);
     $('imp-prod').addEventListener('click', function(){ $('csv-prod').click(); });
     $('csv-prod').addEventListener('change', function(e){ var f=e.target.files[0]; if(f){ importarCSV('produtos', PROD_FIELDS, f, $('msg-prod'), loadProdutos, function(o){ if(!o.sku) o.sku=slugSku(o.nome||''); if(o.ativo===undefined) o.ativo=true; }); e.target.value=''; } });
@@ -1467,7 +1478,7 @@
   }
   function loadProdutos(){
     var tok=localStorage.getItem(TOKKEY);
-    fetch(SB+'/rest/v1/produtos?select=id,nome,categoria,sku,preco,estoque_disponivel,ranking,trilha,destaque,video_url,descricao,foto_url,fotos_extra,adicionais&order=ranking.asc.nullslast,nome.asc&limit=300',{headers:authHeaders(tok)})
+    fetch(SB+'/rest/v1/produtos?select=id,nome,categoria,sku,preco,estoque_disponivel,ranking,trilha,destaque,video_url,descricao,foto_url,itens,cores_disponiveis&order=ranking.asc.nullslast,nome.asc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
       var tb=$('body-prod'); prodById={};
@@ -1485,36 +1496,42 @@
     var tok=localStorage.getItem(TOKKEY); var form=$('form-prod');
     var get=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
     var nome=get('nome'); if(!nome){ $('msg-prod').textContent='Informe o nome do produto.'; return; }
-    var btn=$('save-prod'); btn.disabled=true; btn.textContent='Salvando…'; $('msg-prod').textContent='';
-    var file=$('prod_img').files[0];
-    function doInsert(foto){
+    var btn=$('save-prod'); btn.disabled=true; btn.textContent='Salvando…'; $('msg-prod').textContent='Enviando…';
+    // Coleta os itens (tipo, nome, valor) + arquivo novo + foto existente
+    var itensMeta=[];
+    [1,2,3,4].forEach(function(i){
+      var tipo=get('item_tipo'+i), inome=get('item_nome'+i), ival=get('item_valor'+i);
+      var fEl=$('item_img'+i); var file=fEl?fEl.files[0]:null;
+      var fotoEx=(prodEditItens[i-1]&&prodEditItens[i-1].foto)||'';
+      if(tipo||inome||ival||file||fotoEx) itensMeta.push({tipo:tipo||'adicional', nome:inome, valor:ival?Number(ival):0, file:file, foto:fotoEx});
+    });
+    // Cores marcadas
+    var cores=[]; Array.prototype.forEach.call(form.querySelectorAll('.prod-cor:checked'),function(c){ cores.push(c.value); });
+    var mainFile=$('prod_img').files[0];
+    // Sobe a foto principal + as fotos dos itens, depois grava
+    Promise.all([uploadFile(mainFile)].concat(itensMeta.map(function(it){ return uploadFile(it.file); })))
+    .then(function(urls){
+      var fotoPrinc=urls[0];
+      var itens=itensMeta.map(function(it,idx){ return {tipo:it.tipo, nome:it.nome, valor:it.valor, foto:(urls[idx+1]||it.foto||'')}; });
       var data={ nome:nome, categoria:get('categoria')||null, sku:get('sku')||slugSku(nome),
         preco:get('preco')?Number(get('preco')):null, estoque_disponivel:get('estoque_disponivel')?Number(get('estoque_disponivel')):0,
         ranking:get('ranking')?Number(get('ranking')):null, trilha:get('trilha')||'A', destaque:get('destaque')==='true',
-        video_url:get('video_url')||null, descricao:get('descricao')||null, foto_url:foto||get('foto_url')||null, ativo:true };
-      data.fotos_extra=['foto2','foto3','foto4','foto5'].map(get).filter(Boolean);
-      var adic=[]; [1,2,3].forEach(function(i){ var n=get('adic_nome'+i), v=get('adic_valor'+i); if(n||v) adic.push({nome:n, valor:v?Number(v):0}); });
-      data.adicionais=adic;
-      var editing=prodEditId;
-      var method=editing?'PATCH':'POST';
-      var url=SB+'/rest/v1/produtos'+(editing?'?id=eq.'+editing:'');
-      fetch(url,{method:method,headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
+        video_url:get('video_url')||null, descricao:get('descricao')||null, foto_url:fotoPrinc||get('foto_url')||null, ativo:true,
+        itens:itens, cores_disponiveis:cores };
+      var editing=prodEditId; var method=editing?'PATCH':'POST'; var url=SB+'/rest/v1/produtos'+(editing?'?id=eq.'+editing:'');
+      return fetch(url,{method:method,headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
       .then(function(r){ btn.disabled=false; btn.textContent=editing?'Atualizar produto':'Salvar produto';
         if(r.ok){ resetProdForm(); $('msg-prod').textContent=editing?'Produto atualizado ✓':'Produto salvo ✓'; loadProdutos(); setTimeout(function(){ if($('msg-prod'))$('msg-prod').textContent=''; },2500); }
-        else r.text().then(function(t){ $('msg-prod').textContent='Erro: '+t.slice(0,90); }); })
-      .catch(function(){ btn.disabled=false; btn.textContent=editing?'Atualizar produto':'Salvar produto'; $('msg-prod').textContent='Erro de conexão.'; });
-    }
-    if(file){
-      var path='img/'+Date.now()+'_'+file.name.replace(/[^\w.\-]/g,'_');
-      $('msg-prod').textContent='Enviando imagem…';
-      fetch(SB+'/storage/v1/object/produtos/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':file.type||'application/octet-stream','x-upsert':'true'}),body:file})
-      .then(function(r){ if(!r.ok) throw new Error('upload'); doInsert(SB+'/storage/v1/object/public/produtos/'+path); })
-      .catch(function(){ btn.disabled=false; btn.textContent='Salvar produto'; $('msg-prod').textContent='Falha ao enviar a imagem.'; });
-    } else doInsert(null);
+        else r.text().then(function(t){ $('msg-prod').textContent='Erro: '+t.slice(0,90); }); });
+    })
+    .catch(function(){ btn.disabled=false; btn.textContent=prodEditId?'Atualizar produto':'Salvar produto'; $('msg-prod').textContent='Falha ao enviar imagem ou salvar.'; });
   }
   function resetProdForm(){
-    prodEditId=null;
-    var f=$('form-prod'); if(f) f.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; });
+    prodEditId=null; prodEditItens=[];
+    var f=$('form-prod'); if(f){ f.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; });
+      f.querySelectorAll('select[data-k^="item_tipo"]').forEach(function(s){ s.value=''; }); }
+    [1,2,3,4].forEach(function(i){ var fa=$('item_fotoatual'+i); if(fa) fa.textContent=''; });
+    renderCores([]);
     if($('prodFormTitle')) $('prodFormTitle').textContent='Novo produto';
     if($('save-prod')) $('save-prod').textContent='Salvar produto';
     if($('msg-prod')) $('msg-prod').textContent='';
@@ -1528,8 +1545,12 @@
     var tr=form.querySelector('[data-k="trilha"]'); if(tr) tr.value=p.trilha||'A';
     var de=form.querySelector('[data-k="destaque"]'); if(de) de.value=(p.destaque?'true':'false');
     set('video_url',p.video_url); set('foto_url',p.foto_url); set('descricao',p.descricao);
-    var fe=Array.isArray(p.fotos_extra)?p.fotos_extra:[]; set('foto2',fe[0]); set('foto3',fe[1]); set('foto4',fe[2]); set('foto5',fe[3]);
-    var ad=Array.isArray(p.adicionais)?p.adicionais:[]; [1,2,3].forEach(function(i){ var a=ad[i-1]||{}; set('adic_nome'+i,a.nome); set('adic_valor'+i,(a.valor!=null?a.valor:'')); });
+    var its=Array.isArray(p.itens)?p.itens:[]; prodEditItens=its;
+    [1,2,3,4].forEach(function(i){ var it=its[i-1]||{};
+      set('item_tipo'+i, it.tipo); set('item_nome'+i, it.nome); set('item_valor'+i, (it.valor!=null?it.valor:''));
+      var ii=$('item_img'+i); if(ii) ii.value=''; var fa=$('item_fotoatual'+i); if(fa) fa.textContent=it.foto?' ✓ tem foto':'';
+    });
+    renderCores(Array.isArray(p.cores_disponiveis)?p.cores_disponiveis:[]);
     var fi=$('prod_img'); if(fi) fi.value='';
     prodEditId=id;
     if($('prodFormTitle')) $('prodFormTitle').textContent='Editando: '+(p.nome||'');
@@ -1740,34 +1761,43 @@
       box.innerHTML=txt;
     }
     ['venda_valor','venda_pilar','venda_parceiro'].forEach(function(id){ var el=$(id); if(el){ el.addEventListener('input',preview); el.addEventListener('change',preview); } });
-    // Adicionais do produto somam ao valor (base + marcados)
+    // Itens do produto: variação (escolhe uma → vira o preço) + adicionais (somam)
     var vendaBase=0;
     function recalcVenda(){
-      var box=$('venda_adic_box'); var soma=vendaBase;
-      if(box){ box.querySelectorAll('input[type=checkbox]:checked').forEach(function(c){ soma+=Number(c.getAttribute('data-valor'))||0; }); }
+      var box=$('venda_adic_box'); var base=vendaBase;
+      if(box){ var rv=box.querySelector('input[name=venda_variacao]:checked'); if(rv) base=Number(rv.getAttribute('data-valor'))||0; }
+      var soma=base;
+      if(box){ box.querySelectorAll('input.venda-adic:checked').forEach(function(c){ soma+=Number(c.getAttribute('data-valor'))||0; }); }
       var vv=$('venda_valor'); if(vv){ vv.value=soma>0?soma.toFixed(2):''; }
       preview();
     }
-    function carregarAdicionais(id){
+    function carregarItens(id){
       var box=$('venda_adic_box'); if(!box) return;
       vendaBase=0; box.style.display='none'; box.innerHTML='';
       if(!id){ return; }
       var tok=localStorage.getItem(TOKKEY);
-      fetch(SB+'/rest/v1/produtos?id=eq.'+id+'&select=nome,preco,adicionais',{headers:authHeaders(tok)})
+      fetch(SB+'/rest/v1/produtos?id=eq.'+id+'&select=nome,preco,itens',{headers:authHeaders(tok)})
       .then(function(r){ return r.json(); }).then(function(rows){
         var p=rows&&rows[0]; if(!p) return;
         vendaBase=Number(p.preco)||0;
-        var ad=Array.isArray(p.adicionais)?p.adicionais:[];
-        var html='<label>Adicionais de '+esc(p.nome||'')+' — base R$ '+vendaBase.toLocaleString('pt-BR')+'</label><div style="display:flex;flex-direction:column;gap:7px;margin-top:6px">';
-        if(!ad.length){ html+='<span style="color:var(--muted);font-size:12.5px">Sem adicionais cadastrados — preenchi o valor base.</span>'; }
-        ad.forEach(function(a,i){ var v=Number(a.valor)||0; html+='<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" data-valor="'+v+'"> '+esc(a.nome||('Adicional '+(i+1)))+' · <span style="color:var(--accent)">R$ '+v.toLocaleString('pt-BR')+'</span></label>'; });
-        html+='</div>';
+        var its=Array.isArray(p.itens)?p.itens:[];
+        var vars=its.filter(function(x){return x.tipo==='variacao';});
+        var adis=its.filter(function(x){return x.tipo==='adicional';});
+        var html='<label>'+esc(p.nome||'')+' — base R$ '+vendaBase.toLocaleString('pt-BR')+'</label>';
+        if(vars.length){ html+='<div style="margin-top:6px;font-size:12px;color:var(--muted)">Variação (escolha uma):</div><div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">';
+          html+='<label style="font-size:13px;color:var(--text);cursor:pointer"><input type="radio" name="venda_variacao" data-valor="'+vendaBase+'" checked> Base · R$ '+vendaBase.toLocaleString('pt-BR')+'</label>';
+          vars.forEach(function(a){ var v=Number(a.valor)||0; html+='<label style="font-size:13px;color:var(--text);cursor:pointer"><input type="radio" name="venda_variacao" data-valor="'+v+'"> '+esc(a.nome||'Variação')+' · <span style="color:var(--accent)">R$ '+v.toLocaleString('pt-BR')+'</span></label>'; });
+          html+='</div>'; }
+        if(adis.length){ html+='<div style="margin-top:8px;font-size:12px;color:var(--muted)">Adicionais (somam):</div><div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">';
+          adis.forEach(function(a){ var v=Number(a.valor)||0; html+='<label style="font-size:13px;color:var(--text);cursor:pointer"><input type="checkbox" class="venda-adic" data-valor="'+v+'"> '+esc(a.nome||'Adicional')+' · <span style="color:var(--accent)">R$ '+v.toLocaleString('pt-BR')+'</span></label>'; });
+          html+='</div>'; }
+        if(!vars.length && !adis.length){ html+='<div style="color:var(--muted);font-size:12.5px;margin-top:4px">Sem variações/adicionais — preenchi o valor base.</div>'; }
         box.innerHTML=html; box.style.display='block';
-        box.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.addEventListener('change',recalcVenda); });
+        box.querySelectorAll('input').forEach(function(c){ c.addEventListener('change',recalcVenda); });
         recalcVenda();
       }).catch(function(){});
     }
-    var vp=$('venda_produto'); if(vp){ vp.addEventListener('change',function(){ carregarAdicionais(vp.value); }); }
+    var vp=$('venda_produto'); if(vp){ vp.addEventListener('change',function(){ carregarItens(vp.value); }); }
     if(btn) btn.addEventListener('click', function(){
       var vendedor=g('vendedor_id'), valor=Number(g('valor'))||0;
       if(!vendedor){ $('msg-venda').textContent='Selecione o vendedor.'; return; }
