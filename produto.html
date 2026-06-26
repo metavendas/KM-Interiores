@@ -3,7 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Produto · KM Interiores</title>
+<title>Mobiliário Autoral de Alto Luxo · KM Interiores</title>
+<meta name="description" content="Peças autorais de mobiliário de alto luxo da KM Interiores. Solicite a curadoria e leve a peça certa para o seu ambiente de alto padrão.">
+<link rel="canonical" href="https://www.kminteriores.com.br/produto.html">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="product">
+<meta property="og:title" content="Mobiliário Autoral · KM Interiores">
+<meta property="og:description" content="Peças autorais de mobiliário de alto luxo.">
+<meta property="og:url" content="https://www.kminteriores.com.br/produto.html">
+<meta property="og:image" content="https://www.kminteriores.com.br/og-image.jpg">
+<meta property="og:locale" content="pt_BR">
 <link rel="icon" href="favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -109,6 +118,17 @@
       var main = p.foto_url ? '<img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'">'
         : '<div class="ph"><svg class="bf"><use href="#bf"/></svg><span>'+esc(p.nome)+'</span></div>';
       document.getElementById('main').innerHTML = main;
+      // Galeria: foto principal + fotos extras (até 5)
+      var galeria=[p.foto_url].concat(Array.isArray(p.fotos_extra)?p.fotos_extra:[]).filter(Boolean);
+      if(galeria.length>1){
+        var gel=document.getElementById('galeria');
+        if(!gel){ gel=document.createElement('div'); gel.id='galeria'; gel.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap'; var m=document.getElementById('main'); if(m&&m.parentNode) m.parentNode.insertBefore(gel, m.nextSibling); }
+        gel.innerHTML=galeria.map(function(u,i){ return '<img src="'+esc(u)+'" data-u="'+esc(u)+'" style="width:62px;height:62px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid '+(i===0?'#c9a227':'rgba(0,0,0,.12)')+'">'; }).join('');
+        Array.prototype.forEach.call(gel.querySelectorAll('img'),function(t){ t.addEventListener('click',function(){
+          document.getElementById('main').innerHTML='<img src="'+esc(t.getAttribute('data-u'))+'" alt="'+esc(p.nome)+'">';
+          Array.prototype.forEach.call(gel.querySelectorAll('img'),function(x){x.style.borderColor='rgba(0,0,0,.12)';}); t.style.borderColor='#c9a227';
+        }); });
+      }
       document.getElementById('ey').textContent = 'Coleção '+(p.colecao||p.categoria)+' · Autoral';
       document.getElementById('nome').textContent = p.nome;
       document.getElementById('crumbs').textContent = 'Início · Coleções · '+p.categoria+' · '+(p.colecao||p.nome);
