@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KM Care · Cuidado e Relacionamento Premium · KM Interiores</title>
+<meta name="description" content="KM Care: o programa de cuidado, manutenção e relacionamento premium da KM Interiores. Acompanhamento contínuo para que cada peça atravesse gerações com a mesma sofisticação do primeiro dia.">
+<link rel="canonical" href="https://www.kminteriores.com.br/kmcare.html">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="KM Care · KM Interiores">
+<meta property="og:description" content="O programa de cuidado, manutenção e relacionamento premium da KM Interiores.">
+<meta property="og:url" content="https://www.kminteriores.com.br/kmcare.html">
+<meta property="og:image" content="https://www.kminteriores.com.br/og-image.jpg">
+<meta property="og:locale" content="pt_BR">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080807;--bg2:#0f0e0c;--text:#F1E9D2;--muted:rgba(241,233,210,.72);--accent:#CB984C;--champagne:#F1E4C9;--ouro-antigo:#9D7D31;--line:rgba(203,152,76,.16);--card-bg:#F1E9D2;
+    --serif:'Playfair Display',Georgia,serif;--serif-accent:'Cormorant Garamond',Georgia,serif;--sans:'Inter',system-ui,sans-serif;}
+  *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}.wrap{max-width:1200px;margin:0 auto;padding:0 40px}
+  .eyebrow{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--accent);font-weight:500}
+  .gold-rule{width:54px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:18px auto}
+  .announce{background:var(--bg2);border-bottom:1px solid var(--line);text-align:center;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);padding:10px 0}
+  header{position:sticky;top:0;z-index:50;background:rgba(8,8,7,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:92px}
+  .brand-logo{height:72px;width:auto;display:block}
+  nav.menu{display:flex;gap:28px}nav.menu a{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text);opacity:.85;transition:.3s}nav.menu a:hover{opacity:1;color:var(--accent)}nav.menu a.active{opacity:1;border-bottom:1px solid var(--accent)}
+  .icons{display:flex;gap:20px;align-items:center}.icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85}
+
+  .hero{position:relative;min-height:60vh;display:flex;align-items:center;text-align:center}
+  .hero::before{content:'';position:absolute;inset:0;background:linear-gradient(160deg,rgba(8,8,7,.5),rgba(8,8,7,.82)),url('hero.jpg');background-size:cover;background-position:center}
+  .hero .wrap{position:relative;z-index:2;width:100%}
+  .hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(36px,5.5vw,68px);line-height:1.05;margin-top:16px}
+  .hero h1 em{font-style:italic;color:var(--accent)}
+  .hero p{font-family:var(--serif-accent);font-size:clamp(18px,2vw,23px);color:var(--champagne);max-width:640px;margin:18px auto 0}
+
+  section{padding:96px 0}
+  .manifesto{text-align:center;max-width:800px;margin:0 auto}
+  .manifesto p{font-family:var(--serif-accent);font-size:23px;color:var(--text);line-height:1.6}
+  .manifesto .sig{font-family:var(--serif);font-style:italic;color:var(--accent);margin-top:24px;font-size:18px}
+
+  .care{background:var(--bg2);text-align:center}
+  .care-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:50px;text-align:left}
+  .care-card{border:1px solid var(--line);background:rgba(241,228,201,.03);padding:34px 30px;transition:.3s}
+  .care-card:hover{border-color:var(--accent);background:rgba(203,152,76,.06)}
+  .care-card .n{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:20px}
+  .care-card h3{font-family:var(--serif);font-weight:500;font-size:20px;margin:10px 0 8px}
+  .care-card p{font-size:14.5px;color:var(--muted)}
+
+  .steps{max-width:900px;margin:50px auto 0;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center}
+  .step .b{font-family:var(--serif);font-size:30px;color:var(--accent)}
+  .step h4{font-family:var(--serif);font-weight:500;font-size:16px;margin:8px 0 6px}
+  .step p{font-size:13px;color:var(--muted)}
+
+  .cta{padding:96px 0;text-align:center;background:linear-gradient(160deg,#100e0b,#080807)}
+  .cta h2{font-family:var(--serif);font-weight:500;font-size:clamp(28px,4vw,44px)}
+  .btn{display:inline-flex;align-items:center;gap:10px;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;padding:18px 36px;cursor:pointer;background:var(--accent);color:#080807;margin-top:28px;transition:.3s}.btn:hover{background:var(--champagne)}
+
+  footer{background:var(--bg2);border-top:1px solid var(--line);padding:44px 0;text-align:center}
+  footer p{font-size:12px;color:var(--muted)}footer .tag{font-family:var(--serif-accent);font-size:16px;color:var(--accent);margin-top:8px}
+  @media(max-width:960px){.wrap{padding:0 22px}nav.menu{display:none}.care-grid{grid-template-columns:1fr}.steps{grid-template-columns:repeat(2,1fr)}}
+  /* ===== TEMA DOURADO (brand book) ===== */
+  :root{--bg:#14100a;--bg2:#1b160d;--text:#F1E4C9;--muted:rgba(241,228,201,.74);--accent:#CB984C;--champagne:#F1E4C9;--ouro-antigo:#9D7D31;--line:rgba(203,152,76,.26);--card-bg:#F1E4C9}
+  .announce{background:#0f0c07;color:rgba(241,228,201,.72)}
+  header{background:linear-gradient(90deg,#CB984C,#9D7D31)!important;border-bottom:1px solid rgba(20,16,10,.3)!important}
+  header nav.menu a{color:#14100a!important;opacity:.92!important}
+  header nav.menu a:hover{color:#000!important;opacity:1!important}
+  header nav.menu a.active{border-bottom:1px solid #14100a!important}
+  header .icons svg{stroke:#14100a!important}
+</style>
+</head>
+<body>
+<div class="announce">Design que inspira · Sofisticação que permanece</div>
+<header><div class="wrap nav">
+  <a class="brand" href="index.html"><img class="brand-logo" src="logo-dourado.png" alt="KM Interiores"></a>
+  <nav class="menu"><a href="institucional.html">A Marca</a><a href="catalogo.html">Ambientes</a><a href="catalogo.html">Catálogo</a><a href="kmcare.html" class="active">KM Care</a><a href="entrar.html">Entrar</a></nav>
+  <div class="icons">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+  </div>
+</div></header>
+
+<section class="hero" style="padding:0">
+  <div class="wrap">
+    <span class="eyebrow">KM Care</span>
+    <h1>O cuidado que faz o luxo<br><em>permanecer</em>.</h1>
+    <p>Mais do que entregar uma peça, a KM acompanha a sua jornada. KM Care é o nosso programa de manutenção e relacionamento premium — para que cada criação atravesse os anos com a mesma sofisticação do primeiro dia.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap manifesto">
+    <div class="gold-rule"></div>
+    <p>Peças de exceção merecem cuidado de exceção. KM Care nasce da convicção de que a relação com o cliente não termina na entrega — ela começa ali. Um acompanhamento atento, discreto e contínuo, para preservar valor, beleza e a tranquilidade de quem confia na assinatura da casa.</p>
+    <div class="sig">— KM Interiores</div>
+  </div>
+</section>
+
+<section class="care">
+  <div class="wrap">
+    <span class="eyebrow">O que o programa contempla</span>
+    <div class="gold-rule"></div>
+    <h2 style="font-family:var(--serif);font-weight:500;font-size:clamp(28px,4vw,42px)">Cuidado em cada detalhe</h2>
+    <div class="care-grid">
+      <div class="care-card"><div class="n">i.</div><h3>Manutenção preventiva</h3><p>Revisões periódicas das peças — acabamentos, estofados, ferragens e madeiras nobres — para preservar a integridade e o brilho original ao longo do tempo.</p></div>
+      <div class="care-card"><div class="n">ii.</div><h3>Atendimento prioritário</h3><p>Um canal direto e exclusivo para o cliente KM Care: orientação de uso, conservação e resposta ágil sempre que precisar.</p></div>
+      <div class="care-card"><div class="n">iii.</div><h3>Curadoria continuada</h3><p>Sugestões personalizadas para complementar e renovar ambientes, com a mesma assinatura estética da casa.</p></div>
+      <div class="care-card"><div class="n">iv.</div><h3>Reparos e restauro</h3><p>Pequenos reparos e restauros conduzidos por nosso ateliê, para que cada peça siga impecável por gerações.</p></div>
+      <div class="care-card"><div class="n">v.</div><h3>Condições exclusivas</h3><p>Vantagens e prioridade em novas coleções, locação premium e peças do ateliê de impressão 3D.</p></div>
+      <div class="care-card"><div class="n">vi.</div><h3>Relacionamento premium</h3><p>Acompanhamento próximo e personalizado — a KM ao seu lado, do primeiro encontro a cada novo ambiente.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap" style="text-align:center">
+    <span class="eyebrow">Como funciona</span>
+    <div class="gold-rule"></div>
+    <div class="steps">
+      <div class="step"><div class="b">01</div><h4>Adesão</h4><p>Você ativa o KM Care e nós mapeamos suas peças e ambientes.</p></div>
+      <div class="step"><div class="b">02</div><h4>Plano de cuidado</h4><p>Definimos juntos um calendário de manutenção e acompanhamento.</p></div>
+      <div class="step"><div class="b">03</div><h4>Acompanhamento</h4><p>Revisões e atendimento prioritário ao longo do ano.</p></div>
+      <div class="step"><div class="b">04</div><h4>Renovação</h4><p>Curadoria contínua e condições exclusivas para evoluir seus espaços.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <span class="eyebrow">Cuide do que é para sempre</span>
+    <h2>Quero conhecer o KM Care</h2>
+    <a class="btn" href="curadoria.html">Falar com a KM</a>
+  </div>
+</section>
+
+<footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p><p class="tag">Design que inspira. Sofisticação que permanece.</p></div></footer>
+<script defer src="assistente.js"></script>
+</body>
+</html>

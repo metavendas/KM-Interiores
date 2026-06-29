@@ -80,7 +80,7 @@
 <div class="announce">Design que inspira · Sofisticação que permanece · Atendimento sob medida em todo o Brasil</div>
 <header><div class="wrap nav">
   <a class="brand" href="index.html"><img class="brand-logo" src="logo-dourado.png" alt="KM Interiores"></a>
-  <nav class="menu"><a href="#">Ambientes</a><a href="catalogo.html">Coleções</a><a href="institucional.html#locacao">Locação</a><a href="institucional.html#atelier">Atelier 3D</a><a href="institucional.html">A Marca</a><a href="entrar.html">Entrar</a></nav>
+  <nav class="menu"><a href="institucional.html">A Marca</a><a href="catalogo.html">Ambientes</a><a href="catalogo.html">Catálogo</a><a href="kmcare.html">KM Care</a><a href="entrar.html">Entrar</a></nav>
   <div class="icons"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><a href="carrinho.html" style="position:relative;display:inline-flex" title="Carrinho"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M6 7h13l-1.5 11H7.5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg><span id="cartCount" style="position:absolute;top:-7px;right:-9px;background:#080807;color:#CB984C;font-size:10px;min-width:16px;height:16px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;border:1px solid #CB984C;font-weight:600"></span></a></div>
 </div></header>
 <div class="wrap"><div class="crumbs" id="crumbs">Início · Coleções</div></div>
@@ -118,11 +118,10 @@
       var main = p.foto_url ? '<img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'">'
         : '<div class="ph"><svg class="bf"><use href="#bf"/></svg><span>'+esc(p.nome)+'</span></div>';
       document.getElementById('main').innerHTML = main;
-      // Galeria: foto principal + fotos extras (até 5)
       var galeria=[p.foto_url].concat((Array.isArray(p.itens)?p.itens:[]).map(function(it){return it.foto;})).filter(Boolean);
       if(galeria.length>1){
         var gel=document.getElementById('galeria');
-        if(!gel){ gel=document.createElement('div'); gel.id='galeria'; gel.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap'; var m=document.getElementById('main'); if(m&&m.parentNode) m.parentNode.insertBefore(gel, m.nextSibling); }
+        if(!gel){ gel=document.createElement('div'); gel.id='galeria'; gel.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap'; var mm=document.getElementById('main'); if(mm&&mm.parentNode) mm.parentNode.insertBefore(gel, mm.nextSibling); }
         gel.innerHTML=galeria.map(function(u,i){ return '<img src="'+esc(u)+'" data-u="'+esc(u)+'" style="width:62px;height:62px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid '+(i===0?'#c9a227':'rgba(0,0,0,.12)')+'">'; }).join('');
         Array.prototype.forEach.call(gel.querySelectorAll('img'),function(t){ t.addEventListener('click',function(){
           document.getElementById('main').innerHTML='<img src="'+esc(t.getAttribute('data-u'))+'" alt="'+esc(p.nome)+'">';
@@ -155,7 +154,6 @@
         ['Disponibilidade', p.disponibilidade==='estoque'?'Pronta-entrega':'Sob encomenda']
       ];
       document.getElementById('specs').innerHTML = specs.map(function(kv){return '<tr><td>'+esc(kv[0])+'</td><td>'+esc(kv[1])+'</td></tr>';}).join('');
-      // ====== Cores, versões e adicionais (loja) ======
       var precoBase = Number(p.preco)||0, corSel='';
       var PAL={branco:'#ffffff',cinza:'#9aa0a6',preto:'#1a1a1a',verde:'#2e7d32',azul:'#1565c0',marrom:'#6d4c41',vermelho:'#c62828',dourado:'#c9a227',bege:'#d8c3a5',gelo:'#eef2f3'};
       var coresDisp=Array.isArray(p.cores_disponiveis)?p.cores_disponiveis:[];
