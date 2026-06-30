@@ -433,6 +433,7 @@
               <option value="site">Site</option>
             </select></div>
             <div class="f"><label>Valor da venda (R$) *</label><input data-k="valor" id="venda_valor" type="number" step="0.01" placeholder="0,00"></div>
+            <div class="f"><label>Cidade de entrega (frete sugerido)</label><input id="venda_cidade_frete" list="cidades_km_crm" placeholder="Digite a cidade" autocomplete="off"><span id="venda_frete_hint" style="display:block;font-size:11px;color:var(--ouro);margin-top:5px">Escolha a cidade para ver o frete (R$ 3,50/km).</span></div>
             <div class="f"><label>Forma de pagamento</label><select data-k="forma_pagamento" id="venda_forma">
               <option value="pix">Pix</option>
               <option value="cartao">Cartão</option>
@@ -549,7 +550,8 @@
             <div class="f"><label>Início</label><input data-k="periodo_inicio" type="date"></div>
             <div class="f"><label>Fim</label><input data-k="periodo_fim" type="date"></div>
             <div class="f"><label>Valor da locação (R$)</label><input data-k="valor" type="number" step="0.01"></div>
-            <div class="f"><label>Frete / logística (R$)</label><input data-k="valor_frete" type="number" step="0.01"></div>
+            <div class="f"><label>Cidade de entrega (calcula frete)</label><input id="loc_cidade_frete" list="cidades_km_crm" placeholder="Digite a cidade" autocomplete="off"></div>
+            <div class="f"><label>Frete / logística (R$)</label><input data-k="valor_frete" id="loc_valor_frete" type="number" step="0.01"><span id="loc_frete_hint" style="display:block;font-size:11px;color:var(--ouro);margin-top:5px"></span></div>
             <div class="f"><label>Caução / depósito (R$)</label><input data-k="caucao" type="number" step="0.01"></div>
             <div class="f"><label>Validade da proposta</label><input data-k="validade" type="date"></div>
             <div class="f full"><label>Itens (um por linha: descrição; qtd; valor)</label><textarea data-k="itens" rows="3" placeholder="Sofá Milano; 1; 1200&#10;Mesa de centro; 1; 400"></textarea></div>
@@ -2715,6 +2717,28 @@ function prodMatch(tr,q){var btn=tr.querySelector('button[data-id]');var p=(btn&
 function injectProdSearch(){var host=document.getElementById('mod-produtos');if(!host||document.getElementById('search-prod'))return;var table=host.querySelector('table');if(!table)return;var bar=document.createElement('div');bar.style.cssText='display:flex;gap:10px;align-items:center;margin:12px 0 4px';bar.innerHTML='<input id="search-prod" placeholder="\uD83D\uDD0D Buscar produto por nome, categoria ou SKU\u2026" autocomplete="off" style="flex:1;background:#221b10;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:9px 12px;font-size:13px"><span id="search-prod-count" style="color:var(--ouro);font-size:12px;white-space:nowrap"></span>';table.parentNode.insertBefore(bar,table);document.getElementById('search-prod').addEventListener('input',function(){var q=this.value.trim().toLowerCase();var rows=document.querySelectorAll('#body-prod tr');var vis=0,tot=0;rows.forEach(function(tr){if(tr.querySelector('td.empty'))return;tot++;var show=prodMatch(tr,q);tr.style.display=show?'':'none';if(show)vis++;});var c=document.getElementById('search-prod-count');if(c)c.textContent=q?(vis+' de '+tot):'';});}
 function apply(){if(typeof window.renderProdutos==='function'&&!window.__prodPatched){window.__prodPatched=true;var _r=window.renderProdutos;window.renderProdutos=function(){var x=_r.apply(this,arguments);setTimeout(injectProdSearch,0);return x;};if(typeof window.editProduto==='function'){var _e=window.editProduto;window.editProduto=function(id){var x=_e.apply(this,arguments);var f=document.getElementById('form-prod');if(f&&f.scrollIntoView)f.scrollIntoView({behavior:'smooth',block:'center'});return x;};}}setTimeout(injectProdSearch,0);}
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',apply);}else{apply();}
+})();
+</script>
+<script src="frete.js"></script>
+<script>
+/* ===== Calculadora de frete no CRM (locação auto-fill + venda sugestão) ===== */
+(function(){
+  function start(){
+    if(!window.KM_CIDADES){ return setTimeout(start,300); }
+    function brlf(v){ try{return 'R$ '+Number(v||0).toLocaleString('pt-BR');}catch(e){return 'R$ '+v;} }
+    if(!document.getElementById('cidades_km_crm')){
+      var dl=document.createElement('datalist'); dl.id='cidades_km_crm';
+      dl.innerHTML=window.KM_CIDADES.map(function(c){return '<option value="'+c[0]+' / '+c[1]+'">';}).join('');
+      document.body.appendChild(dl);
+    }
+    function lookup(input){ var p=(input.value||'').split('/'); return window.kmFreteCidade((p[0]||'').trim(),(p[1]||'').trim()); }
+    var lc=document.getElementById('loc_cidade_frete'), lf=document.getElementById('loc_valor_frete'), lh=document.getElementById('loc_frete_hint');
+    if(lc) lc.addEventListener('change',function(){ var r=lookup(lc); if(r){ if(lf){ lf.value=r.frete; } if(lh) lh.innerHTML='✦ '+r.km+' km · frete '+brlf(r.frete)+' (preenchido)'; } });
+    var vc=document.getElementById('venda_cidade_frete'), vv=document.getElementById('venda_valor'), vh=document.getElementById('venda_frete_hint');
+    if(vc) vc.addEventListener('change',function(){ var r=lookup(vc); if(r&&vh){ vh.innerHTML='✦ '+r.km+' km · frete '+brlf(r.frete)+' &nbsp;<a href="#" id="venda_add_frete" style="color:var(--accent)">+ somar ao valor</a>';
+      var a=document.getElementById('venda_add_frete'); if(a) a.addEventListener('click',function(e){ e.preventDefault(); if(vv){ vv.value=(Number(vv.value)||0)+r.frete; vv.dispatchEvent(new Event('input',{bubbles:true})); } vh.innerHTML='✦ frete '+brlf(r.frete)+' somado ao valor.'; }); } });
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',start);}else{start();}
 })();
 </script>
 </body>

@@ -80,7 +80,8 @@
     <div class="field"><label>Nome completo *</label><input id="c_nome" placeholder="Seu nome"></div>
     <div class="field"><label>E-mail *</label><input id="c_email" type="email" placeholder="seu@email.com"></div>
     <div class="field"><label>Telefone / WhatsApp</label><input id="c_tel" placeholder="(00) 00000-0000"></div>
-    <div class="field"><label>Cidade / UF</label><input id="c_cidade" placeholder="Cidade / UF"></div>
+    <div class="field"><label>Cidade de entrega (calcula o frete)</label><input id="c_cidade" list="cidades_km" placeholder="Digite e selecione sua cidade" autocomplete="off"><datalist id="cidades_km"></datalist></div>
+    <div class="field" style="padding-top:0"><label>Distância de Ubá (km)</label><input id="c_km" type="number" min="0" step="1" placeholder="Preenche sozinho ao escolher a cidade"><div id="freteInfo" style="font-size:12px;color:var(--ouro);margin-top:7px;line-height:1.5">Selecione a cidade (ou informe a distância) para calcular o frete com montagem.</div></div>
     <button class="btn" id="finalizar">Finalizar pedido</button>
     <div class="secure">✦ Pedido registrado com segurança. Um especialista KM confirma a forma de pagamento e a entrega. <span id="msg" style="color:var(--ouro)"></span></div>
   </div>
@@ -88,6 +89,7 @@
 
 <footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p></div></footer>
 
+<script src="frete.js"></script>
 <script>
   var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
   var KCART='km_cart';
@@ -113,9 +115,10 @@
         +'<span class="rm" data-act="rm" data-id="'+esc(i.id)+'">remover</span></div>';
     }).join('');
     var t=total();
+    var fr=Number(window.FRETE_KM)||0, fset=!!window.FRETE_SET;
     sumEl.innerHTML='<div class="sumrow"><span>Subtotal</span><span>'+brl(t)+'</span></div>'
-      +'<div class="sumrow"><span>Frete</span><span>a combinar</span></div>'
-      +'<div class="sumrow tot"><span>Total</span><b>'+brl(t)+'</b></div>';
+      +'<div class="sumrow"><span>Frete + montagem</span><span>'+(fset?brl(fr):'a calcular')+'</span></div>'
+      +'<div class="sumrow tot"><span>Total</span><b>'+brl(t+(fset?fr:0))+'</b></div>';
   }
   document.getElementById('items').addEventListener('click',function(e){
     var b=e.target.closest('[data-act]'); if(!b) return;
@@ -139,7 +142,8 @@
     if(!nome||!email){ document.getElementById('msg').textContent=' Informe nome e e-mail.'; return; }
     var btn=this; btn.disabled=true; btn.textContent='Enviando pedido…'; document.getElementById('msg').textContent='';
     var payload={ p_cliente:{nome:nome,email:email,telefone:document.getElementById('c_tel').value.trim(),cidade:document.getElementById('c_cidade').value.trim()},
-      p_itens:cart.map(function(i){return {produto_id:i.id, qtd:i.qtd||1};}) };
+      p_itens:cart.map(function(i){return {produto_id:i.id, qtd:i.qtd||1};}),
+      p_frete:(window.FRETE_SET?(Number(window.FRETE_KM)||0):0), p_distancia_km:(window.KM_SEL||null), p_cidade_entrega:document.getElementById('c_cidade').value.trim()||null };
     fetch(SB+'/rest/v1/rpc/criar_pedido',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(function(r){return r.json();})
     .then(function(j){
@@ -164,6 +168,23 @@
     })
     .catch(function(e){ btn.disabled=false; btn.textContent='Finalizar pedido'; document.getElementById('msg').textContent=' Erro de conexão.'; console.error(e); });
   });
+  // ===== Frete por cidade / km (base: frete.js) =====
+  window.FRETE_KM=0; window.FRETE_SET=false; window.KM_SEL=null;
+  (function(){
+    if(!window.KM_CIDADES) return;
+    var dl=document.getElementById('cidades_km');
+    if(dl) dl.innerHTML=window.KM_CIDADES.map(function(c){return '<option value="'+esc(c[0])+' / '+c[1]+'">';}).join('');
+    var cid=document.getElementById('c_cidade'), kmEl=document.getElementById('c_km'), info=document.getElementById('freteInfo');
+    function aplica(km){ window.KM_SEL=km; window.FRETE_KM=window.kmFrete(km); window.FRETE_SET=true;
+      if(info) info.innerHTML='Distância: <b>'+km+' km</b> · Frete + montagem: <b style="color:var(--accent)">'+brl(window.FRETE_KM)+'</b>'+(km<=20?' (mínimo)':'');
+      render(); }
+    if(cid) cid.addEventListener('change',function(){
+      var p=cid.value.split('/'), nome=(p[0]||'').trim(), uf=(p[1]||'').trim();
+      var r=window.kmFreteCidade(nome,uf);
+      if(r){ if(kmEl) kmEl.value=r.km; aplica(r.km); }
+    });
+    if(kmEl) kmEl.addEventListener('input',function(){ var k=Number(kmEl.value); if(k>0) aplica(k); else { window.FRETE_SET=false; render(); } });
+  })();
   render();
 </script>
 <script defer src="assistente.js"></script>
