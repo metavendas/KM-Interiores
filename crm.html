@@ -143,6 +143,52 @@
   #funilKanban .lead:active{cursor:grabbing}
   #funilKanban .lead.dragging{opacity:.45;border-style:dashed}
   #funilKanban .col.over{background:rgba(203,152,76,.10);outline:1px dashed var(--accent);outline-offset:-3px}
+  /* ===== Carteira de Leads (distribuição por consultor) ===== */
+  .cart-top{font-size:12.5px;color:var(--muted);margin:2px 0 14px}
+  .cart-top b{color:var(--accent)}
+  .cart-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:1000px){.cart-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.cart-grid{grid-template-columns:1fr}}
+  .cart-card{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:16px 18px;cursor:pointer;transition:.15s;position:relative}
+  .cart-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.35)}
+  .cart-card .cc-nome{font-family:var(--serif);color:var(--text);font-size:15.5px;font-weight:500}
+  .cart-card .cc-reg{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro);margin-top:2px}
+  .cart-card .cc-num{font-family:var(--serif);color:var(--accent);font-size:34px;line-height:1.1;margin-top:10px}
+  .cart-card .cc-lbl{font-size:11px;color:var(--muted);margin-top:-2px}
+  .cart-card .cc-break{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6}
+  .cart-card .cc-cta{margin-top:12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+  .cart-listhead{font-family:var(--serif);color:var(--accent);font-size:16px;margin:14px 0 12px}
+  .cart-listhead .tagreal{font-family:var(--sans);font-size:11px;color:var(--muted);margin-left:8px}
+  .cart-list{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  @media(max-width:800px){.cart-list{grid-template-columns:1fr}}
+  .cart-lead{background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:12px 14px;cursor:pointer;transition:.15s}
+  .cart-lead:hover{border-color:var(--accent);background:#1b160d}
+  .cart-lead .cl-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .cart-lead .cl-nome{color:var(--text);font-size:13.5px;font-weight:600}
+  .cart-lead .cl-badge{font-size:10px;padding:2px 8px;border-radius:10px;white-space:nowrap}
+  .cart-lead .cl-sub{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .cart-lead .cl-ang{font-size:11.5px;color:var(--champagne);margin-top:6px;line-height:1.45}
+  /* ===== Modal do lead (Ângulo & Gancho + resultado do contato) ===== */
+  #leadModal{display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.68);align-items:center;justify-content:center;padding:20px}
+  #leadModal .lmbox{max-width:620px;width:100%;max-height:92vh;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:6px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  #leadModal .lmhead{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg2)}
+  #leadModal .lmhead b{font-family:var(--serif);font-weight:500;color:var(--accent);font-size:17px;display:block}
+  #leadModal .lmhead .lm-meta{font-size:12px;color:var(--muted);margin-top:3px}
+  #leadModal .lmx{cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding-left:12px}
+  #leadModal .lmbody{padding:18px 22px}
+  #leadModal .lm-contato{font-size:12.5px;color:var(--text);line-height:1.7;background:var(--bg3);border:1px solid var(--line);border-radius:4px;padding:10px 12px;margin-bottom:14px}
+  #leadModal .lm-contato b{color:var(--ouro)}
+  #leadModal .lmlab{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);margin:14px 0 6px}
+  #leadModal .lm-ang{font-size:13px;color:var(--champagne);line-height:1.55;background:#1b160d;border-left:2px solid var(--accent);padding:10px 12px;border-radius:0 4px 4px 0}
+  #leadModal textarea,#leadModal input,#leadModal select{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:10px 11px;font-family:var(--sans);font-size:13px;border-radius:4px;outline:none;box-sizing:border-box}
+  #leadModal textarea{min-height:74px;line-height:1.5;resize:vertical}
+  #leadModal textarea:focus,#leadModal input:focus,#leadModal select:focus{border-color:var(--accent)}
+  #leadModal .lm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  #leadModal .lmft{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+  #leadModal .lmok{background:var(--accent);color:#080807;border:none;padding:12px 24px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:3px}
+  #leadModal .lmcancel{background:transparent;border:1px solid var(--line);color:var(--text);padding:12px 22px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:3px}
+  #leadModal .lm-msg{font-size:12px;color:var(--champagne)}
+  .funil-consfiltro{background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:4px;font-size:12.5px;outline:none;margin-left:8px}
   /* Semáforo do funil */
   .lead{border-left-width:3px}
   .lead.sem-verde{border-left-color:#5fbf6a}
@@ -193,6 +239,7 @@
     <nav class="nav">
       <a class="active" href="#" data-view="dashboard"><span class="dot"></span> Dashboard</a>
       <a href="#" data-view="funil"><span class="dot"></span> Funil de Vendas</a>
+      <a href="#" data-view="carteira"><span class="dot"></span> Carteira de Leads</a>
       <a href="#" data-view="forecast"><span class="dot"></span> Forecast (CEO)</a>
       <a href="#" data-view="arquivo"><span class="dot"></span> Arquivo</a>
       <div class="sec">Cadastros</div>
@@ -305,11 +352,19 @@
           <i><span class="sem sem-dot-amarelo"></span> Atenção (4–7 dias parado)</i>
           <i><span class="sem sem-dot-vermelho"></span> Parado (+7 dias sem avanço)</i>
         </div>
-        <div style="display:flex;gap:8px;margin:2px 0 14px">
+        <div style="display:flex;gap:8px;margin:2px 0 14px;align-items:center;flex-wrap:wrap">
           <button id="funilTabCli" class="ia-btn funil-tab sug" data-pipe="projeto">Clientes</button>
           <button id="funilTabPar" class="ia-btn funil-tab" data-pipe="parceiros">Parceiros</button>
+          <select id="funilCons" class="funil-consfiltro" title="Filtrar por consultor"><option value="">Todos os consultores</option></select>
         </div>
         <div class="kanban" id="funilKanban"><div class="empty" style="grid-column:1/-1">Carregando funil…</div></div>
+      </section>
+
+      <!-- ===== CARTEIRA DE LEADS (distribuição por consultor) ===== -->
+      <section class="view" data-v="carteira" hidden>
+        <div class="h1">Carteira de Leads</div>
+        <div class="sub">Leads reais de Ubá distribuídos por consultor PIN · <span style="color:var(--ouro)">abra um lead para ver o ângulo, o gancho pronto e registrar o resultado do contato</span></div>
+        <div id="carteiraWrap"><div class="empty">Carregando distribuição…</div></div>
       </section>
 
       <!-- ===== ARQUIVO (perdidos) ===== -->
@@ -762,15 +817,15 @@
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
   // ===== Controle de acesso (UI) — acessos personalizados por pessoa =====
   // Módulos que o admin pode conceder (Equipe & Acessos é sempre só de admin).
-  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['arquivo','Arquivo'],['clientes','Clientes'],
+  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['carteira','Carteira de Leads'],['arquivo','Arquivo'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['engajamento','Engajamento (LinkedIn)'],['produtos','Produtos'],
     ['estoque','Estoque'],['pedidos','Pedidos'],['os','Ordens de Serviço'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
     ['agentes','Agentes de IA'],['relatorios','Relatórios'],['saude','Saúde do Funil']];
   var ACCESS_DEFAULT={
-    vendas:        ['funil','pedidos','os','leads','produtos','estoque','programas','treinamentos','tarefas','chat','agentes'],
-    representante: ['funil','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','locacao','pedidos3d','treinamentos','tarefas','chat'],
-    curadoria:     ['funil','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','leads','locacao','pedidos3d','programas','treinamentos','tarefas','chat']
+    vendas:        ['funil','carteira','pedidos','os','leads','produtos','estoque','programas','treinamentos','tarefas','chat','agentes'],
+    representante: ['funil','carteira','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','locacao','pedidos3d','treinamentos','tarefas','chat'],
+    curadoria:     ['funil','carteira','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','leads','locacao','pedidos3d','programas','treinamentos','tarefas','chat']
   };
   var ME_ROLE='', ME_ACESSOS=null;
   function allowedViews(){
@@ -1299,6 +1354,7 @@
     document.querySelectorAll('.nav a[data-view]').forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-view')===v); });
     if(v==='produtos') renderProdutos();
     if(v==='funil') initFunil();
+    if(v==='carteira') initCarteira();
     if(v==='arquivo') loadArquivo();
     if(v==='engajamento') initEngajamento();
     if(v==='pedidos') loadPedidos();
@@ -1707,11 +1763,13 @@
     var _bc=$('funilTabCli'), _bp=$('funilTabPar'); if(_bc&&_bp){ _bc.className='ia-btn funil-tab'+(FUNIL_PIPE==='projeto'?' sug':''); _bp.className='ia-btn funil-tab'+(FUNIL_PIPE==='parceiros'?' sug':''); }
     var k=$('funilKanban'); if(!k) return;
     var tok=localStorage.getItem(TOKKEY);
+    populateFunilCons();
     k.innerHTML='<div class="empty" style="grid-column:1/-1">Carregando funil…</div>';
-    fetch(SB+'/rest/v1/oportunidades?select=id,titulo,valor,estagio,origem,created_at,updated_at,perdido_em,motivo_perda&estagio=neq.arquivado&pipeline=eq.'+FUNIL_PIPE+'&order=created_at.desc&limit=300',{headers:authHeaders(tok)})
+    fetch(SB+'/rest/v1/oportunidades?select=id,titulo,valor,estagio,origem,responsavel_id,created_at,updated_at,perdido_em,motivo_perda&estagio=neq.arquivado&pipeline=eq.'+FUNIL_PIPE+'&order=created_at.desc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
       rows=Array.isArray(rows)?rows:[];
+      if(FUNIL_CONS){ rows=rows.filter(function(o){ return o.responsavel_id===FUNIL_CONS; }); }
       k.innerHTML=ESTAGIOS.map(function(s){ return '<div class="col" data-estagio="'+s.k+'"><h4>'+s.t+' <span>0</span></h4></div>'; }).join('');
       var by={}; ESTAGIOS.forEach(function(s){ by[s.k]=k.querySelector('.col[data-estagio="'+s.k+'"]'); });
       rows.forEach(function(o){
@@ -1723,7 +1781,7 @@
         var extra='';
         if(o.estagio==='perdido'){ var _b=o.perdido_em||o.updated_at; var _d=_b?Math.max(0,30-Math.floor((Date.now()-new Date(_b).getTime())/86400000)):30; extra='<div class="mt" style="color:#e5534b">🗄 arquiva em '+_d+' dia(s)'+(o.motivo_perda?' · '+esc(o.motivo_perda):'')+'</div>'; }
         else if(o.estagio!=='ganho'){ extra='<div style="margin-top:7px"><button class="lead-perder" data-id="'+o.id+'" style="font-size:10px;color:#e5534b;background:transparent;border:1px solid var(--line);border-radius:3px;padding:3px 8px;cursor:pointer">Arquivar</button></div>'; }
-        card.innerHTML='<div class="nm"><span class="sem sem-dot-'+sem+'"></span>'+esc(o.titulo||'—')+'</div><div class="mt">'+esc(o.origem||'')+'</div>'+val+extra;
+        card.innerHTML='<div class="nm"><span class="sem sem-dot-'+sem+'"></span>'+esc(o.titulo||'—')+'</div><div class="mt">'+esc(o.origem||'')+'</div>'+(o.responsavel_id?'<div class="mt">👤 '+esc(vendNome(o.responsavel_id))+'</div>':'')+val+extra;
         col.appendChild(card);
       });
       funilDnD(k); funilCounts(k);
@@ -1805,6 +1863,150 @@
   }
   function optsFrom(cache,empty,sel){ return '<option value="">'+(empty||'— selecione —')+'</option>'+(cache||[]).map(function(c){ return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+esc(c.nome||'(sem nome)')+'</option>'; }).join(''); }
   function vendNome(id){ var a=(VEND_CACHE||[]).filter(function(c){return c.id===id;}); return a.length?a[0].nome:'—'; }
+
+  // ===================== CARTEIRA DE LEADS (distribuição por consultor) =====================
+  var CART_STATUS=[['nao_contatado','Não contatado'],['tentativa','Tentativa (não atendeu)'],['falei','Falei / em conversa'],['agendou','Agendou visita'],['proposta','Enviou proposta'],['fechou','Fechou'],['sem_interesse','Sem interesse'],['perdido','Perdido']];
+  var CART_FORMA=[['whatsapp','WhatsApp'],['telefone','Telefone'],['email','E-mail'],['presencial','Presencial'],['instagram','Instagram'],['outro','Outro']];
+  var CART_ROWS={};
+  function cartStatusLabel(k){ for(var i=0;i<CART_STATUS.length;i++){ if(CART_STATUS[i][0]===k) return CART_STATUS[i][1]; } return k||'—'; }
+  function cartStatusColor(k){ return ({nao_contatado:'#9a9a9a',tentativa:'#e3b341',falei:'#59a5d8',agendou:'#5fbf6a',proposta:'#c9862f',fechou:'#3ea55e',sem_interesse:'#8a6d3b',perdido:'#e5534b'})[k]||'#9a9a9a'; }
+
+  function initCarteira(){
+    var wrap=$('carteiraWrap'); if(!wrap) return;
+    if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ carteiraDaMinha(); return; }
+    wrap.innerHTML='<div class="empty">Carregando distribuição…</div>';
+    rpc('carteira_por_consultor',{}).then(function(rows){
+      rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ wrap.innerHTML='<div class="empty">Nenhum consultor com carteira. Rode a distribuição no banco.</div>'; return; }
+      var total=0; rows.forEach(function(r){ total+=Number(r.total)||0; });
+      var html='<div class="cart-top">Total distribuído: <b>'+total+'</b> leads · '+rows.length+' consultores PIN · clique num card para abrir a carteira</div><div class="cart-grid">';
+      rows.forEach(function(r){
+        html+='<div class="cart-card" data-cons="'+r.consultor+'" data-nome="'+esc(r.nome||'')+'">'+
+          '<div class="cc-nome">'+esc(r.nome||'—')+'</div>'+
+          '<div class="cc-reg">'+esc(r.regiao||'')+'</div>'+
+          '<div class="cc-num">'+(Number(r.total)||0)+'</div><div class="cc-lbl">leads na carteira</div>'+
+          '<div class="cc-break"><span style="color:#9a9a9a">● '+(Number(r.nao_contatado)||0)+' a contatar</span> · <span style="color:#e3b341">'+(Number(r.em_andamento)||0)+' em andamento</span> · <span style="color:#5fbf6a">'+(Number(r.agendados)||0)+' agendou</span> · <span style="color:#c9862f">'+(Number(r.propostas)||0)+' proposta</span></div>'+
+          '<div class="cc-cta">Abrir carteira →</div></div>';
+      });
+      html+='</div>';
+      wrap.innerHTML=html;
+      wrap.querySelectorAll('.cart-card').forEach(function(c){ c.addEventListener('click',function(){ carteiraDoConsultor(c.getAttribute('data-cons'), c.getAttribute('data-nome')); }); });
+    }).catch(function(){ wrap.innerHTML='<div class="empty">Não foi possível carregar (entre como equipe).</div>'; });
+  }
+
+  function carteiraDaMinha(){
+    var wrap=$('carteiraWrap'); wrap.innerHTML='<div class="empty">Carregando sua carteira…</div>';
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/leads_engajamento?select=*&responsavel_id=not.is.null&order=score.desc&limit=400',{headers:authHeaders(tok)})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(rows){ renderCarteiraLista(rows,'Minha carteira', false); })
+      .catch(function(){ wrap.innerHTML='<div class="empty">Não foi possível carregar sua carteira.</div>'; });
+  }
+
+  function carteiraDoConsultor(consId, nome){
+    var wrap=$('carteiraWrap'); wrap.innerHTML='<div class="empty">Carregando carteira de '+esc(nome)+'…</div>';
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/leads_engajamento?select=*&responsavel_id=eq.'+consId+'&order=score.desc&limit=400',{headers:authHeaders(tok)})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(rows){ renderCarteiraLista(rows,'Carteira · '+nome, true); })
+      .catch(function(){ wrap.innerHTML='<div class="empty">Não foi possível carregar a carteira.</div>'; });
+  }
+
+  function renderCarteiraLista(rows, titulo, showBack){
+    rows=Array.isArray(rows)?rows:[]; CART_ROWS={}; rows.forEach(function(l){ CART_ROWS[l.id]=l; });
+    var wrap=$('carteiraWrap'), h='';
+    if(showBack) h+='<button class="ia-btn" id="cartBack" style="margin-bottom:12px">← Voltar aos consultores</button>';
+    h+='<div class="cart-listhead">'+esc(titulo)+' <span class="tagreal">'+rows.length+' leads</span></div><div class="cart-list">';
+    if(!rows.length) h+='<div class="empty" style="grid-column:1/-1">Sem leads nesta carteira.</div>';
+    rows.forEach(function(l){
+      var col=cartStatusColor(l.status_contato);
+      var ang=(l.angulo||l.gancho||''); if(ang.length>130) ang=ang.slice(0,130)+'…';
+      h+='<div class="cart-lead" data-id="'+l.id+'"><div class="cl-top"><span class="cl-nome">'+esc(l.nome||l.empresa||'—')+'</span>'+
+         '<span class="cl-badge" style="background:'+col+'22;color:'+col+'">'+esc(cartStatusLabel(l.status_contato))+'</span></div>'+
+         '<div class="cl-sub">'+esc(l.cargo||'')+(l.cidade?' · '+esc(l.cidade):'')+(l.telefone?' · '+esc(l.telefone):'')+'</div>'+
+         '<div class="cl-ang">'+esc(ang)+'</div></div>';
+    });
+    h+='</div>'; wrap.innerHTML=h;
+    var bk=$('cartBack'); if(bk) bk.addEventListener('click', initCarteira);
+    wrap.querySelectorAll('.cart-lead').forEach(function(el){ el.addEventListener('click',function(){ abrirLeadModal(el.getAttribute('data-id')); }); });
+  }
+
+  function ensureLeadModal(){
+    if($('leadModal')) return;
+    var m=document.createElement('div'); m.id='leadModal';
+    m.innerHTML='<div class="lmbox"><div class="lmhead"><div><b id="lm_nome">Lead</b><div class="lm-meta" id="lm_meta"></div></div><span class="lmx" id="lm_close">✕</span></div>'+
+      '<div class="lmbody">'+
+      '<div class="lm-contato" id="lm_contato"></div>'+
+      '<span class="lmlab">Ângulo (por que abordar)</span><div class="lm-ang" id="lm_ang">—</div>'+
+      '<span class="lmlab">Gancho — mensagem pronta</span><textarea id="lm_gancho"></textarea>'+
+      '<div style="border-top:1px dashed var(--line);margin:18px 0 4px"></div>'+
+      '<span class="lmlab" style="color:var(--accent)">Resultado do contato</span>'+
+      '<div class="lm-grid"><div><span class="lmlab">Status</span><select id="lm_status"></select></div>'+
+      '<div><span class="lmlab">Forma de contato</span><select id="lm_forma"></select></div></div>'+
+      '<div class="lm-grid" style="margin-top:12px"><div><span class="lmlab">Próximo passo</span><input id="lm_prox" type="text" placeholder="ex.: enviar catálogo, visita"></div>'+
+      '<div><span class="lmlab">Data do próximo passo</span><input id="lm_proxem" type="date"></div></div>'+
+      '<div class="lm-grid" style="margin-top:12px"><div><span class="lmlab">Valor potencial (R$)</span><input id="lm_valor" type="number" min="0" step="100" placeholder="0"></div>'+
+      '<div><span class="lmlab">Data do contato</span><input id="lm_contem" type="date"></div></div>'+
+      '<span class="lmlab">Observação</span><textarea id="lm_obs" placeholder="Anotações da conversa…"></textarea>'+
+      '<div class="lmft"><button class="lmok" id="lm_save">Salvar resultado</button><button class="lmcancel" id="lm_cancel">Fechar</button><span class="lm-msg" id="lm_msg"></span></div>'+
+      '<input type="hidden" id="lm_id"></div></div>';
+    document.body.appendChild(m);
+    $('lm_close').addEventListener('click', fecharLeadModal);
+    $('lm_cancel').addEventListener('click', fecharLeadModal);
+    $('lm_save').addEventListener('click', salvarLeadModal);
+    m.addEventListener('click', function(e){ if(e.target===m) fecharLeadModal(); });
+  }
+  function abrirLeadModal(id){
+    ensureLeadModal(); var l=CART_ROWS[id]; if(!l) return;
+    var telDig=(l.telefone||'').replace(/\D/g,''); var wa=telDig?('55'+telDig):'';
+    $('lm_nome').textContent=l.nome||l.empresa||'Lead';
+    $('lm_meta').textContent=(l.cargo||'')+(l.empresa&&l.empresa!==l.nome?(' · '+l.empresa):'')+(l.cidade?(' · '+l.cidade):'');
+    $('lm_contato').innerHTML=
+      (l.telefone?'<div><b>Telefone:</b> '+esc(l.telefone)+(wa?' · <a href="https://wa.me/'+wa+'" target="_blank" rel="noopener" style="color:#5fbf6a">abrir WhatsApp</a>':'')+'</div>':'')+
+      (l.email?'<div><b>E-mail:</b> '+esc(l.email)+'</div>':'')+
+      (l.endereco?'<div><b>Endereço:</b> '+esc(l.endereco)+'</div>':'')+
+      (l.cnpj?'<div><b>CNPJ:</b> '+esc(l.cnpj)+'</div>':'')+
+      ((!l.telefone&&!l.email&&!l.endereco)?'<div style="color:var(--muted)">Sem dados de contato enriquecidos.</div>':'');
+    $('lm_ang').textContent=l.angulo||l.gancho||'—';
+    $('lm_gancho').value=l.gancho||'';
+    $('lm_status').innerHTML=CART_STATUS.map(function(x){ return '<option value="'+x[0]+'"'+(l.status_contato===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('');
+    $('lm_forma').innerHTML='<option value="">—</option>'+CART_FORMA.map(function(x){ return '<option value="'+x[0]+'"'+(l.forma_contato===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('');
+    $('lm_prox').value=l.proximo_passo||'';
+    $('lm_proxem').value=l.proximo_passo_em?String(l.proximo_passo_em).slice(0,10):'';
+    $('lm_valor').value=(l.valor_potencial!=null?l.valor_potencial:'');
+    $('lm_contem').value=l.contatado_em?String(l.contatado_em).slice(0,10):'';
+    $('lm_obs').value=l.obs_contato||'';
+    $('lm_id').value=id; $('lm_msg').textContent='';
+    $('leadModal').style.display='flex';
+  }
+  function fecharLeadModal(){ var m=$('leadModal'); if(m) m.style.display='none'; }
+  function salvarLeadModal(){
+    var id=$('lm_id').value; var contem=$('lm_contem').value;
+    var body={ p_id:id, p_status:$('lm_status').value, p_forma:$('lm_forma').value||null,
+      p_contatado_em: contem?(contem+'T12:00:00Z'):null,
+      p_proximo:$('lm_prox').value||null, p_proximo_em:$('lm_proxem').value||null,
+      p_obs:$('lm_obs').value||null, p_valor:$('lm_valor').value!==''?Number($('lm_valor').value):null };
+    $('lm_save').disabled=true; $('lm_msg').textContent='Salvando…';
+    rpc('registrar_resultado_contato', body).then(function(res){
+      $('lm_save').disabled=false;
+      if(res && res.ok){
+        $('lm_msg').textContent='✓ Salvo'+(res.oportunidade_id?' · virou oportunidade no funil':'');
+        var l=CART_ROWS[id]; if(l){ l.status_contato=body.p_status; l.forma_contato=body.p_forma; l.proximo_passo=body.p_proximo; l.proximo_passo_em=body.p_proximo_em; l.obs_contato=body.p_obs; l.valor_potencial=body.p_valor; l.contatado_em=body.p_contatado_em; }
+        setTimeout(function(){ fecharLeadModal(); if(ME_ROLE==='admin'||ME_ROLE==='gestor'){ /* mantém lista */ } }, 800);
+      } else { $('lm_msg').textContent='Erro: '+((res&&(res.message||res.hint))||'não foi possível salvar'); }
+    }).catch(function(){ $('lm_save').disabled=false; $('lm_msg').textContent='Erro de conexão.'; });
+  }
+
+  // Filtro do funil por consultor (integração no kanban)
+  var FUNIL_CONS='';
+  function populateFunilCons(){
+    var s=$('funilCons'); if(!s) return;
+    ensureVendedores(function(){
+      var cur=FUNIL_CONS;
+      s.innerHTML='<option value="">Todos os consultores</option>'+(VEND_CACHE||[]).map(function(v){ return '<option value="'+v.id+'"'+(cur===v.id?' selected':'')+'>'+esc(v.nome||'')+'</option>'; }).join('');
+      if(!s._wired){ s._wired=true; s.addEventListener('change', function(){ FUNIL_CONS=this.value; initFunil(); }); }
+    });
+  }
   // Estimativa de comissão (espelha calc_comissao do servidor; valor oficial vem do banco)
   // Regra: arquiteto NÃO reduz o consultor — consultor recebe % cheio + arquiteto por cima.
   function estComissao(pilar,valor,comArq){
