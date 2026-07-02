@@ -189,6 +189,13 @@
   #leadModal .lmcancel{background:transparent;border:1px solid var(--line);color:var(--text);padding:12px 22px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:3px}
   #leadModal .lm-msg{font-size:12px;color:var(--champagne)}
   .funil-consfiltro{background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:4px;font-size:12.5px;outline:none;margin-left:8px}
+  .funil-resumo-lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro);margin:2px 0 6px}
+  .funil-resumo{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+  .funil-chip{background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:12px;color:var(--text);cursor:pointer;display:flex;gap:7px;align-items:center;transition:.15s}
+  .funil-chip:hover{border-color:var(--accent)}
+  .funil-chip.on{border-color:var(--accent);background:rgba(203,152,76,.12)}
+  .funil-chip b{color:var(--accent);font-family:var(--serif)}
+  .funil-chip .fc-nome{color:var(--muted)}
   /* Semáforo do funil */
   .lead{border-left-width:3px}
   .lead.sem-verde{border-left-color:#5fbf6a}
@@ -357,6 +364,8 @@
           <button id="funilTabPar" class="ia-btn funil-tab" data-pipe="parceiros">Parceiros</button>
           <select id="funilCons" class="funil-consfiltro" title="Filtrar por consultor"><option value="">Todos os consultores</option></select>
         </div>
+        <div class="funil-resumo-lab">Leads na carteira por consultor · clique para filtrar o funil</div>
+        <div id="funilResumo" class="funil-resumo"></div>
         <div class="kanban" id="funilKanban"><div class="empty" style="grid-column:1/-1">Carregando funil…</div></div>
       </section>
 
@@ -1764,6 +1773,7 @@
     var k=$('funilKanban'); if(!k) return;
     var tok=localStorage.getItem(TOKKEY);
     populateFunilCons();
+    loadFunilResumo();
     k.innerHTML='<div class="empty" style="grid-column:1/-1">Carregando funil…</div>';
     fetch(SB+'/rest/v1/oportunidades?select=id,titulo,valor,estagio,origem,responsavel_id,created_at,updated_at,perdido_em,motivo_perda&estagio=neq.arquivado&pipeline=eq.'+FUNIL_PIPE+'&order=created_at.desc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
@@ -2006,6 +2016,22 @@
       s.innerHTML='<option value="">Todos os consultores</option>'+(VEND_CACHE||[]).map(function(v){ return '<option value="'+v.id+'"'+(cur===v.id?' selected':'')+'>'+esc(v.nome||'')+'</option>'; }).join('');
       if(!s._wired){ s._wired=true; s.addEventListener('change', function(){ FUNIL_CONS=this.value; initFunil(); }); }
     });
+  }
+  function loadFunilResumo(){
+    var host=$('funilResumo'); if(!host) return;
+    if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ host.innerHTML=''; return; } // consultor não vê o total dos colegas
+    rpc('carteira_por_consultor',{}).then(function(rows){
+      rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ host.innerHTML=''; return; }
+      var tot=0; rows.forEach(function(r){ tot+=Number(r.total)||0; });
+      var h='<div class="funil-chip'+(FUNIL_CONS===''?' on':'')+'" data-cons=""><span class="fc-nome">Todos</span> <b>'+tot+'</b></div>';
+      rows.forEach(function(r){
+        var prim=(r.nome||'').split(' ')[0];
+        h+='<div class="funil-chip'+(FUNIL_CONS===r.consultor?' on':'')+'" data-cons="'+r.consultor+'"><span class="fc-nome">'+esc(prim)+'</span> <b>'+(Number(r.total)||0)+'</b></div>';
+      });
+      host.innerHTML=h;
+      host.querySelectorAll('.funil-chip').forEach(function(ch){ ch.addEventListener('click',function(){ FUNIL_CONS=ch.getAttribute('data-cons'); var s=$('funilCons'); if(s) s.value=FUNIL_CONS; initFunil(); }); });
+    }).catch(function(){ host.innerHTML=''; });
   }
   // Estimativa de comissão (espelha calc_comissao do servidor; valor oficial vem do banco)
   // Regra: arquiteto NÃO reduz o consultor — consultor recebe % cheio + arquiteto por cima.
