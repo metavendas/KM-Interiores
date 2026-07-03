@@ -247,6 +247,7 @@
       <a class="active" href="#" data-view="dashboard"><span class="dot"></span> Dashboard</a>
       <a href="#" data-view="funil"><span class="dot"></span> Funil de Vendas</a>
       <a href="#" data-view="carteira"><span class="dot"></span> Carteira de Leads</a>
+      <a href="#" data-view="arqpropostas"><span class="dot"></span> Propostas de Arquitetos</a>
       <a href="#" data-view="forecast"><span class="dot"></span> Forecast (CEO)</a>
       <a href="#" data-view="arquivo"><span class="dot"></span> Arquivo</a>
       <div class="sec">Cadastros</div>
@@ -374,6 +375,13 @@
         <div class="h1">Carteira de Leads</div>
         <div class="sub">Leads reais de Ubá distribuídos por consultor PIN · <span style="color:var(--ouro)">abra um lead para ver o ângulo, o gancho pronto e registrar o resultado do contato</span></div>
         <div id="carteiraWrap"><div class="empty">Carregando distribuição…</div></div>
+      </section>
+
+      <!-- ===== PROPOSTAS DE ARQUITETOS (Portal do Arquiteto — lado KM) ===== -->
+      <section class="view" data-v="arqpropostas" hidden>
+        <div class="h1">Propostas de Arquitetos</div>
+        <div class="sub">Propostas montadas pelos arquitetos parceiros · <span style="color:var(--ouro)">revise e aprove — ao aprovar, vira oportunidade no funil e a comissão fica registrada</span></div>
+        <div id="arqWrap"><div class="empty">Carregando propostas…</div></div>
       </section>
 
       <!-- ===== ARQUIVO (perdidos) ===== -->
@@ -826,7 +834,7 @@
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
   // ===== Controle de acesso (UI) — acessos personalizados por pessoa =====
   // Módulos que o admin pode conceder (Equipe & Acessos é sempre só de admin).
-  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['carteira','Carteira de Leads'],['arquivo','Arquivo'],['clientes','Clientes'],
+  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['carteira','Carteira de Leads'],['arqpropostas','Propostas de Arquitetos'],['arquivo','Arquivo'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['engajamento','Engajamento (LinkedIn)'],['produtos','Produtos'],
     ['estoque','Estoque'],['pedidos','Pedidos'],['os','Ordens de Serviço'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
@@ -1364,6 +1372,7 @@
     if(v==='produtos') renderProdutos();
     if(v==='funil') initFunil();
     if(v==='carteira') initCarteira();
+    if(v==='arqpropostas') initArqPropostas();
     if(v==='arquivo') loadArquivo();
     if(v==='engajamento') initEngajamento();
     if(v==='pedidos') loadPedidos();
@@ -2446,6 +2455,60 @@
   function itensResumo(arr){ try{ arr=(typeof arr==='string')?JSON.parse(arr):arr; }catch(e){ arr=[]; } if(!Array.isArray(arr)||!arr.length) return '—'; return arr.map(function(i){ return (i.qtd||1)+'× '+(i.item||''); }).join(', '); }
   function periodoTxt(a,b){ function d(x){ return x?new Date(x+'T00:00:00').toLocaleDateString('pt-BR'):'—'; } return d(a)+' → '+d(b); }
   function rpc(name, body){ var tok=localStorage.getItem(TOKKEY); return fetch(SB+'/rest/v1/rpc/'+name,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify(body||{})}).then(function(r){ return r.json(); }); }
+
+  // ===================== PROPOSTAS DE ARQUITETOS (Portal do Arquiteto — lado KM) =====================
+  var ARQ_STATUS={rascunho:['Rascunho','#9a9a9a'],enviada:['Aguardando aprovação','#e3b341'],aprovada:['Aprovada','#5fbf6a'],recusada:['Recusada','#e5534b'],fechada:['Fechada (ganho)','#3ea55e'],perdida:['Perdida','#8a6d3b']};
+  var ARQ_PARC={};
+  function brlA(v){ try{ return 'R$ '+Number(v||0).toLocaleString('pt-BR'); }catch(e){ return 'R$ '+v; } }
+  function arqNome(pid){ return ARQ_PARC[pid]||'—'; }
+  function initArqPropostas(){
+    var w=$('arqWrap'); if(!w) return;
+    w.innerHTML='<div class="empty">Carregando propostas…</div>';
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/parceiros?select=id,nome',{headers:authHeaders(tok)})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(ps){ ARQ_PARC={}; (Array.isArray(ps)?ps:[]).forEach(function(p){ ARQ_PARC[p.id]=p.nome; }); return rpc('listar_propostas_arquiteto',{}); })
+      .then(function(rows){
+        rows=Array.isArray(rows)?rows:[];
+        if(!rows.length){ w.innerHTML='<div class="empty">Nenhuma proposta de arquiteto ainda. Quando um parceiro montar e enviar, ela aparece aqui.</div>'; return; }
+        var pend=rows.filter(function(r){return r.status==='enviada';}).length;
+        var h='<div class="cart-top">'+rows.length+' proposta(s) · <b>'+pend+'</b> aguardando sua aprovação</div><div class="cart-list">';
+        rows.forEach(function(r){
+          var st=ARQ_STATUS[r.status]||[r.status,'#9a9a9a'];
+          var itens=Array.isArray(r.itens)?r.itens:[];
+          h+='<div class="cart-lead" style="cursor:default">'+
+            '<div class="cl-top"><span class="cl-nome">'+esc(r.titulo||'Proposta')+'</span>'+
+              '<span class="cl-badge" style="background:'+st[1]+'22;color:'+st[1]+'">'+esc(st[0])+'</span></div>'+
+            '<div class="cl-sub">Cliente: '+esc(r.cliente_nome||'—')+(r.cliente_cidade?' · '+esc(r.cliente_cidade):'')+(r.cliente_contato?' · '+esc(r.cliente_contato):'')+'</div>'+
+            '<div class="cl-sub">Arquiteto: '+esc(arqNome(r.parceiro_id))+'</div>'+
+            '<div class="cl-ang">'+itens.map(function(i){ return esc(i.nome||'Item')+' ×'+(i.qtd||1); }).join(' · ')+'</div>'+
+            '<div style="margin-top:8px;font-size:13px">Total <b style="color:var(--accent)">'+brlA(r.valor_total)+'</b> · comissão '+(r.comissao_pct||0)+'% = <b style="color:#5fbf6a">'+brlA(r.comissao_valor)+'</b></div>'+
+            (r.observacao?'<div class="cl-sub" style="margin-top:6px">📝 '+esc(r.observacao)+'</div>':'')+
+            (r.motivo_recusa?'<div class="cl-sub" style="color:#e5534b">Recusada: '+esc(r.motivo_recusa)+'</div>':'')+
+            arqAcoes(r)+
+          '</div>';
+        });
+        h+='</div>'; w.innerHTML=h;
+        w.querySelectorAll('[data-arq-act]').forEach(function(b){ b.addEventListener('click',function(){ arqAct(b.getAttribute('data-arq-act'), b.getAttribute('data-arq-id')); }); });
+      })
+      .catch(function(){ w.innerHTML='<div class="empty">Não foi possível carregar (entre como equipe KM).</div>'; });
+  }
+  function arqAcoes(r){
+    if(r.status==='enviada') return '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="ia-btn sug" data-arq-act="aprovar" data-arq-id="'+r.id+'">✓ Aprovar (vira oportunidade)</button>'+
+      '<button class="ia-btn" data-arq-act="recusar" data-arq-id="'+r.id+'">Recusar</button></div>';
+    if(r.status==='aprovada') return '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="ia-btn sug" data-arq-act="ganho" data-arq-id="'+r.id+'">Marcar fechada (ganho)</button>'+
+      '<button class="ia-btn" data-arq-act="perdido" data-arq-id="'+r.id+'">Marcar perdida</button></div>';
+    return '';
+  }
+  function arqAct(act, id){
+    if(act==='aprovar'){ if(!confirm('Aprovar esta proposta? Ela vira uma oportunidade no funil.')) return;
+      rpc('revisar_proposta_arquiteto',{p_id:id,p_acao:'aprovar'}).then(function(res){ if(res&&res.ok){ alert('Aprovada! Virou oportunidade no funil.'); initArqPropostas(); } else alert('Erro ao aprovar'+((res&&res.message)?': '+res.message:'')); }); }
+    else if(act==='recusar'){ var m=prompt('Motivo da recusa (opcional):'); if(m===null) return; rpc('revisar_proposta_arquiteto',{p_id:id,p_acao:'recusar',p_motivo:m||null}).then(function(res){ if(res&&res.ok){ initArqPropostas(); } else alert('Erro ao recusar'); }); }
+    else if(act==='ganho'){ if(!confirm('Marcar como FECHADA (ganho)? A comissão do arquiteto fica devida.')) return; rpc('fechar_proposta_arquiteto',{p_id:id,p_ganho:true}).then(function(){ initArqPropostas(); }); }
+    else if(act==='perdido'){ rpc('fechar_proposta_arquiteto',{p_id:id,p_ganho:false}).then(function(){ initArqPropostas(); }); }
+  }
 
   // ===== LOCAÇÃO (Pilar 2) =====
   var LOC_PROP_STATUS={rascunho:'Rascunho',enviada:'Enviada',aceita:'Aceita',recusada:'Recusada'};
