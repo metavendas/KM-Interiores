@@ -247,7 +247,7 @@
       <a class="active" href="#" data-view="dashboard"><span class="dot"></span> Dashboard</a>
       <a href="#" data-view="funil"><span class="dot"></span> Funil de Vendas</a>
       <a href="#" data-view="carteira"><span class="dot"></span> Carteira de Leads</a>
-      <a href="#" data-view="arqpropostas"><span class="dot"></span> Propostas de Arquitetos</a>
+      <a href="#" data-view="arqpropostas"><span class="dot"></span> Propostas de Parceiros</a>
       <a href="#" data-view="forecast"><span class="dot"></span> Forecast (CEO)</a>
       <a href="#" data-view="arquivo"><span class="dot"></span> Arquivo</a>
       <div class="sec">Cadastros</div>
@@ -379,8 +379,8 @@
 
       <!-- ===== PROPOSTAS DE ARQUITETOS (Portal do Arquiteto — lado KM) ===== -->
       <section class="view" data-v="arqpropostas" hidden>
-        <div class="h1">Propostas de Arquitetos</div>
-        <div class="sub">Propostas montadas pelos arquitetos parceiros · <span style="color:var(--ouro)">revise e aprove — ao aprovar, vira oportunidade no funil e a comissão fica registrada</span></div>
+        <div class="h1">Propostas de Parceiros</div>
+        <div class="sub">Propostas montadas pelos parceiros (arquitetos, designers, engenheiros…) · <span style="color:var(--ouro)">revise e aprove — ao aprovar, vira oportunidade no funil e a comissão fica registrada</span></div>
         <div id="arqWrap"><div class="empty">Carregando propostas…</div></div>
       </section>
 
@@ -834,7 +834,7 @@
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
   // ===== Controle de acesso (UI) — acessos personalizados por pessoa =====
   // Módulos que o admin pode conceder (Equipe & Acessos é sempre só de admin).
-  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['carteira','Carteira de Leads'],['arqpropostas','Propostas de Arquitetos'],['arquivo','Arquivo'],['clientes','Clientes'],
+  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['carteira','Carteira de Leads'],['arqpropostas','Propostas de Parceiros'],['arquivo','Arquivo'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['engajamento','Engajamento (LinkedIn)'],['produtos','Produtos'],
     ['estoque','Estoque'],['pedidos','Pedidos'],['os','Ordens de Serviço'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
@@ -1956,6 +1956,7 @@
     m.innerHTML='<div class="lmbox"><div class="lmhead"><div><b id="lm_nome">Lead</b><div class="lm-meta" id="lm_meta"></div></div><span class="lmx" id="lm_close">✕</span></div>'+
       '<div class="lmbody">'+
       '<div class="lm-contato" id="lm_contato"></div>'+
+      '<div id="lm_parceiro" style="margin:0 0 12px"></div>'+
       '<span class="lmlab">Ângulo (por que abordar)</span><div class="lm-ang" id="lm_ang">—</div>'+
       '<span class="lmlab">Gancho — mensagem pronta</span><textarea id="lm_gancho"></textarea>'+
       '<div style="border-top:1px dashed var(--line);margin:18px 0 4px"></div>'+
@@ -1986,6 +1987,18 @@
       (l.endereco?'<div><b>Endereço:</b> '+esc(l.endereco)+'</div>':'')+
       (l.cnpj?'<div><b>CNPJ:</b> '+esc(l.cnpj)+'</div>':'')+
       ((!l.telefone&&!l.email&&!l.endereco)?'<div style="color:var(--muted)">Sem dados de contato enriquecidos.</div>':'');
+    var lp=$('lm_parceiro');
+    if(lp){
+      if(l.tipo_lead==='parceiro' && !l.parceiro_id){
+        lp.innerHTML='<button class="lmok" id="lm_conv" style="background:#9D7D31">★ Converter em parceiro</button> <span style="font-size:11px;color:var(--muted)">arquiteto/engenheiro/designer → cria acesso ao Portal do Parceiro</span>';
+        $('lm_conv').onclick=function(){ var pct=prompt('Comissão % deste parceiro sobre as vendas:', '10'); if(pct===null) return;
+          rpc('converter_lead_em_parceiro',{p_lead_id:id,p_comissao_pct:Number(pct)||10}).then(function(res){
+            if(res && !res.message){ if(CART_ROWS[id]) CART_ROWS[id].parceiro_id=res; lp.innerHTML='<span style="color:#5fbf6a;font-size:12px">✓ Convertido em parceiro. Peça para ele entrar em <b>area-restrita.html</b> com o mesmo e-mail para montar propostas.</span>'; }
+            else alert('Erro ao converter'+((res&&res.message)?': '+res.message:'')); });
+        };
+      } else if(l.parceiro_id){ lp.innerHTML='<span style="color:#5fbf6a;font-size:12px">✓ Já é parceiro cadastrado.</span>'; }
+      else { lp.innerHTML=''; }
+    }
     $('lm_ang').textContent=l.angulo||l.gancho||'—';
     $('lm_gancho').value=l.gancho||'';
     $('lm_status').innerHTML=CART_STATUS.map(function(x){ return '<option value="'+x[0]+'"'+(l.status_contato===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('');
@@ -2480,7 +2493,7 @@
             '<div class="cl-top"><span class="cl-nome">'+esc(r.titulo||'Proposta')+'</span>'+
               '<span class="cl-badge" style="background:'+st[1]+'22;color:'+st[1]+'">'+esc(st[0])+'</span></div>'+
             '<div class="cl-sub">Cliente: '+esc(r.cliente_nome||'—')+(r.cliente_cidade?' · '+esc(r.cliente_cidade):'')+(r.cliente_contato?' · '+esc(r.cliente_contato):'')+'</div>'+
-            '<div class="cl-sub">Arquiteto: '+esc(arqNome(r.parceiro_id))+'</div>'+
+            '<div class="cl-sub">Parceiro: '+esc(arqNome(r.parceiro_id))+'</div>'+
             '<div class="cl-ang">'+itens.map(function(i){ return esc(i.nome||'Item')+' ×'+(i.qtd||1); }).join(' · ')+'</div>'+
             '<div style="margin-top:8px;font-size:13px">Total <b style="color:var(--accent)">'+brlA(r.valor_total)+'</b> · comissão '+(r.comissao_pct||0)+'% = <b style="color:#5fbf6a">'+brlA(r.comissao_valor)+'</b></div>'+
             (r.observacao?'<div class="cl-sub" style="margin-top:6px">📝 '+esc(r.observacao)+'</div>':'')+

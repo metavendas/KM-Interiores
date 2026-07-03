@@ -129,6 +129,7 @@
     <button data-tab="inicio" class="active">Início</button>
     <button data-tab="videos">Vídeos &amp; Treinamentos</button>
     <button data-tab="materiais">Materiais</button>
+    <button data-tab="propostas">Propostas</button>
     <button data-tab="ranking">Ranking</button>
   </div>
 
@@ -182,9 +183,48 @@
     </div>
   </div>
 
+  <!-- PROPOSTAS (parceiro monta e envia) -->
+  <style>
+    [data-t="propostas"] input,[data-t="propostas"] textarea,[data-t="propostas"] select{background:#1b160d;border:1px solid rgba(203,152,76,.26);color:#f1e4c9;padding:9px 11px;border-radius:5px;font-size:13px;box-sizing:border-box;font-family:inherit}
+    [data-t="propostas"] input:focus,[data-t="propostas"] textarea:focus,[data-t="propostas"] select:focus{border-color:#CB984C;outline:none}
+    .pp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+    @media(max-width:700px){.pp-grid{grid-template-columns:1fr}}
+    .pp-lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#9D7D31;margin:8px 0 6px}
+  </style>
+  <div class="tab" data-t="propostas" hidden>
+    <div class="panel">
+      <h3>Montar nova proposta</h3>
+      <div class="bd">
+        <div class="pp-grid">
+          <input id="pp_titulo" placeholder="Nome do projeto (ex.: Apto Vista Serra)">
+          <input id="pp_cliente" placeholder="Nome do cliente">
+          <input id="pp_contato" placeholder="Contato do cliente (WhatsApp/e-mail)">
+          <input id="pp_cidade" placeholder="Cidade do cliente">
+        </div>
+        <div class="pp-lbl">Peças da proposta (preço de tabela KM)</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <select id="pp_prod" style="flex:1;min-width:220px"><option>Carregando catálogo…</option></select>
+          <input id="pp_qtd" type="number" min="1" value="1" style="width:84px">
+          <button class="btn" id="pp_add">+ Adicionar</button>
+        </div>
+        <div id="pp_itens"></div>
+        <div id="pp_total" style="margin-top:10px;font-size:15px"></div>
+        <div class="pp-lbl">Observações</div>
+        <textarea id="pp_obs" placeholder="Prazo desejado, ambiente, detalhes do projeto…" style="width:100%;min-height:64px"></textarea>
+        <div style="display:flex;gap:10px;margin-top:14px;align-items:center;flex-wrap:wrap">
+          <button class="btn" id="pp_enviar">Enviar para a KM</button>
+          <button class="btn ghost" id="pp_rascunho">Salvar rascunho</button>
+          <span id="pp_msg" style="font-size:12px;color:#CB984C"></span>
+        </div>
+        <p style="font-size:11.5px;color:rgba(241,228,201,.6);margin-top:10px">A KM revisa e aprova antes de seguir com o cliente. Sua comissão é calculada automaticamente sobre o valor.</p>
+      </div>
+    </div>
+    <div class="panel"><h3>Minhas propostas</h3><div id="pp_lista"><div class="empty">Carregando…</div></div></div>
+  </div>
+
 </div></div>
 
-<footer><div class="wrap"><p>© 2026 KM Interiores · Portal de Parceiros &amp; Equipe · acesso restrito</p><p class="tag2">Design que inspira. Sofisticação que permanece.</p></div></footer>
+<footer><div class="wrap"><p>© 2026 KM Interiores · Portal de Parceiros &amp; Equipe · acesso restrito</p><p class="tag2">Design que inspira. Sofisticação que permanece.</p><p style="text-align:center;font-size:11px;line-height:1.55;margin:16px 0 0;padding:0 16px;opacity:.72">Site/CRM desenvolvido por <a href="https://www.redeglobaldecomunicacao.com.br/consultoria" target="_blank" rel="noopener" style="color:#CB984C;text-decoration:none">Rede Global — Consultoria e Assessoria em Inteligência Artificial, Marketing e Planejamento Estratégico</a></p></div></footer>
 
 <script>
   var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
@@ -205,10 +245,56 @@
     return url;
   }
 
+  // ===== Propostas (Portal do Parceiro) =====
+  function rppc(name, body){ var tok=localStorage.getItem(TOKKEY); return fetch(SB+'/rest/v1/rpc/'+name,{method:'POST',headers:Object.assign(H(tok),{'Content-Type':'application/json'}),body:JSON.stringify(body||{})}).then(function(r){ return r.json(); }); }
+  var PP_ITENS=[], PP_PRODS=[];
+  var PP_ST={rascunho:['Rascunho','#9a9a9a'],enviada:['Enviada — aguardando KM','#e3b341'],aprovada:['Aprovada pela KM','#5fbf6a'],recusada:['Recusada','#e5534b'],fechada:['Fechada (ganho)','#3ea55e'],perdida:['Perdida','#8a6d3b']};
+  function brlP(v){ try{ return 'R$ '+Number(v||0).toLocaleString('pt-BR'); }catch(e){ return 'R$ '+v; } }
+  function initPropostas(){
+    if(!$('pp_prod')) return;
+    fetch(SB+'/rest/v1/produtos?select=id,nome,sku,preco&order=nome.asc&limit=500',{headers:H(localStorage.getItem(TOKKEY))})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(ps){ PP_PRODS=Array.isArray(ps)?ps:[]; var s=$('pp_prod'); if(s) s.innerHTML=PP_PRODS.map(function(p){ return '<option value="'+p.id+'">'+esc(p.nome)+(p.preco?(' — '+brlP(p.preco)):'')+'</option>'; }).join(''); })
+      .catch(function(){});
+    ppRender(); loadMinhasPropostas();
+  }
+  function ppRender(){
+    var el=$('pp_itens'); if(!el) return;
+    if(!PP_ITENS.length){ el.innerHTML='<div class="empty" style="padding:8px 0">Nenhuma peça adicionada.</div>'; }
+    else el.innerHTML=PP_ITENS.map(function(it,i){ return '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(203,152,76,.2);padding:7px 0;font-size:14px"><span>'+esc(it.nome)+' × '+it.qtd+'</span><span>'+brlP(it.preco*it.qtd)+' <a href="#" data-rm="'+i+'" style="color:#e5534b;margin-left:10px">remover</a></span></div>'; }).join('');
+    var total=PP_ITENS.reduce(function(s,it){ return s+it.preco*it.qtd; },0);
+    if($('pp_total')) $('pp_total').innerHTML='Total <b style="color:#CB984C">'+brlP(total)+'</b>';
+    el.querySelectorAll('[data-rm]').forEach(function(a){ a.addEventListener('click',function(e){ e.preventDefault(); PP_ITENS.splice(Number(a.getAttribute('data-rm')),1); ppRender(); }); });
+  }
+  function ppAdd(){ var s=$('pp_prod'); if(!s||!s.value) return; var p=PP_PRODS.filter(function(x){ return String(x.id)===s.value; })[0]; if(!p) return; var q=Math.max(1,Number($('pp_qtd').value)||1); PP_ITENS.push({produto_id:p.id,nome:p.nome,preco:Number(p.preco)||0,qtd:q}); ppRender(); }
+  function ppSalvar(enviar){
+    if(!PP_ITENS.length){ $('pp_msg').textContent='Adicione ao menos uma peça.'; return; }
+    var body={ p:{ titulo:$('pp_titulo').value, cliente_nome:$('pp_cliente').value, cliente_contato:$('pp_contato').value, cliente_cidade:$('pp_cidade').value, observacao:$('pp_obs').value, enviar:!!enviar, itens:PP_ITENS.map(function(it){ return {produto_id:it.produto_id,qtd:it.qtd}; }) } };
+    $('pp_msg').textContent='Salvando…';
+    rppc('criar_proposta_arquiteto', body).then(function(res){
+      if(res && !res.message){ $('pp_msg').textContent = enviar?'✓ Enviada para a KM!':'✓ Rascunho salvo.'; PP_ITENS=[]; ['pp_titulo','pp_cliente','pp_contato','pp_cidade','pp_obs'].forEach(function(id){ if($(id)) $(id).value=''; }); ppRender(); loadMinhasPropostas(); }
+      else { $('pp_msg').textContent='Erro: '+((res&&res.message)||'você precisa estar logado como parceiro cadastrado.'); }
+    }).catch(function(){ $('pp_msg').textContent='Erro de conexão.'; });
+  }
+  function loadMinhasPropostas(){
+    var el=$('pp_lista'); if(!el) return; el.innerHTML='<div class="empty">Carregando…</div>';
+    rppc('listar_propostas_arquiteto',{}).then(function(rows){ rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ el.innerHTML='<div class="empty">Você ainda não montou propostas.</div>'; return; }
+      el.innerHTML=rows.map(function(r){ var st=PP_ST[r.status]||[r.status,'#9a9a9a']; var itens=Array.isArray(r.itens)?r.itens:[];
+        return '<div class="com"><h4>'+esc(r.titulo||'Proposta')+' <span class="badge" style="background:'+st[1]+'22;color:'+st[1]+'">'+esc(st[0])+'</span></h4>'+
+          '<p>Cliente: '+esc(r.cliente_nome||'—')+' · Total '+brlP(r.valor_total)+' · sua comissão '+brlP(r.comissao_valor)+'</p>'+
+          '<div class="dt">'+itens.map(function(i){ return esc(i.nome||'')+'×'+(i.qtd||1); }).join(' · ')+(r.motivo_recusa?(' · Recusada: '+esc(r.motivo_recusa)):'')+'</div></div>';
+      }).join('');
+    }).catch(function(){ el.innerHTML='<div class="empty">Não foi possível carregar.</div>'; });
+  }
+  if($('pp_add')) $('pp_add').addEventListener('click', ppAdd);
+  if($('pp_enviar')) $('pp_enviar').addEventListener('click', function(){ ppSalvar(true); });
+  if($('pp_rascunho')) $('pp_rascunho').addEventListener('click', function(){ ppSalvar(false); });
+
   function showApp(email){ $('gate').style.display='none'; $('app').style.display='block';
     $('whoLine').textContent = (isStaff?'Equipe KM · ':'Parceiro KM · ')+email;
     document.querySelectorAll('.staffonly').forEach(function(e){ e.style.display = isStaff ? '' : 'none'; });
-    loadComunicados(); loadVideos(); loadMateriais(); loadRanking();
+    loadComunicados(); loadVideos(); loadMateriais(); loadRanking(); initPropostas();
   }
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
 
