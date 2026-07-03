@@ -69,6 +69,11 @@
     <h3>3 · Faixa de investimento</h3>
     <div class="opts" id="orc"></div>
   </div>
+  <div class="step">
+    <h3>4 · Foto do ambiente <span style="font-size:12px;color:var(--muted);text-transform:none;letter-spacing:0">(opcional — deixa a curadoria muito mais precisa)</span></h3>
+    <input type="file" id="f_foto" accept="image/*" style="color:var(--muted);font-size:13px">
+    <p class="muted" style="margin-top:8px;font-size:12.5px">Envie uma foto do espaço e a IA da KM analisa estilo, cores e escala para sugerir as peças certas.</p>
+  </div>
   <div style="text-align:center;margin:8px 0 22px">
     <button class="btn" id="gerar" disabled>✦ Ver minha curadoria</button>
   </div>
@@ -119,35 +124,48 @@
     document.getElementById('gerar').disabled = !(sel.amb!==null && sel.est!==null && sel.orc!==null);
   });
 
-  var CURA=[];
+  var CURA=[], ANALISE=null;
+  function resizeToDataURL(file, maxW, cb){
+    try{ var img=new Image(); var url=URL.createObjectURL(file);
+      img.onload=function(){ var sc=Math.min(1, maxW/img.width); var w=Math.round(img.width*sc), h=Math.round(img.height*sc);
+        var cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
+        URL.revokeObjectURL(url); cb(cv.toDataURL('image/jpeg',0.82)); };
+      img.onerror=function(){ URL.revokeObjectURL(url); cb(''); }; img.src=url;
+    }catch(e){ cb(''); }
+  }
+  function renderCura(res, ambNome, estNome, orcNome){
+    ANALISE=res.analise||{}; CURA=Array.isArray(res.pecas)?res.pecas:[];
+    var obs=ANALISE.observacao||ANALISE['observação']||'';
+    document.getElementById('resumo').innerHTML=esc(ambNome+' · '+estNome+' · '+orcNome)+(obs?('<br><span style="color:var(--champagne)">'+esc(obs)+'</span>'):'');
+    document.getElementById('pecas').innerHTML = CURA.length ? CURA.map(function(p){
+      var img = p.foto_url ? '<img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'">' : '<img alt="">';
+      return '<div class="card">'+img+'<div class="c"><h4>'+esc(p.nome)+'</h4><div class="cat">'+esc(p.categoria||'')+'</div>'+((Number(p.preco)>0)?'<div class="pr">'+nl(p.preco)+'</div>':'<div class="pr">Sob curadoria</div>')+'</div></div>';
+    }).join('') : '<div style="color:var(--muted)">Nossa curadoria vai selecionar as peças ideais no atendimento.</div>';
+    var total=(res.total!=null)?res.total:CURA.reduce(function(s,p){return s+(Number(p.preco)||0);},0);
+    document.getElementById('total').innerHTML = total>0 ? ('Investimento estimado <b>'+nl(total)+'</b>') : '';
+    document.getElementById('resultado').classList.remove('hidden');
+    document.getElementById('resultado').scrollIntoView({behavior:'smooth'});
+  }
   document.getElementById('gerar').addEventListener('click', function(){
-    var ambNome=Object.keys(AMBIENTES)[Number(sel.amb)];
-    var cats=AMBIENTES[ambNome]; var teto=ORCS[Number(sel.orc)][1];
-    var inList="("+cats.map(function(c){return '"'+c+'"';}).join(',')+")";
-    fetch(SB+'/rest/v1/produtos?select=id,nome,categoria,preco,foto_url&categoria=in.'+encodeURIComponent(inList)+'&order=destaque.desc,preco.desc&limit=8',{headers:{apikey:KEY,Authorization:'Bearer '+KEY}})
-      .then(function(r){return r.ok?r.json():[];}).then(function(ps){
-        ps=Array.isArray(ps)?ps:[];
-        // seleciona até 4 peças respeitando o teto de orçamento
-        CURA=[]; var soma=0;
-        ps.forEach(function(p){ var pr=Number(p.preco)||0; if(CURA.length<4 && (soma+pr<=teto || CURA.length===0)){ CURA.push(p); soma+=pr; } });
-        if(!CURA.length){ CURA=ps.slice(0,3); }
-        document.getElementById('resumo').textContent = ambNome+' · estilo '+ESTILOS[Number(sel.est)]+' · '+ORCS[Number(sel.orc)][0];
-        document.getElementById('pecas').innerHTML = CURA.map(function(p){
-          var img = p.foto_url ? '<img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'">' : '<img alt="">';
-          return '<div class="card">'+img+'<div class="c"><h4>'+esc(p.nome)+'</h4><div class="cat">'+esc(p.categoria||'')+'</div>'+((Number(p.preco)>0)?'<div class="pr">'+nl(p.preco)+'</div>':'<div class="pr">Sob curadoria</div>')+'</div></div>';
-        }).join('');
-        var total=CURA.reduce(function(s,p){return s+(Number(p.preco)||0);},0);
-        document.getElementById('total').innerHTML = total>0 ? ('Investimento estimado <b>'+nl(total)+'</b>') : '';
-        document.getElementById('resultado').classList.remove('hidden');
-        document.getElementById('resultado').scrollIntoView({behavior:'smooth'});
-      });
+    var ambNome=Object.keys(AMBIENTES)[Number(sel.amb)], estNome=ESTILOS[Number(sel.est)], orcNome=ORCS[Number(sel.orc)][0];
+    var btn=this; btn.disabled=true; btn.textContent='Analisando…';
+    var payload={ ambiente:ambNome, estilo:estNome, orcamento:orcNome };
+    function go(){
+      fetch(SB+'/functions/v1/designer-ia',{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify(payload)})
+        .then(function(r){return r.json();}).then(function(res){ btn.disabled=false; btn.textContent='✦ Ver minha curadoria'; renderCura(res||{}, ambNome, estNome, orcNome); })
+        .catch(function(){ btn.disabled=false; btn.textContent='✦ Ver minha curadoria'; alert('Não foi possível gerar agora. Tente novamente.'); });
+    }
+    var f=document.getElementById('f_foto'); var file=f&&f.files&&f.files[0];
+    if(file){ btn.textContent='Analisando a foto…'; resizeToDataURL(file, 900, function(d){ if(d) payload.foto_url=d; go(); }); } else { go(); }
   });
 
   document.getElementById('enviar').addEventListener('click', function(){
     var nome=document.getElementById('f_nome').value.trim(), zap=document.getElementById('f_zap').value.trim();
     if(!nome||!zap){ document.getElementById('msg').textContent='Preencha nome e WhatsApp.'; return; }
     var ambNome=Object.keys(AMBIENTES)[Number(sel.amb)];
+    var obsA=ANALISE?(ANALISE.observacao||ANALISE['observação']||''):'';
     var msg='Designer de Ambiente · '+ambNome+' · estilo '+ESTILOS[Number(sel.est)]+' · '+ORCS[Number(sel.orc)][0]
+      +(ANALISE&&ANALISE.paleta?' · paleta '+ANALISE.paleta:'')+(obsA?' · '+obsA:'')
       +'. Peças sugeridas: '+CURA.map(function(p){return p.nome;}).join(', ')+'.';
     var lead={ nome:nome, telefone:zap, email:document.getElementById('f_email').value.trim()||null,
       cidade:document.getElementById('f_cidade').value.trim()||null, interesse:'Curadoria — '+ambNome,
