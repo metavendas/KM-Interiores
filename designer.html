@@ -108,7 +108,7 @@
     'Home office':['Mesas','Poltronas'], 'Varanda / Living':['Poltronas','Banquetas']
   };
   var ESTILOS=['Contemporâneo','Clássico atemporal','Rústico-luxo','Minimalista','Boho sofisticado'];
-  var ORCS=[['A partir de R$ 3 mil',10000],['R$ 10–30 mil',30000],['R$ 30–60 mil',60000],['Acima de R$ 60 mil',999999]];
+  var ORCS=[['R$ 3 mil a 6 mil',6000],['R$ 7 mil a 10 mil',10000],['R$ 11 mil a 15 mil',15000],['+ de R$ 15 mil',999999]];
   var sel={amb:null,est:null,orc:null};
   function chips(el, arr, key, labelFn){
     document.getElementById(el).innerHTML = arr.map(function(x,i){ var v=labelFn?labelFn(x):x; return '<div class="opt" data-k="'+key+'" data-v="'+i+'">'+esc(v)+'</div>'; }).join('');
