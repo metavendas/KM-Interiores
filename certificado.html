@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Certificado de Autenticidade · KM Interiores</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#14100a;--bg2:#1b160d;--text:#F1E4C9;--muted:rgba(241,228,201,.72);--accent:#CB984C;--champagne:#F1E4C9;--ouro:#9D7D31;--line:rgba(203,152,76,.26);--serif:'Playfair Display',Georgia,serif;--serif2:'Cormorant Garamond',serif;--sans:'Inter',system-ui,sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.6;-webkit-font-smoothing:antialiased;padding:24px}
+  .cert{max-width:720px;margin:24px auto;background:linear-gradient(180deg,#1b160d,#14100a);border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .top{background:linear-gradient(90deg,#CB984C,#9D7D31);padding:22px 28px;display:flex;align-items:center;justify-content:space-between}
+  .top .bn{font-family:var(--serif);color:#14100a;font-size:20px;letter-spacing:.14em;font-weight:600}
+  .top .seal{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#14100a;font-weight:600;border:1px solid rgba(20,16,10,.4);padding:6px 12px;border-radius:20px}
+  .body{padding:30px 34px}
+  .eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent);text-align:center}
+  h1{font-family:var(--serif);font-weight:500;font-size:clamp(24px,4vw,34px);color:var(--text);text-align:center;margin:8px 0 4px}
+  .sub{font-family:var(--serif2);font-style:italic;font-size:18px;color:var(--champagne);text-align:center;margin-bottom:18px}
+  .foto{width:100%;max-height:280px;object-fit:cover;border-radius:6px;border:1px solid var(--line);margin:8px 0 20px}
+  table{width:100%;border-collapse:collapse}
+  td{padding:11px 4px;font-size:14px;border-bottom:1px solid var(--line);color:var(--muted)}
+  td:first-child{color:var(--champagne);width:42%;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .serial{font-family:monospace;color:var(--accent);letter-spacing:.06em}
+  .qrbox{display:flex;flex-direction:column;align-items:center;gap:8px;margin:26px 0 6px}
+  .qrbox #qr{background:#fff;padding:10px;border-radius:8px}
+  .qrbox small{font-size:11px;color:var(--ouro);letter-spacing:.06em}
+  .foot{text-align:center;font-size:12px;color:var(--muted);margin-top:20px;border-top:1px dashed var(--line);padding-top:16px}
+  .foot .tag{font-family:var(--serif2);color:var(--accent);font-size:15px}
+  .state{max-width:640px;margin:80px auto;text-align:center;font-family:var(--serif2);font-size:20px;color:var(--muted)}
+  a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div id="state" class="state">Verificando o certificado…</div>
+<div id="cert" class="cert" style="display:none">
+  <div class="top"><span class="bn">KM INTERIORES</span><span class="seal">✓ Autêntico</span></div>
+  <div class="body">
+    <div class="eyebrow">Certificado de Autenticidade</div>
+    <h1 id="peca">—</h1>
+    <div class="sub" id="colecao"></div>
+    <img id="foto" class="foto" style="display:none" alt="">
+    <table id="tab"></table>
+    <div class="qrbox"><div id="qr"></div><small>Escaneie para verificar a autenticidade</small></div>
+    <div class="foot">
+      <div>Peça autoral da curadoria KM Interiores · garantia e manutenção via <b>KM Care</b>.</div>
+      <div class="tag">Design que inspira. Sofisticação que permanece.</div>
+      <div style="margin-top:8px"><a href="index.html">www.kminteriores.com.br</a></div>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function sb(qs){ return fetch(SB+'/rest/v1/'+qs,{headers:{apikey:KEY,Authorization:'Bearer '+KEY}}).then(function(r){return r.ok?r.json():[];}); }
+  var serial = new URLSearchParams(location.search).get('s') || '';
+  if(!serial){ document.getElementById('state').textContent='Certificado não informado.'; }
+  else sb('certificados?select=*&serial=eq.'+encodeURIComponent(serial)+'&limit=1').then(function(arr){
+    var c = arr && arr[0];
+    if(!c){ document.getElementById('state').innerHTML='Certificado <b>'+esc(serial)+'</b> não encontrado. Se você recebeu esta peça da KM Interiores, entre em contato para verificação.'; return; }
+    document.getElementById('peca').textContent = c.nome_peca || 'Peça KM';
+    document.getElementById('colecao').textContent = c.colecao ? ('Coleção '+c.colecao) : '';
+    var emit = c.emitido_em ? new Date(c.emitido_em).toLocaleDateString('pt-BR') : '';
+    var gar = c.garantia_meses ? (Math.round(c.garantia_meses/12*10)/10+' anos ('+c.garantia_meses+' meses)') : '—';
+    var rows = [
+      ['Nº de série', '<span class="serial">'+esc(c.serial)+'</span>'],
+      ['Peça', esc(c.nome_peca||'—')],
+      ['Coleção', esc(c.colecao||'—')],
+      ['Material', esc(c.material||'—')],
+      ['Acabamento', esc(c.acabamento||'—')],
+      ['Garantia', gar],
+      ['Emitido em', emit],
+      (c.cliente_nome?['Emitido para', esc(c.cliente_nome)]:null),
+      ['Cuidados', esc(c.cuidados||'—')]
+    ].filter(Boolean);
+    document.getElementById('tab').innerHTML = rows.map(function(kv){return '<tr><td>'+kv[0]+'</td><td>'+kv[1]+'</td></tr>';}).join('');
+    // foto da peça
+    if(c.produto_id){ sb('produtos?select=foto_url&id=eq.'+c.produto_id+'&limit=1').then(function(p){ if(p&&p[0]&&p[0].foto_url){ var im=document.getElementById('foto'); im.src=p[0].foto_url; im.style.display='block'; } }); }
+    // QR do próprio certificado (verificação)
+    try{ new QRCode(document.getElementById('qr'), { text: location.href, width:132, height:132, colorDark:'#14100a', colorLight:'#ffffff' }); }catch(e){}
+    document.getElementById('state').style.display='none';
+    document.getElementById('cert').style.display='block';
+    document.title = (c.nome_peca||'Certificado')+' · Certificado KM';
+  }).catch(function(){ document.getElementById('state').textContent='Não foi possível verificar agora. Tente novamente.'; });
+</script>
+</body>
+</html>

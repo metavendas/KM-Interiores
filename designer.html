@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Designer de Ambiente · Curadoria KM Interiores</title>
+<meta name="description" content="Receba uma curadoria personalizada de mobiliário de alto luxo para o seu ambiente. Escolha o espaço, o estilo e o investimento — a KM sugere as peças ideais.">
+<link rel="canonical" href="https://www.kminteriores.com.br/designer.html">
+<link rel="icon" href="favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#14100a;--bg2:#1b160d;--text:#F1E4C9;--muted:rgba(241,228,201,.72);--accent:#CB984C;--champagne:#F1E4C9;--ouro:#9D7D31;--line:rgba(203,152,76,.26);--serif:'Playfair Display',Georgia,serif;--serif2:'Cormorant Garamond',serif;--sans:'Inter',system-ui,sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  header{background:linear-gradient(90deg,#CB984C,#9D7D31);padding:16px 28px;display:flex;align-items:center;justify-content:space-between}
+  header .bn{font-family:var(--serif);color:#14100a;font-size:19px;letter-spacing:.14em;font-weight:600}
+  header a{color:#14100a;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 26px}
+  .hero{text-align:center;padding:48px 0 24px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:var(--accent)}
+  .hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(28px,5vw,46px);margin:10px 0 6px}
+  .hero p{font-family:var(--serif2);font-style:italic;font-size:19px;color:var(--champagne)}
+  .step{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:24px 26px;margin:16px 0}
+  .step h3{font-family:var(--serif);font-weight:500;font-size:19px;color:var(--accent);margin-bottom:14px}
+  .opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .opt{border:1px solid var(--line);border-radius:6px;padding:14px;cursor:pointer;text-align:center;font-size:13.5px;transition:.2s;background:#14100a}
+  .opt:hover{border-color:var(--accent)}
+  .opt.sel{border-color:var(--accent);background:rgba(203,152,76,.12);color:var(--accent)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;padding:15px 30px;border:1px solid var(--accent);background:var(--accent);color:#14100a;border-radius:4px;cursor:pointer;transition:.2s}
+  .btn.ghost{background:transparent;color:var(--text)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:8px}
+  .card{background:#14100a;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .card img{width:100%;height:150px;object-fit:cover;display:block;background:#0f0c07}
+  .card .c{padding:12px}
+  .card h4{font-family:var(--serif);font-weight:500;font-size:15px;color:var(--text)}
+  .card .cat{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro);margin-top:3px}
+  .card .pr{color:var(--accent);font-family:var(--serif);margin-top:6px}
+  .total{text-align:right;font-size:16px;margin-top:16px}
+  .total b{color:var(--accent);font-family:var(--serif);font-size:22px}
+  input{width:100%;background:#14100a;border:1px solid var(--line);color:var(--text);padding:12px 13px;border-radius:5px;font-size:14px;font-family:inherit;margin-bottom:10px}
+  input:focus{border-color:var(--accent);outline:none}
+  .muted{color:var(--muted);font-size:13px}
+  footer{text-align:center;padding:40px 0;color:var(--muted);font-size:12px}
+  footer .tag{font-family:var(--serif2);color:var(--accent);font-size:15px;margin-top:6px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<header><span class="bn">KM INTERIORES</span><a href="index.html">← voltar ao site</a></header>
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">Designer de Ambiente</div>
+    <h1>A curadoria certa para o seu espaço.</h1>
+    <p>Diga o ambiente, o estilo e o investimento — sugerimos as peças ideais.</p>
+  </div>
+
+  <div class="step">
+    <h3>1 · Qual ambiente?</h3>
+    <div class="opts" id="amb"></div>
+  </div>
+  <div class="step">
+    <h3>2 · Qual estilo?</h3>
+    <div class="opts" id="est"></div>
+  </div>
+  <div class="step">
+    <h3>3 · Faixa de investimento</h3>
+    <div class="opts" id="orc"></div>
+  </div>
+  <div style="text-align:center;margin:8px 0 22px">
+    <button class="btn" id="gerar" disabled>✦ Ver minha curadoria</button>
+  </div>
+
+  <div class="step hidden" id="resultado">
+    <h3>Sua curadoria KM</h3>
+    <p class="muted" id="resumo"></p>
+    <div class="grid" id="pecas"></div>
+    <div class="total" id="total"></div>
+    <div style="border-top:1px solid var(--line);margin-top:22px;padding-top:20px">
+      <h3>Receba o moodboard completo + orçamento</h3>
+      <p class="muted" style="margin-bottom:12px">Um especialista KM envia a seleção detalhada e tira suas dúvidas — sem compromisso.</p>
+      <input id="f_nome" placeholder="Seu nome">
+      <input id="f_zap" placeholder="WhatsApp com DDD">
+      <input id="f_email" placeholder="E-mail (opcional)">
+      <input id="f_cidade" placeholder="Cidade">
+      <button class="btn" id="enviar">Receber minha curadoria</button>
+      <span id="msg" style="display:block;margin-top:10px;color:var(--accent);font-size:13px"></span>
+    </div>
+  </div>
+</div>
+<footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br</p><p class="tag">Design que inspira. Sofisticação que permanece.</p></div></footer>
+
+<script>
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function nl(v){ try{ return 'R$ '+Number(v).toLocaleString('pt-BR'); }catch(e){ return 'R$ '+v; } }
+  // ambiente -> categorias do catálogo
+  var AMBIENTES={
+    'Sala de estar':['Sofás','Poltronas'], 'Sala de jantar':['Mesas','Banquetas'],
+    'Quarto':['Cabeceiras','Colchões','Guarda-Roupas'], 'Área gourmet':['Banquetas','Mesas'],
+    'Home office':['Mesas','Poltronas'], 'Varanda / Living':['Poltronas','Banquetas']
+  };
+  var ESTILOS=['Contemporâneo','Clássico atemporal','Rústico-luxo','Minimalista','Boho sofisticado'];
+  var ORCS=[['Até R$ 10 mil',10000],['R$ 10–30 mil',30000],['R$ 30–60 mil',60000],['Acima de R$ 60 mil',999999]];
+  var sel={amb:null,est:null,orc:null};
+  function chips(el, arr, key, labelFn){
+    document.getElementById(el).innerHTML = arr.map(function(x,i){ var v=labelFn?labelFn(x):x; return '<div class="opt" data-k="'+key+'" data-v="'+i+'">'+esc(v)+'</div>'; }).join('');
+  }
+  chips('amb', Object.keys(AMBIENTES), 'amb');
+  chips('est', ESTILOS, 'est');
+  chips('orc', ORCS, 'orc', function(o){return o[0];});
+  document.addEventListener('click', function(e){
+    var o=e.target.closest ? e.target.closest('.opt') : null; if(!o) return;
+    var k=o.getAttribute('data-k');
+    o.parentNode.querySelectorAll('.opt').forEach(function(x){x.classList.remove('sel');}); o.classList.add('sel');
+    sel[k]=o.getAttribute('data-v');
+    document.getElementById('gerar').disabled = !(sel.amb!==null && sel.est!==null && sel.orc!==null);
+  });
+
+  var CURA=[];
+  document.getElementById('gerar').addEventListener('click', function(){
+    var ambNome=Object.keys(AMBIENTES)[Number(sel.amb)];
+    var cats=AMBIENTES[ambNome]; var teto=ORCS[Number(sel.orc)][1];
+    var inList="("+cats.map(function(c){return '"'+c+'"';}).join(',')+")";
+    fetch(SB+'/rest/v1/produtos?select=id,nome,categoria,preco,foto_url&categoria=in.'+encodeURIComponent(inList)+'&order=destaque.desc,preco.desc&limit=8',{headers:{apikey:KEY,Authorization:'Bearer '+KEY}})
+      .then(function(r){return r.ok?r.json():[];}).then(function(ps){
+        ps=Array.isArray(ps)?ps:[];
+        // seleciona até 4 peças respeitando o teto de orçamento
+        CURA=[]; var soma=0;
+        ps.forEach(function(p){ var pr=Number(p.preco)||0; if(CURA.length<4 && (soma+pr<=teto || CURA.length===0)){ CURA.push(p); soma+=pr; } });
+        if(!CURA.length){ CURA=ps.slice(0,3); }
+        document.getElementById('resumo').textContent = ambNome+' · estilo '+ESTILOS[Number(sel.est)]+' · '+ORCS[Number(sel.orc)][0];
+        document.getElementById('pecas').innerHTML = CURA.map(function(p){
+          var img = p.foto_url ? '<img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'">' : '<img alt="">';
+          return '<div class="card">'+img+'<div class="c"><h4>'+esc(p.nome)+'</h4><div class="cat">'+esc(p.categoria||'')+'</div>'+((Number(p.preco)>0)?'<div class="pr">'+nl(p.preco)+'</div>':'<div class="pr">Sob curadoria</div>')+'</div></div>';
+        }).join('');
+        var total=CURA.reduce(function(s,p){return s+(Number(p.preco)||0);},0);
+        document.getElementById('total').innerHTML = total>0 ? ('Investimento estimado <b>'+nl(total)+'</b>') : '';
+        document.getElementById('resultado').classList.remove('hidden');
+        document.getElementById('resultado').scrollIntoView({behavior:'smooth'});
+      });
+  });
+
+  document.getElementById('enviar').addEventListener('click', function(){
+    var nome=document.getElementById('f_nome').value.trim(), zap=document.getElementById('f_zap').value.trim();
+    if(!nome||!zap){ document.getElementById('msg').textContent='Preencha nome e WhatsApp.'; return; }
+    var ambNome=Object.keys(AMBIENTES)[Number(sel.amb)];
+    var msg='Designer de Ambiente · '+ambNome+' · estilo '+ESTILOS[Number(sel.est)]+' · '+ORCS[Number(sel.orc)][0]
+      +'. Peças sugeridas: '+CURA.map(function(p){return p.nome;}).join(', ')+'.';
+    var lead={ nome:nome, telefone:zap, email:document.getElementById('f_email').value.trim()||null,
+      cidade:document.getElementById('f_cidade').value.trim()||null, interesse:'Curadoria — '+ambNome,
+      mensagem:msg, origem:'designer-ia' };
+    document.getElementById('enviar').disabled=true; document.getElementById('msg').textContent='Enviando…';
+    fetch(SB+'/rest/v1/leads',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(lead)})
+      .then(function(r){ if(r.ok){ document.getElementById('msg').innerHTML='✦ Recebido! Um especialista KM vai te enviar o moodboard completo em breve.'; }
+        else { document.getElementById('enviar').disabled=false; document.getElementById('msg').textContent='Não foi possível enviar agora. Tente novamente.'; } })
+      .catch(function(){ document.getElementById('enviar').disabled=false; document.getElementById('msg').textContent='Erro de conexão.'; });
+  });
+</script>
+</body>
+</html>

@@ -275,6 +275,7 @@
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
       <a href="#" data-view="relatorios"><span class="dot"></span> Relatórios</a>
+      <a href="#" data-view="recompra"><span class="dot"></span> Recompra &amp; LTV</a>
       <a href="#" data-view="saude"><span class="dot"></span> Saúde do Funil</a>
       <a href="#" data-view="equipe"><span class="dot"></span> Equipe &amp; Acessos</a>
     </nav>
@@ -382,6 +383,13 @@
         <div class="h1">Propostas de Parceiros</div>
         <div class="sub">Propostas montadas pelos parceiros (arquitetos, designers, engenheiros…) · <span style="color:var(--ouro)">revise e aprove — ao aprovar, vira oportunidade no funil e a comissão fica registrada</span></div>
         <div id="arqWrap"><div class="empty">Carregando propostas…</div></div>
+      </section>
+
+      <!-- ===== RECOMPRA & LTV (pós-venda preditivo) ===== -->
+      <section class="view" data-v="recompra" hidden>
+        <div class="h1">Recompra &amp; LTV</div>
+        <div class="sub">Quem já comprou e está no ponto de comprar de novo · <span style="color:var(--ouro)">priorizado por probabilidade — acione o consultor e o programa certo (KM Care / Signature / Curadoria)</span></div>
+        <div id="recompraWrap"><div class="empty">Analisando a base…</div></div>
       </section>
 
       <!-- ===== ARQUIVO (perdidos) ===== -->
@@ -834,7 +842,7 @@
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
   // ===== Controle de acesso (UI) — acessos personalizados por pessoa =====
   // Módulos que o admin pode conceder (Equipe & Acessos é sempre só de admin).
-  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['carteira','Carteira de Leads'],['arqpropostas','Propostas de Parceiros'],['arquivo','Arquivo'],['clientes','Clientes'],
+  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['carteira','Carteira de Leads'],['arqpropostas','Propostas de Parceiros'],['recompra','Recompra & LTV'],['arquivo','Arquivo'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['engajamento','Engajamento (LinkedIn)'],['produtos','Produtos'],
     ['estoque','Estoque'],['pedidos','Pedidos'],['os','Ordens de Serviço'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
@@ -1373,6 +1381,7 @@
     if(v==='funil') initFunil();
     if(v==='carteira') initCarteira();
     if(v==='arqpropostas') initArqPropostas();
+    if(v==='recompra') initRecompra();
     if(v==='arquivo') loadArquivo();
     if(v==='engajamento') initEngajamento();
     if(v==='pedidos') loadPedidos();
@@ -2521,6 +2530,30 @@
     else if(act==='recusar'){ var m=prompt('Motivo da recusa (opcional):'); if(m===null) return; rpc('revisar_proposta_arquiteto',{p_id:id,p_acao:'recusar',p_motivo:m||null}).then(function(res){ if(res&&res.ok){ initArqPropostas(); } else alert('Erro ao recusar'); }); }
     else if(act==='ganho'){ if(!confirm('Marcar como FECHADA (ganho)? A comissão do arquiteto fica devida.')) return; rpc('fechar_proposta_arquiteto',{p_id:id,p_ganho:true}).then(function(){ initArqPropostas(); }); }
     else if(act==='perdido'){ rpc('fechar_proposta_arquiteto',{p_id:id,p_ganho:false}).then(function(){ initArqPropostas(); }); }
+  }
+
+  // ===================== #4 RECOMPRA & LTV (pós-venda preditivo) =====================
+  function initRecompra(){
+    var w=$('recompraWrap'); if(!w) return;
+    w.innerHTML='<div class="empty">Analisando a base…</div>';
+    rpc('recompra_ltv',{}).then(function(rows){
+      rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ w.innerHTML='<div class="empty">Nenhum cliente com compra registrada ainda. Conforme as vendas forem lançadas no CRM, os clientes prontos para recompra aparecem aqui, priorizados.</div>'; return; }
+      var tcol={'Quente':'#e5534b','Win-back':'#c9862f','Morno':'#e3b341','Recente':'#5fbf6a'};
+      var quentes=rows.filter(function(r){return r.tier==='Quente'||r.tier==='Win-back';}).length;
+      var h='<div class="cart-top">'+rows.length+' cliente(s) analisados · <b>'+quentes+'</b> no ponto de reativar</div>'+
+        '<table><thead><tr><th>Cliente</th><th>Cidade</th><th>Pedidos</th><th>LTV</th><th>Última compra</th><th>Score</th><th>Situação</th><th>Ação sugerida</th></tr></thead><tbody>';
+      rows.forEach(function(r){ var col=tcol[r.tier]||'#9a9a9a';
+        h+='<tr><td style="color:var(--text)">'+esc(r.nome||'—')+'</td><td>'+esc(r.cidade||'')+'</td>'+
+          '<td>'+r.n_pedidos+'</td><td style="color:var(--accent)">R$ '+Number(r.ltv||0).toLocaleString('pt-BR')+'</td>'+
+          '<td>'+esc(String(r.ultimo||''))+' <span style="color:var(--muted)">('+r.dias_desde+'d)</span></td>'+
+          '<td><b>'+r.score+'</b></td>'+
+          '<td><span class="badge" style="background:'+col+'22;color:'+col+'">'+esc(r.tier)+'</span></td>'+
+          '<td style="font-size:12px;color:var(--champagne)">'+esc(r.sugestao)+'</td></tr>';
+      });
+      h+='</tbody></table>';
+      w.innerHTML=h;
+    }).catch(function(){ w.innerHTML='<div class="empty">Não foi possível carregar (entre como equipe).</div>'; });
   }
 
   // ===== LOCAÇÃO (Pilar 2) =====
