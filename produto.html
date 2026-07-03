@@ -65,7 +65,12 @@
   header nav.menu a{color:#14100a!important;opacity:.92!important}
   header nav.menu a:hover{color:#000!important;opacity:1!important}
   header .icons svg{stroke:#14100a!important}
+  /* ===== "Veja na sua casa" — Realidade Aumentada (model-viewer) ===== */
+  model-viewer{width:100%;height:100%;background:var(--card-bg);--poster-color:transparent}
+  .ar-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:var(--accent);color:#080807;border:none;padding:12px 22px;border-radius:4px;font-family:var(--sans);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.4)}
+  .ar-hint{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ouro-antigo);margin-top:10px;text-align:center;line-height:1.5}
 </style>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute"><defs>
@@ -100,7 +105,7 @@
     <div class="specs"><h3>Ficha técnica</h3><table id="specs"></table></div>
   </div>
 </section>
-<footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p><p class="tag">Design que inspira. Sofisticação que permanece.</p></div></footer>
+<footer><div class="wrap"><p>© 2026 KM Interiores · kminteriores.com.br · @kminteriores</p><p class="tag">Design que inspira. Sofisticação que permanece.</p><p style="text-align:center;font-size:11px;line-height:1.55;margin:16px 0 0;padding:0 16px;opacity:.72">Site/CRM desenvolvido por <a href="https://www.redeglobaldecomunicacao.com.br/consultoria" target="_blank" rel="noopener" style="color:#CB984C;text-decoration:none">Rede Global — Consultoria e Assessoria em Inteligência Artificial, Marketing e Planejamento Estratégico</a></p></div></footer>
 <script>
   var SB='https://hpbtnlfihbwwawgtesvm.supabase.co', KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
   function sbSelect(qs){
@@ -115,9 +120,26 @@
     .then(function(arr){ if(arr&&arr[0]) return arr[0]; return sbSelect('produtos?select=*&destaque=eq.true&limit=1').then(function(a){return a[0];}); })
     .then(function(p){
       if(!p){ document.getElementById('state').textContent='Peça não encontrada.'; return; }
-      var main = p.foto_url ? '<img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'">'
-        : '<div class="ph"><svg class="bf"><use href="#bf"/></svg><span>'+esc(p.nome)+'</span></div>';
+      var DEMO3D='https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenChair/glTF-Binary/SheenChair.glb';
+      var modelUrl = p.model_3d_url || (new URLSearchParams(location.search).get('demo3d') ? DEMO3D : '');
+      var main;
+      if(modelUrl){
+        main = '<model-viewer src="'+esc(modelUrl)+'" alt="'+esc(p.nome)+'"'
+          + (p.foto_url?(' poster="'+esc(p.foto_url)+'"'):'')
+          + ' ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" camera-controls auto-rotate touch-action="pan-y" shadow-intensity="1" exposure="1.05">'
+          + '<button slot="ar-button" class="ar-btn">✦ Ver na minha casa</button>'
+          + '</model-viewer>';
+      } else {
+        main = p.foto_url ? '<img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'">'
+          : '<div class="ph"><svg class="bf"><use href="#bf"/></svg><span>'+esc(p.nome)+'</span></div>';
+      }
       document.getElementById('main').innerHTML = main;
+      if(modelUrl){
+        var mm=document.getElementById('main');
+        if(mm&&mm.parentNode){ var h=document.createElement('div'); h.className='ar-hint';
+          h.textContent='Pelo celular, toque em "Ver na minha casa" para posicionar a peça em tamanho real no seu ambiente (Realidade Aumentada).';
+          mm.parentNode.insertBefore(h, mm.nextSibling); }
+      }
       var galeria=[p.foto_url].concat((Array.isArray(p.itens)?p.itens:[]).map(function(it){return it.foto;})).filter(Boolean);
       if(galeria.length>1){
         var gel=document.getElementById('galeria');
