@@ -276,6 +276,7 @@
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
       <a href="#" data-view="relatorios"><span class="dot"></span> Relatórios</a>
       <a href="#" data-view="recompra"><span class="dot"></span> Recompra &amp; LTV</a>
+      <a href="#" data-view="certificados"><span class="dot"></span> Certificados</a>
       <a href="#" data-view="saude"><span class="dot"></span> Saúde do Funil</a>
       <a href="#" data-view="equipe"><span class="dot"></span> Equipe &amp; Acessos</a>
     </nav>
@@ -390,6 +391,22 @@
         <div class="h1">Recompra &amp; LTV</div>
         <div class="sub">Quem já comprou e está no ponto de comprar de novo · <span style="color:var(--ouro)">priorizado por probabilidade — acione o consultor e o programa certo (KM Care / Signature / Curadoria)</span></div>
         <div id="recompraWrap"><div class="empty">Analisando a base…</div></div>
+      </section>
+
+      <!-- ===== CERTIFICADOS DE AUTENTICIDADE (emissor #6) ===== -->
+      <section class="view" data-v="certificados" hidden>
+        <div class="h1">Certificados de Autenticidade</div>
+        <div class="sub">Emita o certificado digital (QR) de uma peça · <span style="color:var(--ouro)">o cliente escaneia e verifica procedência, materiais e garantia</span></div>
+        <div class="panel" style="margin-bottom:16px"><div class="bd">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:760px">
+            <select id="ce_prod" style="background:#221b10;border:1px solid var(--line);color:var(--text);padding:10px;border-radius:5px"><option>Carregando…</option></select>
+            <input id="ce_cliente" placeholder="Emitido para (cliente) — opcional" style="background:#221b10;border:1px solid var(--line);color:var(--text);padding:10px;border-radius:5px">
+            <input id="ce_acab" placeholder="Acabamento (ex.: Nogueira / couro natural)" style="background:#221b10;border:1px solid var(--line);color:var(--text);padding:10px;border-radius:5px">
+            <input id="ce_gar" type="number" value="60" placeholder="Garantia (meses)" style="background:#221b10;border:1px solid var(--line);color:var(--text);padding:10px;border-radius:5px">
+          </div>
+          <div style="margin-top:12px"><button class="ia-btn sug" id="ce_emitir">Emitir certificado</button> <span id="ce_msg" style="font-size:12px;color:var(--accent);margin-left:8px"></span></div>
+        </div></div>
+        <div id="ce_lista"><div class="empty">Carregando certificados…</div></div>
       </section>
 
       <!-- ===== ARQUIVO (perdidos) ===== -->
@@ -842,7 +859,7 @@
   function showGate(msg){ $('app').style.display='none'; $('gate').style.display='flex'; if(msg)$('g_msg').textContent=msg; }
   // ===== Controle de acesso (UI) — acessos personalizados por pessoa =====
   // Módulos que o admin pode conceder (Equipe & Acessos é sempre só de admin).
-  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['carteira','Carteira de Leads'],['arqpropostas','Propostas de Parceiros'],['recompra','Recompra & LTV'],['arquivo','Arquivo'],['clientes','Clientes'],
+  var MODULOS=[['dashboard','Dashboard'],['funil','Funil de Vendas'],['carteira','Carteira de Leads'],['arqpropostas','Propostas de Parceiros'],['recompra','Recompra & LTV'],['certificados','Certificados'],['arquivo','Arquivo'],['clientes','Clientes'],
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['engajamento','Engajamento (LinkedIn)'],['produtos','Produtos'],
     ['estoque','Estoque'],['pedidos','Pedidos'],['os','Ordens de Serviço'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
@@ -1382,6 +1399,7 @@
     if(v==='carteira') initCarteira();
     if(v==='arqpropostas') initArqPropostas();
     if(v==='recompra') initRecompra();
+    if(v==='certificados') initCertificados();
     if(v==='arquivo') loadArquivo();
     if(v==='engajamento') initEngajamento();
     if(v==='pedidos') loadPedidos();
@@ -2530,6 +2548,38 @@
     else if(act==='recusar'){ var m=prompt('Motivo da recusa (opcional):'); if(m===null) return; rpc('revisar_proposta_arquiteto',{p_id:id,p_acao:'recusar',p_motivo:m||null}).then(function(res){ if(res&&res.ok){ initArqPropostas(); } else alert('Erro ao recusar'); }); }
     else if(act==='ganho'){ if(!confirm('Marcar como FECHADA (ganho)? A comissão do arquiteto fica devida.')) return; rpc('fechar_proposta_arquiteto',{p_id:id,p_ganho:true}).then(function(){ initArqPropostas(); }); }
     else if(act==='perdido'){ rpc('fechar_proposta_arquiteto',{p_id:id,p_ganho:false}).then(function(){ initArqPropostas(); }); }
+  }
+
+  // ===================== #6 CERTIFICADOS (emissor) =====================
+  function initCertificados(){
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/produtos?select=id,nome&order=nome.asc&limit=500',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}).then(function(ps){
+      var s=$('ce_prod'); if(s) s.innerHTML='<option value="">— selecione a peça —</option>'+(Array.isArray(ps)?ps:[]).map(function(p){return '<option value="'+p.id+'">'+esc(p.nome)+'</option>';}).join('');
+    });
+    var eb=$('ce_emitir'); if(eb) eb.onclick=emitirCert;
+    loadCertLista();
+  }
+  function emitirCert(){
+    var b=$('ce_emitir'); var prod=$('ce_prod').value; if(!prod){ $('ce_msg').textContent='Selecione a peça.'; return; }
+    var body={ p:{ produto_id:prod, cliente_nome:$('ce_cliente').value||null, acabamento:$('ce_acab').value||null, garantia_meses:Number($('ce_gar').value)||60 } };
+    b.disabled=true; $('ce_msg').textContent='Emitindo…';
+    rpc('emitir_certificado', body).then(function(res){ b.disabled=false;
+      if(res && typeof res==='string'){ var url=location.origin+'/certificado.html?s='+encodeURIComponent(res);
+        $('ce_msg').innerHTML='✓ '+esc(res)+' · <a href="'+url+'" target="_blank" style="color:var(--accent)">abrir / imprimir</a>'; loadCertLista(); }
+      else { $('ce_msg').textContent='Erro: '+((res&&res.message)||'não foi possível emitir'); }
+    }).catch(function(){ b.disabled=false; $('ce_msg').textContent='Erro de conexão.'; });
+  }
+  function loadCertLista(){
+    var w=$('ce_lista'); if(!w) return; var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/certificados?select=serial,nome_peca,cliente_nome,emitido_em&order=emitido_em.desc&limit=100',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}).then(function(rows){
+      rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ w.innerHTML='<div class="empty">Nenhum certificado emitido ainda.</div>'; return; }
+      var base=location.origin+'/certificado.html?s=';
+      w.innerHTML='<table><thead><tr><th>Nº de série</th><th>Peça</th><th>Cliente</th><th>Emitido</th><th>Link</th></tr></thead><tbody>'+rows.map(function(c){
+        var url=base+encodeURIComponent(c.serial);
+        return '<tr><td style="font-family:monospace;color:var(--accent)">'+esc(c.serial)+'</td><td style="color:var(--text)">'+esc(c.nome_peca||'')+'</td><td>'+esc(c.cliente_nome||'—')+'</td><td>'+(c.emitido_em?new Date(c.emitido_em).toLocaleDateString('pt-BR'):'')+'</td><td><a href="'+url+'" target="_blank" style="color:var(--accent)">abrir</a></td></tr>';
+      }).join('')+'</tbody></table>';
+    }).catch(function(){ w.innerHTML='<div class="empty">Não foi possível carregar.</div>'; });
   }
 
   // ===================== #4 RECOMPRA & LTV (pós-venda preditivo) =====================
