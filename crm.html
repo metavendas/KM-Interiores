@@ -1425,8 +1425,35 @@
   // ===== Motor de Cadastros (Clientes / Empresas / Fornecedores / Vendedores) =====
   var MODS={
     clientes:{ table:'clientes', fields:[
-      {k:'nome',l:'Nome',req:true,full:true},{k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},{k:'cidade',l:'Cidade / UF'},
+      {k:'tipo_pessoa',l:'Tipo de pessoa',type:'select',opts:['PF','PJ']},
+      {k:'nome',l:'Nome / Razão social',req:true,full:true},
+      {k:'cpf',l:'CPF',grp:'PF'},{k:'rg',l:'RG',grp:'PF'},{k:'data_nascimento',l:'Data de nascimento',type:'date',grp:'PF'},
+      {k:'estado_civil',l:'Estado civil',type:'select',opts:['','Solteiro(a)','Casado(a)','União estável','Divorciado(a)','Viúvo(a)'],grp:'PF'},
+      {k:'profissao',l:'Profissão / Ocupação',grp:'PF'},
+      {k:'razao_social',l:'Razão social',grp:'PJ',full:true},{k:'nome_fantasia',l:'Nome fantasia',grp:'PJ'},
+      {k:'cnpj',l:'CNPJ',grp:'PJ'},{k:'inscricao_estadual',l:'Inscrição estadual',grp:'PJ'},
+      {k:'__sec_contato',l:'Contato',type:'section'},
+      {k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},{k:'whatsapp',l:'WhatsApp'},{k:'instagram',l:'Instagram / @'},
+      {k:'canal_preferido',l:'Canal preferido',type:'select',opts:['','WhatsApp','E-mail','Telefone','Instagram','Presencial']},
+      {k:'melhor_horario',l:'Melhor horário de contato',type:'select',opts:['','Manhã','Tarde','Noite','Comercial']},
+      {k:'__sec_end',l:'Endereço',type:'section'},
+      {k:'cep',l:'CEP'},{k:'logradouro',l:'Logradouro',full:true},{k:'numero',l:'Número'},{k:'complemento',l:'Complemento'},
+      {k:'bairro',l:'Bairro'},{k:'cidade',l:'Cidade'},
+      {k:'uf',l:'UF',type:'select',opts:['','AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']},
+      {k:'__sec_perfil',l:'Perfil comercial & preferências',type:'section'},
       {k:'classificacao',l:'Classificação',type:'select',opts:['','A+','A','B','C']},{k:'origem',l:'Origem'},{k:'ticket_medio',l:'Ticket médio (R$)',type:'number'},
+      {k:'interesse_principal',l:'Interesse principal',type:'select',opts:['','Venda de móveis','Locação','Impressão 3D','KM Care','Curadoria']},
+      {k:'estilo_preferido',l:'Estilo preferido',type:'select',opts:['','Clássico','Contemporâneo','Minimalista','Rústico','Industrial','Escandinavo','Luxo / Glam']},
+      {k:'ambientes',l:'Ambientes de interesse'},
+      {k:'faixa_investimento',l:'Faixa de investimento',type:'select',opts:['','Até R$ 10 mil','R$ 10–30 mil','R$ 30–70 mil','R$ 70–150 mil','Acima de R$ 150 mil']},
+      {k:'indicado_por',l:'Indicado por / Arquiteto especificador'},
+      {k:'__sec_rel',l:'Relacionamento & pós-venda',type:'section'},
+      {k:'status_relacionamento',l:'Status do relacionamento',type:'select',opts:['','Prospect','Ativo','VIP','Inativo']},
+      {k:'data_ultima_compra',l:'Data da última compra',type:'date'},{k:'ltv',l:'LTV — total comprado (R$)',type:'number'},
+      {k:'__sec_lgpd',l:'Consentimento (LGPD)',type:'section'},
+      {k:'aceite_lgpd',l:'Aceite LGPD',type:'select',opts:['','Sim','Não']},
+      {k:'aceita_marketing',l:'Aceita comunicações de marketing',type:'select',opts:['','Sim','Não']},
+      {k:'data_consentimento',l:'Data do consentimento',type:'date'},
       {k:'observacoes',l:'Observações',type:'textarea',full:true}],
       cols:[{k:'nome'},{k:'classificacao',badge:true},{k:'cidade'},{k:'telefone'},{k:'email'}] },
     empresas:{ table:'empresas', fields:[
@@ -1498,10 +1525,17 @@
   }
   var PROD_FIELDS=[{k:'nome',l:'Nome'},{k:'categoria',l:'Categoria'},{k:'sku',l:'SKU'},{k:'preco',l:'Preco',type:'number'},{k:'estoque_disponivel',l:'Estoque',type:'number'},{k:'ranking',l:'Rank',type:'number'},{k:'trilha',l:'Trilha'},{k:'destaque',l:'Destaque',type:'bool'},{k:'video_url',l:'Video'},{k:'foto_url',l:'Foto'},{k:'descricao',l:'Descricao'}];
   var MOD_ROWS={}, MOD_EDIT={};
+  function toggleGrp(sel){
+    if(!sel) return; var form=sel.closest('.modform'); if(!form) return;
+    var v=(sel.value==='PJ')?'PJ':'PF';
+    var els=form.querySelectorAll('[data-grp]');
+    for(var i=0;i<els.length;i++){ els[i].style.display=(els[i].getAttribute('data-grp')===v)?'':'none'; }
+  }
   function modEditRow(key,id){
     var cfg=MODS[key]; var r=(MOD_ROWS[key]||{})[id]; if(!r) return;
     var form=$('form-'+key); if(!form) return;
     cfg.fields.forEach(function(f){ var el=form.querySelector('[data-k="'+f.k+'"]'); if(el){ var v=r[f.k]; el.value=(v==null?'':v); } });
+    var tpE=form.querySelector('[data-k="tipo_pessoa"]'); if(tpE) toggleGrp(tpE);
     MOD_EDIT[key]=id; var sb=$('save-'+key); if(sb) sb.textContent='Salvar alterações';
     var hb=document.querySelector('#mod-'+key+' .modbar h3'); if(hb) hb.textContent='Editando cadastro';
     var m=$('msg-'+key); if(m) m.textContent='Editando — altere e salve, ou cancele.';
@@ -1511,6 +1545,7 @@
   function cancelEdit(key){
     var cfg=MODS[key]; MOD_EDIT[key]=null; var form=$('form-'+key);
     if(form) cfg.fields.forEach(function(f){ var el=form.querySelector('[data-k="'+f.k+'"]'); if(el && el.tagName!=='SELECT') el.value=''; });
+    var tpC=form?form.querySelector('[data-k="tipo_pessoa"]'):null; if(tpC) toggleGrp(tpC);
     var sb=$('save-'+key); if(sb) sb.textContent='Salvar cadastro';
     var hb=document.querySelector('#mod-'+key+' .modbar h3'); if(hb) hb.textContent='Novo cadastro';
     var c=$('cancel-'+key); if(c) c.remove(); var m=$('msg-'+key); if(m) m.textContent='';
@@ -1537,11 +1572,12 @@
     var cfg=MODS[key]; var host=$('mod-'+key); if(!host) return;
     if(host.dataset.built){ loadMod(key); return; } host.dataset.built='1';
     var ff=cfg.fields.map(function(f){
+      if(f.type==='section') return '<div class="f full" data-sec="1"'+(f.grp?(' data-grp="'+f.grp+'"'):'')+' style="border-top:1px solid var(--line);margin:10px 0 2px;padding-top:12px"><label style="color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700">'+f.l+'</label></div>';
       var inp;
       if(f.type==='select') inp='<select data-k="'+f.k+'">'+f.opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>';
       else if(f.type==='textarea') inp='<textarea data-k="'+f.k+'" rows="2"></textarea>';
       else inp='<input data-k="'+f.k+'" type="'+(f.type||'text')+'">';
-      return '<div class="f'+(f.full?' full':'')+'"><label>'+f.l+(f.req?' *':'')+'</label>'+inp+'</div>';
+      return '<div class="f'+(f.full?' full':'')+'"'+(f.grp?(' data-grp="'+f.grp+'"'):'')+'><label>'+f.l+(f.req?' *':'')+'</label>'+inp+'</div>';
     }).join('');
     var ths=cfg.cols.map(function(c){ return '<th>'+esc(labelFor(cfg,c.k))+'</th>'; }).join('')+'<th style="text-align:right">Ações</th>';
     host.innerHTML='<div class="panel">'
@@ -1554,6 +1590,8 @@
     $('imp-'+key).addEventListener('click', function(){ $('csv-'+key).click(); });
     $('csv-'+key).addEventListener('change', function(e){ var f=e.target.files[0]; if(f){ importarCSV(cfg.table, cfg.fields, f, $('msg-'+key), function(){ loadMod(key); }); e.target.value=''; } });
     var si=$('search-'+key), tmr; if(si) si.addEventListener('input', function(){ clearTimeout(tmr); var t=si.value; tmr=setTimeout(function(){ loadMod(key, t); }, 300); });
+    var tpSel=$('form-'+key)?$('form-'+key).querySelector('[data-k="tipo_pessoa"]'):null;
+    if(tpSel){ tpSel.addEventListener('change',function(){ toggleGrp(tpSel); }); toggleGrp(tpSel); }
     loadMod(key);
   }
   function loadMod(key, term){
