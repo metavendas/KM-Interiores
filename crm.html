@@ -188,6 +188,31 @@
   #leadModal .lmok{background:var(--accent);color:#080807;border:none;padding:12px 24px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:3px}
   #leadModal .lmcancel{background:transparent;border:1px solid var(--line);color:var(--text);padding:12px 22px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:3px}
   #leadModal .lm-msg{font-size:12px;color:var(--champagne)}
+  #opModal{display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.68);align-items:center;justify-content:center;padding:20px}
+  #opModal .lmbox{max-width:620px;width:100%;max-height:92vh;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:6px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  #opModal .lmhead{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg2)}
+  #opModal .lmhead b{font-family:var(--serif);font-weight:500;color:var(--accent);font-size:17px;display:block}
+  #opModal .lmhead .lm-meta{font-size:12px;color:var(--muted);margin-top:3px}
+  #opModal .lmx{cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding-left:12px}
+  #opModal .lmbody{padding:18px 22px}
+  #opModal .lm-contato{font-size:12.5px;color:var(--text);line-height:1.7;background:var(--bg3);border:1px solid var(--line);border-radius:4px;padding:10px 12px;margin-bottom:14px}
+  #opModal .lm-contato b{color:var(--ouro)}
+  #opModal .lmlab{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);margin:14px 0 6px}
+  #opModal textarea,#opModal input,#opModal select{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:10px 11px;font-family:var(--sans);font-size:13px;border-radius:4px;outline:none;box-sizing:border-box}
+  #opModal textarea{min-height:64px;line-height:1.5;resize:vertical}
+  #opModal .lm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  #opModal .lmft{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+  #opModal .lmok{background:var(--accent);color:#080807;border:none;padding:12px 24px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:3px}
+  #opModal .lm-msg{font-size:12px;color:var(--champagne)}
+  .agd-day{margin:16px 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro);border-bottom:1px solid var(--line);padding-bottom:5px}
+  .agd-item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+  .agd-hora{min-width:58px;font-family:var(--serif);color:var(--accent);font-size:14px}
+  .agd-main{flex:1}
+  .agd-tit{color:var(--text);font-size:13.5px}
+  .agd-sub{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .agd-badge{font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .agd-acts{display:flex;flex-wrap:wrap;gap:5px}
+  .agd-acts button{font-size:10.5px;background:transparent;border:1px solid var(--line);color:var(--text);border-radius:3px;padding:4px 9px;cursor:pointer}
   .funil-consfiltro{background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:4px;font-size:12.5px;outline:none;margin-left:8px}
   .funil-resumo-lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro);margin:2px 0 6px}
   .funil-resumo{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
@@ -269,6 +294,7 @@
       <a href="#" data-view="programas"><span class="dot"></span> Programas KM</a>
       <a href="#" data-view="treinamentos"><span class="dot"></span> Treinamentos</a>
       <a href="#" data-view="tarefas"><span class="dot"></span> Tarefas</a>
+      <a href="#" data-view="agenda"><span class="dot"></span> Agenda</a>
       <a href="#" data-view="chat"><span class="dot"></span> Bate-papo</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
       <a href="#" data-view="cobranca"><span class="dot"></span> Cobrança (IA)</a>
@@ -824,6 +850,31 @@
         </div>
       </section>
 
+      <!-- ===== AGENDA ===== -->
+      <section class="view" data-v="agenda" hidden>
+        <div class="h1">Agenda de Atendimentos</div>
+        <div class="sub">Cada atendimento vira um compromisso · <span style="color:var(--ouro)">a gestão (Rede Global e Kathleen) vê todos os agendamentos; cada consultor vê apenas os seus</span></div>
+        <div class="panel">
+          <div class="modbar"><h3>Novo agendamento</h3><span class="modmsg" id="msg-agd"></span></div>
+          <div class="modform" id="form-agd">
+            <div class="f full"><label>Título *</label><input id="agd_titulo" placeholder="Ex.: Ligar para cliente / Visita técnica / Apresentar proposta"></div>
+            <div class="f"><label>Data e hora *</label><input id="agd_quando" type="datetime-local"></div>
+            <div class="f"><label>Tipo</label><select id="agd_tipo">
+              <option value="contato">Contato</option><option value="ligacao">Ligação</option>
+              <option value="reuniao">Reunião</option><option value="visita">Visita</option><option value="followup">Follow-up</option></select></div>
+            <div class="f" id="agd_respwrap" style="display:none"><label>Responsável</label><select id="agd_resp"><option value="">—</option></select></div>
+            <div class="f"><label>Local (opcional)</label><input id="agd_local" placeholder="Showroom, endereço, link de reunião…"></div>
+            <div class="f full"><label>Observação</label><textarea id="agd_obs" rows="2" placeholder="Contexto do atendimento…"></textarea></div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="agd_salvar">Agendar</button></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="modbar"><h3>Próximos compromissos <span class="tagreal" id="agdCount">—</span></h3>
+            <select id="agdCons" class="funil-consfiltro" title="Filtrar por consultor" style="display:none"><option value="">Todos os consultores</option></select></div>
+          <div id="agdWrap" style="padding:6px 20px 18px"><div class="empty">Carregando agenda…</div></div>
+        </div>
+      </section>
+
       <!-- ===== FICHA 360 ===== -->
       <section class="view" data-v="ficha360" hidden>
         <div class="h1">Ficha 360 do Cliente</div>
@@ -863,11 +914,11 @@
     ['empresas','Empresas (B2B)'],['fornecedores','Fornecedores'],['vendedores','Consultores PIN'],
     ['parceiros','Parceiros'],['leads','Leads & Atendimento'],['engajamento','Engajamento (LinkedIn)'],['produtos','Produtos'],
     ['estoque','Estoque'],['pedidos','Pedidos'],['os','Ordens de Serviço'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
-    ['agentes','Agentes de IA'],['relatorios','Relatórios'],['saude','Saúde do Funil']];
+    ['agentes','Agentes de IA'],['relatorios','Relatórios'],['saude','Saúde do Funil'],['agenda','Agenda']];
   var ACCESS_DEFAULT={
-    vendas:        ['funil','carteira','pedidos','os','leads','produtos','estoque','programas','treinamentos','tarefas','chat','agentes'],
-    representante: ['funil','carteira','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','locacao','pedidos3d','treinamentos','tarefas','chat'],
-    curadoria:     ['funil','carteira','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','leads','locacao','pedidos3d','programas','treinamentos','tarefas','chat']
+    vendas:        ['funil','carteira','pedidos','os','leads','produtos','estoque','programas','treinamentos','tarefas','agenda','chat','agentes'],
+    representante: ['funil','carteira','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','locacao','pedidos3d','treinamentos','tarefas','agenda','chat'],
+    curadoria:     ['funil','carteira','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','leads','locacao','pedidos3d','programas','treinamentos','tarefas','agenda','chat']
   };
   var ME_ROLE='', ME_ACESSOS=null;
   function allowedViews(){
@@ -1411,6 +1462,7 @@
     if(v==='programas') loadProgramas();
     if(v==='treinamentos') loadTreinamentos();
     if(v==='tarefas') loadTarefas();
+    if(v==='agenda') initAgenda();
     if(v==='ficha360') initFicha360();
     if(v==='financeiro') loadFinanceiro();
     if(v==='cobranca') loadCobranca();
@@ -1869,6 +1921,11 @@
         col.appendChild(card);
       });
       funilDnD(k); funilCounts(k);
+      if(!k._opWired){ k._opWired=true; k.addEventListener('click', function(e){
+        if(e.target.closest('.lead-perder')) return;      // botão Arquivar não abre o card
+        var card=e.target.closest('.lead'); if(!card) return;
+        abrirOportunidadeModal(card.getAttribute('data-id'));
+      }); }
     })
     .catch(function(e){ k.innerHTML='<div class="empty" style="grid-column:1/-1">Não foi possível carregar o funil (entre como equipe).</div>'; console.error(e); });
   }
@@ -2092,6 +2149,152 @@
         setTimeout(function(){ fecharLeadModal(); if(ME_ROLE==='admin'||ME_ROLE==='gestor'){ /* mantém lista */ } }, 800);
       } else { $('lm_msg').textContent='Erro: '+((res&&(res.message||res.hint))||'não foi possível salvar'); }
     }).catch(function(){ $('lm_save').disabled=false; $('lm_msg').textContent='Erro de conexão.'; });
+  }
+
+  // ===== Modal da Oportunidade (clique no card do funil) =====
+  var OP_CACHE={};
+  function ensureOpModal(){
+    if($('opModal')) return;
+    var m=document.createElement('div'); m.id='opModal';
+    m.innerHTML='<div class="lmbox"><div class="lmhead"><div><b id="op_nome">Oportunidade</b><div class="lm-meta" id="op_meta"></div></div><span class="lmx" id="op_close">✕</span></div>'+
+      '<div class="lmbody">'+
+      '<div class="lm-contato" id="op_info"></div>'+
+      '<div class="lm-grid"><div><span class="lmlab">Estágio</span><select id="op_estagio"></select></div>'+
+      '<div><span class="lmlab">Valor (R$)</span><input id="op_valor" type="number" min="0" step="100" placeholder="0"></div></div>'+
+      '<div id="op_respwrap" class="lm-grid" style="margin-top:12px;display:none"><div><span class="lmlab">Responsável</span><select id="op_resp"></select></div><div></div></div>'+
+      '<div class="lmft"><button class="lmok" id="op_save">Salvar oportunidade</button><span class="lm-msg" id="op_msg"></span></div>'+
+      '<div style="border-top:1px dashed var(--line);margin:20px 0 4px"></div>'+
+      '<span class="lmlab" style="color:var(--accent)">Agendar atendimento</span>'+
+      '<div class="lm-grid"><div><span class="lmlab">Data e hora</span><input id="op_agq" type="datetime-local"></div>'+
+      '<div><span class="lmlab">Tipo</span><select id="op_agt"><option value="contato">Contato</option><option value="ligacao">Ligação</option><option value="reuniao">Reunião</option><option value="visita">Visita</option><option value="followup">Follow-up</option></select></div></div>'+
+      '<span class="lmlab">Título / observação</span><input id="op_agtit" type="text" placeholder="Ex.: Retornar com proposta revisada">'+
+      '<div class="lmft"><button class="lmok" id="op_agadd" style="background:#9D7D31">+ Agendar</button><span class="lm-msg" id="op_agmsg"></span></div>'+
+      '<span class="lmlab">Compromissos desta oportunidade</span><div id="op_aglist" style="font-size:12.5px;color:var(--muted)">—</div>'+
+      '<input type="hidden" id="op_id"></div></div>';
+    document.body.appendChild(m);
+    $('op_close').addEventListener('click', fecharOpModal);
+    m.addEventListener('click', function(e){ if(e.target===m) fecharOpModal(); });
+    $('op_save').addEventListener('click', salvarOpModal);
+    $('op_agadd').addEventListener('click', agendarDaOportunidade);
+  }
+  function fecharOpModal(){ var m=$('opModal'); if(m) m.style.display='none'; }
+  function abrirOportunidadeModal(id){
+    ensureOpModal(); ensureVendedores(function(){
+      var tok=localStorage.getItem(TOKKEY);
+      fetch(SB+'/rest/v1/oportunidades?id=eq.'+id+'&select=id,titulo,valor,estagio,origem,responsavel_id,cliente_id,lead_id,created_at,updated_at,probabilidade,pipeline',{headers:authHeaders(tok)})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(rows){ var o=(rows&&rows[0])||null; if(!o){ alert('Não foi possível abrir esta oportunidade (permissão ou conexão).'); return; }
+        OP_CACHE[id]=o;
+        $('op_nome').textContent=o.titulo||'Oportunidade';
+        var cr=new Date(o.created_at); var cd=isNaN(cr)?'':cr.toLocaleDateString('pt-BR');
+        $('op_meta').textContent=(o.origem?('Origem: '+o.origem):'')+(cd?(' · aberta em '+cd):'')+(o.pipeline?(' · '+o.pipeline):'');
+        $('op_info').innerHTML='<div><b>Responsável:</b> '+esc(vendNome(o.responsavel_id))+'</div>'+
+          (o.probabilidade!=null?'<div><b>Probabilidade:</b> '+o.probabilidade+'%</div>':'')+
+          '<div><b>ID:</b> '+esc(String(o.id).slice(0,8))+'…</div>';
+        $('op_estagio').innerHTML=ESTAGIOS.map(function(s){ return '<option value="'+s.k+'"'+(o.estagio===s.k?' selected':'')+'>'+s.t+'</option>'; }).join('');
+        $('op_valor').value=(o.valor!=null?o.valor:'');
+        var isAdmin=(ME_ROLE==='admin'||ME_ROLE==='gestor');
+        $('op_respwrap').style.display=isAdmin?'grid':'none';
+        if(isAdmin){ $('op_resp').innerHTML=(VEND_CACHE||[]).map(function(v){ return '<option value="'+v.id+'"'+(v.id===o.responsavel_id?' selected':'')+'>'+esc(v.nome)+'</option>'; }).join(''); }
+        $('op_id').value=id; $('op_msg').textContent=''; $('op_agmsg').textContent='';
+        $('op_agtit').value=''; $('op_agq').value='';
+        carregarAgendaDaOp(id);
+        $('opModal').style.display='flex';
+      })
+      .catch(function(e){ alert('Erro de conexão.'); console.error(e); });
+    });
+  }
+  function salvarOpModal(){
+    var id=$('op_id').value; var tok=localStorage.getItem(TOKKEY);
+    var body={ estagio:$('op_estagio').value, valor:($('op_valor').value!==''?Number($('op_valor').value):null), updated_at:new Date().toISOString() };
+    if($('op_respwrap').style.display!=='none'){ body.responsavel_id=$('op_resp').value||null; }
+    $('op_save').disabled=true; $('op_msg').textContent='Salvando…';
+    fetch(SB+'/rest/v1/oportunidades?id=eq.'+id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)})
+    .then(function(r){ $('op_save').disabled=false; if(r.ok){ $('op_msg').textContent='✓ Salvo'; setTimeout(function(){ fecharOpModal(); initFunil(); },700); } else { $('op_msg').textContent='Sem permissão para editar.'; } })
+    .catch(function(){ $('op_save').disabled=false; $('op_msg').textContent='Erro de conexão.'; });
+  }
+  function agendarDaOportunidade(){
+    var id=$('op_id').value; var o=OP_CACHE[id]||{}; var q=$('op_agq').value;
+    if(!q){ $('op_agmsg').textContent='Informe data e hora.'; return; }
+    $('op_agadd').disabled=true; $('op_agmsg').textContent='Agendando…';
+    rpc('salvar_agendamento',{ p_titulo:($('op_agtit').value||o.titulo||'Atendimento'), p_tipo:$('op_agt').value,
+      p_quando:new Date(q).toISOString(), p_oportunidade:id, p_cliente:o.cliente_id||null,
+      p_lead:o.lead_id||null, p_lead_origem:'funil', p_obs:$('op_agtit').value||null })
+    .then(function(res){ $('op_agadd').disabled=false;
+      if(res && !res.message){ $('op_agmsg').textContent='✓ Agendado'; $('op_agtit').value=''; $('op_agq').value=''; carregarAgendaDaOp(id); }
+      else { $('op_agmsg').textContent='Erro: '+((res&&res.message)||'não foi possível'); } })
+    .catch(function(){ $('op_agadd').disabled=false; $('op_agmsg').textContent='Erro de conexão.'; });
+  }
+  function carregarAgendaDaOp(id){
+    var tok=localStorage.getItem(TOKKEY); var host=$('op_aglist'); if(!host) return; host.textContent='Carregando…';
+    fetch(SB+'/rest/v1/agendamentos?oportunidade_id=eq.'+id+'&select=id,titulo,quando,tipo,status&order=quando.asc',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){ rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ host.innerHTML='<span style="color:var(--muted)">Nenhum agendamento ainda.</span>'; return; }
+      host.innerHTML=rows.map(function(a){ var d=new Date(a.quando); var dt=isNaN(d)?'':d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)">📅 <b style="color:var(--accent)">'+dt+'</b> · '+esc(a.titulo||a.tipo||'')+' <span class="agd-badge">'+esc(a.status||'')+'</span></div>'; }).join('');
+    }).catch(function(){ host.textContent='—'; });
+  }
+
+  // ===== Agenda (aba) =====
+  var AGD_CONS='';
+  function initAgenda(){
+    var host=$('agdWrap'); if(!host) return;
+    var isAdmin=(ME_ROLE==='admin'||ME_ROLE==='gestor');
+    var rw=$('agd_respwrap'), cs=$('agdCons');
+    ensureVendedores(function(){
+      if(isAdmin){ if(rw) rw.style.display='';
+        if($('agd_resp')) $('agd_resp').innerHTML='<option value="">— eu / selecionar —</option>'+(VEND_CACHE||[]).map(function(v){ return '<option value="'+v.id+'">'+esc(v.nome)+'</option>'; }).join('');
+        if(cs){ cs.style.display='inline-block'; cs.innerHTML='<option value="">Todos os consultores</option>'+(VEND_CACHE||[]).map(function(v){ return '<option value="'+v.id+'"'+(AGD_CONS===v.id?' selected':'')+'>'+esc(v.nome)+'</option>'; }).join('');
+          if(!cs._wired){ cs._wired=true; cs.addEventListener('change', function(){ AGD_CONS=this.value; carregarAgenda(); }); } }
+      } else { if(rw) rw.style.display='none'; if(cs) cs.style.display='none'; }
+      var b=$('agd_salvar'); if(b && !b._wired){ b._wired=true; b.addEventListener('click', salvarAgendaNova); }
+      carregarAgenda();
+    });
+  }
+  function salvarAgendaNova(){
+    var q=$('agd_quando').value, tit=$('agd_titulo').value;
+    if(!tit){ $('msg-agd').textContent='Informe o título.'; return; }
+    if(!q){ $('msg-agd').textContent='Informe data e hora.'; return; }
+    var b=$('agd_salvar'); b.disabled=true; $('msg-agd').textContent='Agendando…';
+    var payload={ p_titulo:tit, p_tipo:$('agd_tipo').value, p_quando:new Date(q).toISOString(),
+      p_local:$('agd_local').value||null, p_obs:$('agd_obs').value||null };
+    var rsel=$('agd_resp'); if(rsel && $('agd_respwrap').style.display!=='none' && rsel.value){ payload.p_responsavel=rsel.value; }
+    rpc('salvar_agendamento', payload).then(function(res){ b.disabled=false;
+      if(res && !res.message){ $('msg-agd').textContent='✓ Agendado'; $('agd_titulo').value=''; $('agd_quando').value=''; $('agd_local').value=''; $('agd_obs').value=''; carregarAgenda(); setTimeout(function(){ $('msg-agd').textContent=''; },2500); }
+      else { $('msg-agd').textContent='Erro: '+((res&&res.message)||'não foi possível'); } })
+    .catch(function(){ b.disabled=false; $('msg-agd').textContent='Erro de conexão.'; });
+  }
+  function carregarAgenda(){
+    var host=$('agdWrap'); if(!host) return; var tok=localStorage.getItem(TOKKEY);
+    host.innerHTML='<div class="empty">Carregando agenda…</div>';
+    var url=SB+'/rest/v1/agendamentos?select=id,titulo,tipo,quando,status,local,observacao,responsavel_id,oportunidade_id&status=neq.cancelado&order=quando.asc&limit=300';
+    if(AGD_CONS){ url+='&responsavel_id=eq.'+AGD_CONS; }
+    fetch(url,{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){ rows=Array.isArray(rows)?rows:[];
+      var c=$('agdCount'); if(c) c.textContent=rows.length+(rows.length===1?' compromisso':' compromissos');
+      if(!rows.length){ host.innerHTML='<div class="empty">Nenhum agendamento. Crie o primeiro acima ou clique num card do funil para agendar.</div>'; return; }
+      var isAdmin=(ME_ROLE==='admin'||ME_ROLE==='gestor');
+      var groups={}, order=[];
+      rows.forEach(function(a){ var d=new Date(a.quando); var key=isNaN(d)?'—':d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}); if(!groups[key]){ groups[key]=[]; order.push(key); } groups[key].push(a); });
+      var h='';
+      order.forEach(function(k){ h+='<div class="agd-day">'+esc(k)+'</div>';
+        groups[k].forEach(function(a){ var d=new Date(a.quando); var hora=isNaN(d)?'':d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+          var sub=[]; if(isAdmin) sub.push('👤 '+esc(vendNome(a.responsavel_id))); if(a.local) sub.push('📍 '+esc(a.local)); if(a.observacao) sub.push(esc(a.observacao));
+          var late=(!isNaN(d) && d.getTime()<Date.now() && a.status==='agendado');
+          h+='<div class="agd-item"><div class="agd-hora">'+hora+'</div><div class="agd-main"><div class="agd-tit">'+esc(a.titulo||a.tipo||'Atendimento')+' <span class="agd-badge">'+esc(a.tipo||'')+'</span>'+(late?' <span class="agd-badge" style="color:#e5534b;border-color:#e5534b">atrasado</span>':'')+(a.status==='concluido'?' <span class="agd-badge" style="color:#5fbf6a;border-color:#5fbf6a">concluído</span>':'')+'</div>'+(sub.length?'<div class="agd-sub">'+sub.join(' · ')+'</div>':'')+'</div>'+
+            (a.status==='agendado'?'<div class="agd-acts"><button data-agd-done="'+a.id+'">✓ Concluir</button><button data-agd-cancel="'+a.id+'">Cancelar</button></div>':'')+'</div>';
+        });
+      });
+      host.innerHTML=h;
+      host.querySelectorAll('[data-agd-done]').forEach(function(b){ b.addEventListener('click', function(){ mudaStatusAgenda(b.getAttribute('data-agd-done'),'concluido'); }); });
+      host.querySelectorAll('[data-agd-cancel]').forEach(function(b){ b.addEventListener('click', function(){ if(confirm('Cancelar este agendamento?')) mudaStatusAgenda(b.getAttribute('data-agd-cancel'),'cancelado'); }); });
+    })
+    .catch(function(e){ host.innerHTML='<div class="empty">Não foi possível carregar a agenda (entre como equipe).</div>'; console.error(e); });
+  }
+  function mudaStatusAgenda(id,st){
+    rpc('salvar_agendamento',{p_id:id, p_status:st}).then(function(res){ if(res && !res.message){ carregarAgenda(); atualizaSino(); } else alert('Não foi possível atualizar.'); }).catch(function(){ alert('Erro de conexão.'); });
   }
 
   // Filtro do funil por consultor (integração no kanban)
