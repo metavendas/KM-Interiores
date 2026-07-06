@@ -213,6 +213,31 @@
   .agd-badge{font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
   .agd-acts{display:flex;flex-wrap:wrap;gap:5px}
   .agd-acts button{font-size:10.5px;background:transparent;border:1px solid var(--line);color:var(--text);border-radius:3px;padding:4px 9px;cursor:pointer}
+  .agd-cal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;flex-wrap:wrap;gap:10px}
+  .agd-nav{display:flex;align-items:center;gap:10px}
+  .agd-nav b{font-family:var(--serif);color:var(--accent);font-size:16px;min-width:150px;text-align:center;text-transform:capitalize}
+  .agd-nav button{background:var(--bg3);border:1px solid var(--line);color:var(--text);border-radius:4px;width:32px;height:32px;cursor:pointer;font-size:16px;line-height:1}
+  .agd-nav .agd-hoje{width:auto;padding:0 14px;font-size:12px}
+  .agd-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 18px 6px}
+  .agd-week div{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-left:4px}
+  .agd-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 18px 12px}
+  .agd-cell{min-height:96px;background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:5px 6px;display:flex;flex-direction:column;gap:3px}
+  .agd-cell.fora{opacity:.35}
+  .agd-cell.hoje{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .agd-cell.over{background:rgba(203,152,76,.12);border-style:dashed;border-color:var(--accent)}
+  .agd-daynum{font-size:12px;color:var(--muted);font-weight:600}
+  .agd-cell.hoje .agd-daynum{color:var(--accent)}
+  .agd-ev{font-size:10.5px;line-height:1.25;padding:3px 5px;border-radius:4px;cursor:grab;background:var(--bg3);border-left:3px solid var(--muted);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .agd-ev:active{cursor:grabbing}
+  .agd-ev.dragging{opacity:.4}
+  .agd-ev.t-ligacao,.agd-ev.t-contato{border-left-color:#e0559b;background:rgba(224,85,155,.10)}
+  .agd-ev.t-visita{border-left-color:#6cb0e0;background:rgba(108,176,224,.10)}
+  .agd-ev.t-reuniao{border-left-color:var(--accent);background:rgba(203,152,76,.12)}
+  .agd-ev.t-followup{border-left-color:#a98be0;background:rgba(169,139,224,.10)}
+  .agd-ev.done{border-left-color:#5fbf6a;background:rgba(95,191,106,.12);text-decoration:line-through;opacity:.85}
+  .agd-legenda{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:11px;color:var(--muted);padding:2px 18px 16px}
+  .agd-legenda i{font-style:normal}
+  @media(max-width:800px){ .agd-cell{min-height:66px} .agd-ev{font-size:9.5px;padding:2px 4px} .agd-nav b{min-width:110px;font-size:14px} }
   .funil-consfiltro{background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:4px;font-size:12.5px;outline:none;margin-left:8px}
   .funil-resumo-lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro);margin:2px 0 6px}
   .funil-resumo{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
@@ -869,9 +894,16 @@
           </div>
         </div>
         <div class="panel">
-          <div class="modbar"><h3>Próximos compromissos <span class="tagreal" id="agdCount">—</span></h3>
-            <select id="agdCons" class="funil-consfiltro" title="Filtrar por consultor" style="display:none"><option value="">Todos os consultores</option></select></div>
-          <div id="agdWrap" style="padding:6px 20px 18px"><div class="empty">Carregando agenda…</div></div>
+          <div class="agd-cal-head">
+            <div class="agd-nav"><button id="agdPrev" title="Mês anterior">‹</button><b id="agdMesLabel">—</b><button id="agdNext" title="Próximo mês">›</button><button id="agdHoje" class="agd-hoje">Hoje</button></div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <span class="tagreal" id="agdCount">—</span>
+              <select id="agdCons" class="funil-consfiltro" title="Filtrar por consultor" style="display:none"><option value="">Todos os consultores</option></select>
+            </div>
+          </div>
+          <div class="agd-week"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+          <div id="agdCal" class="agd-grid"><div class="empty" style="grid-column:1/-1">Carregando agenda…</div></div>
+          <div class="agd-legenda"><i>📞 ligação/contato</i><i>🚗 visita</i><i>💛 reunião</i><i>↻ follow-up</i><i>✅ concluído</i><span style="color:var(--muted)">· arraste um compromisso para outro dia para remarcar · clique para abrir</span></div>
         </div>
       </section>
 
@@ -2236,12 +2268,13 @@
     }).catch(function(){ host.textContent='—'; });
   }
 
-  // ===== Agenda (aba) =====
-  var AGD_CONS='';
+  // ===== Agenda (aba) — calendário mensal arrastável =====
+  var AGD_CONS='', AGD_MONTH=null, AGD_EV={};
   function initAgenda(){
-    var host=$('agdWrap'); if(!host) return;
+    var host=$('agdCal'); if(!host) return;
     var isAdmin=(ME_ROLE==='admin'||ME_ROLE==='gestor');
     var rw=$('agd_respwrap'), cs=$('agdCons');
+    if(!AGD_MONTH){ var n0=new Date(); AGD_MONTH=new Date(n0.getFullYear(), n0.getMonth(), 1); }
     ensureVendedores(function(){
       if(isAdmin){ if(rw) rw.style.display='';
         if($('agd_resp')) $('agd_resp').innerHTML='<option value="">— eu / selecionar —</option>'+(VEND_CACHE||[]).map(function(v){ return '<option value="'+v.id+'">'+esc(v.nome)+'</option>'; }).join('');
@@ -2249,9 +2282,14 @@
           if(!cs._wired){ cs._wired=true; cs.addEventListener('change', function(){ AGD_CONS=this.value; carregarAgenda(); }); } }
       } else { if(rw) rw.style.display='none'; if(cs) cs.style.display='none'; }
       var b=$('agd_salvar'); if(b && !b._wired){ b._wired=true; b.addEventListener('click', salvarAgendaNova); }
+      var pv=$('agdPrev'), nx=$('agdNext'), hj=$('agdHoje');
+      if(pv && !pv._wired){ pv._wired=true; pv.addEventListener('click', function(){ AGD_MONTH=new Date(AGD_MONTH.getFullYear(), AGD_MONTH.getMonth()-1, 1); carregarAgenda(); }); }
+      if(nx && !nx._wired){ nx._wired=true; nx.addEventListener('click', function(){ AGD_MONTH=new Date(AGD_MONTH.getFullYear(), AGD_MONTH.getMonth()+1, 1); carregarAgenda(); }); }
+      if(hj && !hj._wired){ hj._wired=true; hj.addEventListener('click', function(){ var n=new Date(); AGD_MONTH=new Date(n.getFullYear(), n.getMonth(), 1); carregarAgenda(); }); }
       carregarAgenda();
     });
   }
+  function agdIcon(tipo){ return ({ligacao:'📞',contato:'📞',visita:'🚗',reuniao:'💛',followup:'↻'})[tipo]||'•'; }
   function salvarAgendaNova(){
     var q=$('agd_quando').value, tit=$('agd_titulo').value;
     if(!tit){ $('msg-agd').textContent='Informe o título.'; return; }
@@ -2266,32 +2304,68 @@
     .catch(function(){ b.disabled=false; $('msg-agd').textContent='Erro de conexão.'; });
   }
   function carregarAgenda(){
-    var host=$('agdWrap'); if(!host) return; var tok=localStorage.getItem(TOKKEY);
-    host.innerHTML='<div class="empty">Carregando agenda…</div>';
-    var url=SB+'/rest/v1/agendamentos?select=id,titulo,tipo,quando,status,local,observacao,responsavel_id,oportunidade_id&status=neq.cancelado&order=quando.asc&limit=300';
+    var host=$('agdCal'); if(!host || !AGD_MONTH) return; var tok=localStorage.getItem(TOKKEY);
+    var y=AGD_MONTH.getFullYear(), mo=AGD_MONTH.getMonth();
+    var lab=$('agdMesLabel'); if(lab) lab.textContent=AGD_MONTH.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    var gridStart=new Date(y,mo,1); gridStart.setDate(gridStart.getDate()-gridStart.getDay());   // recua até o domingo
+    var gridEnd=new Date(gridStart); gridEnd.setDate(gridEnd.getDate()+42);
+    host.innerHTML='<div class="empty" style="grid-column:1/-1">Carregando…</div>';
+    var url=SB+'/rest/v1/agendamentos?select=id,titulo,tipo,quando,status,local,observacao,responsavel_id,oportunidade_id,cliente_id&status=neq.cancelado'
+      +'&quando=gte.'+gridStart.toISOString()+'&quando=lt.'+gridEnd.toISOString()+'&order=quando.asc&limit=500';
     if(AGD_CONS){ url+='&responsavel_id=eq.'+AGD_CONS; }
     fetch(url,{headers:authHeaders(tok)})
     .then(function(r){ return r.ok?r.json():[]; })
     .then(function(rows){ rows=Array.isArray(rows)?rows:[];
-      var c=$('agdCount'); if(c) c.textContent=rows.length+(rows.length===1?' compromisso':' compromissos');
-      if(!rows.length){ host.innerHTML='<div class="empty">Nenhum agendamento. Crie o primeiro acima ou clique num card do funil para agendar.</div>'; return; }
-      var isAdmin=(ME_ROLE==='admin'||ME_ROLE==='gestor');
-      var groups={}, order=[];
-      rows.forEach(function(a){ var d=new Date(a.quando); var key=isNaN(d)?'—':d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}); if(!groups[key]){ groups[key]=[]; order.push(key); } groups[key].push(a); });
-      var h='';
-      order.forEach(function(k){ h+='<div class="agd-day">'+esc(k)+'</div>';
-        groups[k].forEach(function(a){ var d=new Date(a.quando); var hora=isNaN(d)?'':d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-          var sub=[]; if(isAdmin) sub.push('👤 '+esc(vendNome(a.responsavel_id))); if(a.local) sub.push('📍 '+esc(a.local)); if(a.observacao) sub.push(esc(a.observacao));
-          var late=(!isNaN(d) && d.getTime()<Date.now() && a.status==='agendado');
-          h+='<div class="agd-item"><div class="agd-hora">'+hora+'</div><div class="agd-main"><div class="agd-tit">'+esc(a.titulo||a.tipo||'Atendimento')+' <span class="agd-badge">'+esc(a.tipo||'')+'</span>'+(late?' <span class="agd-badge" style="color:#e5534b;border-color:#e5534b">atrasado</span>':'')+(a.status==='concluido'?' <span class="agd-badge" style="color:#5fbf6a;border-color:#5fbf6a">concluído</span>':'')+'</div>'+(sub.length?'<div class="agd-sub">'+sub.join(' · ')+'</div>':'')+'</div>'+
-            (a.status==='agendado'?'<div class="agd-acts"><button data-agd-done="'+a.id+'">✓ Concluir</button><button data-agd-cancel="'+a.id+'">Cancelar</button></div>':'')+'</div>';
-        });
-      });
+      AGD_EV={}; rows.forEach(function(a){ AGD_EV[a.id]=a; });
+      var c=$('agdCount'); if(c) c.textContent=rows.length+' no período';
+      var byDay={}; rows.forEach(function(a){ var d=new Date(a.quando); if(isNaN(d)) return; var key=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); (byDay[key]=byDay[key]||[]).push(a); });
+      var nn=new Date(); var todayK=nn.getFullYear()+'-'+nn.getMonth()+'-'+nn.getDate();
+      var h='', cur=new Date(gridStart);
+      for(var i=0;i<42;i++){
+        var kk=cur.getFullYear()+'-'+cur.getMonth()+'-'+cur.getDate();
+        var fora=(cur.getMonth()!==mo);
+        var iso=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+        var evs=(byDay[kk]||[]);
+        h+='<div class="agd-cell'+(fora?' fora':'')+(kk===todayK?' hoje':'')+'" data-day="'+iso+'"><div class="agd-daynum">'+cur.getDate()+'</div>'+
+          evs.map(function(a){ var d=new Date(a.quando); var hm=isNaN(d)?'':d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+            var done=(a.status==='concluido'); var cls=done?'done':('t-'+(a.tipo||'contato'));
+            return '<div class="agd-ev '+cls+'" draggable="true" data-id="'+a.id+'" title="'+esc((a.titulo||'')+' · '+(a.tipo||''))+'">'+(done?'✅':agdIcon(a.tipo))+' '+hm+' '+esc(a.titulo||'')+'</div>';
+          }).join('')+'</div>';
+        cur.setDate(cur.getDate()+1);
+      }
       host.innerHTML=h;
-      host.querySelectorAll('[data-agd-done]').forEach(function(b){ b.addEventListener('click', function(){ mudaStatusAgenda(b.getAttribute('data-agd-done'),'concluido'); }); });
-      host.querySelectorAll('[data-agd-cancel]').forEach(function(b){ b.addEventListener('click', function(){ if(confirm('Cancelar este agendamento?')) mudaStatusAgenda(b.getAttribute('data-agd-cancel'),'cancelado'); }); });
+      agdWireDnD(host);
     })
-    .catch(function(e){ host.innerHTML='<div class="empty">Não foi possível carregar a agenda (entre como equipe).</div>'; console.error(e); });
+    .catch(function(e){ host.innerHTML='<div class="empty" style="grid-column:1/-1">Não foi possível carregar a agenda (entre como equipe).</div>'; console.error(e); });
+  }
+  function agdWireDnD(host){
+    host.querySelectorAll('.agd-ev').forEach(function(ev){
+      ev.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', ev.getAttribute('data-id')); e.dataTransfer.effectAllowed='move'; ev.classList.add('dragging'); });
+      ev.addEventListener('dragend', function(){ ev.classList.remove('dragging'); });
+      ev.addEventListener('click', function(){ agdAbrirEvento(ev.getAttribute('data-id')); });
+    });
+    host.querySelectorAll('.agd-cell').forEach(function(cell){
+      cell.addEventListener('dragover', function(e){ e.preventDefault(); e.dataTransfer.dropEffect='move'; cell.classList.add('over'); });
+      cell.addEventListener('dragleave', function(e){ if(!cell.contains(e.relatedTarget)) cell.classList.remove('over'); });
+      cell.addEventListener('drop', function(e){ e.preventDefault(); cell.classList.remove('over');
+        var id=e.dataTransfer.getData('text/plain'); var a=AGD_EV[id]; if(!a) return;
+        var dia=cell.getAttribute('data-day'); if(!dia) return;
+        var old=new Date(a.quando); var hh=String(old.getHours()).padStart(2,'0'), mm=String(old.getMinutes()).padStart(2,'0');
+        var novo=new Date(dia+'T'+hh+':'+mm+':00'); if(isNaN(novo)) return;
+        var card=host.querySelector('.agd-ev[data-id="'+id+'"]');
+        if(card && cell!==card.parentNode){ cell.appendChild(card); }   // move otimista
+        rpc('salvar_agendamento',{p_id:id, p_quando:novo.toISOString()})
+          .then(function(res){ if(res && !res.message){ a.quando=novo.toISOString(); atualizaSino(); } else { alert('Não foi possível remarcar (permissão?).'); carregarAgenda(); } })
+          .catch(function(){ alert('Erro de conexão.'); carregarAgenda(); });
+      });
+    });
+  }
+  function agdAbrirEvento(id){ var a=AGD_EV[id]; if(!a) return;
+    if(a.oportunidade_id){ abrirOportunidadeModal(a.oportunidade_id); return; }
+    var quando=new Date(a.quando); var qs=isNaN(quando)?'':quando.toLocaleString('pt-BR');
+    if(confirm((a.titulo||'Compromisso')+'\n'+qs+'\nTipo: '+(a.tipo||'')+' · Status: '+(a.status||'')+(a.local?('\nLocal: '+a.local):'')+(a.observacao?('\nObs: '+a.observacao):'')+'\n\nMarcar como CONCLUÍDO?')){
+      rpc('salvar_agendamento',{p_id:id,p_status:'concluido'}).then(function(res){ if(res && !res.message){ carregarAgenda(); atualizaSino(); } }).catch(function(){});
+    }
   }
   function mudaStatusAgenda(id,st){
     rpc('salvar_agendamento',{p_id:id, p_status:st}).then(function(res){ if(res && !res.message){ carregarAgenda(); atualizaSino(); } else alert('Não foi possível atualizar.'); }).catch(function(){ alert('Erro de conexão.'); });
