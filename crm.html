@@ -333,6 +333,7 @@
       <a href="#" data-view="agenda"><span class="dot"></span> Agenda</a>
       <a href="#" data-view="chat"><span class="dot"></span> Bate-papo</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
+      <a href="#" data-view="fluxocaixa"><span class="dot"></span> Fluxo de Caixa</a>
       <a href="#" data-view="cobranca"><span class="dot"></span> Cobrança (IA)</a>
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
@@ -677,6 +678,11 @@
             <b style="color:var(--text)">A pagar</b> = lançamentos do financeiro ainda em aberto.<br>
             Os números atualizam sozinhos conforme o Mercado Pago confirma cada pagamento.
           </div></div>
+      </section>
+      <section class="view" data-v="fluxocaixa" hidden>
+        <div class="h1">Fluxo de Caixa</div>
+        <div class="sub">Entradas × saídas · saldo por banco e consolidado · realizado + previsto · <b style="color:var(--accent)">só admin/gestão</b></div>
+        <div id="mod-fluxocaixa"><div class="empty" style="padding:20px">Carregando…</div></div>
       </section>
       <section class="view" data-v="cobranca" hidden>
         <div class="h1">Cobrança (IA)</div>
@@ -1516,6 +1522,7 @@
     if(v==='agenda') initAgenda();
     if(v==='ficha360') initFicha360();
     if(v==='financeiro') loadFinanceiro();
+    if(v==='fluxocaixa') initFluxoCaixa();
     if(v==='cobranca') loadCobranca();
     if(v==='chat') loadChat();
     if(v==='funil'||v==='leads') marcarVisto('leads');
@@ -3149,6 +3156,256 @@
       ].join('');
     })
     .catch(function(e){ box.innerHTML=kpiCard('Erro ao carregar','—',''); console.error(e); });
+  }
+  // ===== Fluxo de Caixa =====
+  var FC_BUILT=false, FC_PERIODO=30, FC_CONTA='', FC_CONTAS=[], FC_CHART=null;
+  var FC_BANCOS=[['001','Banco do Brasil'],['104','Caixa Econômica Federal'],['237','Bradesco'],['341','Itaú Unibanco'],['033','Santander'],['422','Safra'],['070','BRB'],['077','Banco Inter'],['260','Nubank'],['290','PagBank (PagSeguro)'],['323','Mercado Pago'],['336','Banco C6'],['756','Sicoob'],['748','Sicredi'],['212','Banco Original'],['380','PicPay'],['364','Efí (Gerencianet)'],['136','Unicred'],['041','Banrisul'],['004','Banco do Nordeste'],['021','Banestes'],['085','Ailos'],['655','Banco Votorantim'],['246','Banco ABC Brasil'],['025','Banco Alfa'],['208','BTG Pactual'],['218','Banco BS2'],['611','Banco Paulista'],['320','China Construction Bank'],['745','Citibank'],['399','HSBC'],['999','Outro / Dinheiro (caixa)']];
+  var FC_CAT_DESP=['Aluguel','Fornecedor','Folha / Salários','Pró-labore','Impostos','Marketing','Logística / Frete','Utilidades (água/luz/internet)','Manutenção','Tarifas bancárias','Outros'];
+  var FC_CAT_REC=['Venda','Locação','Impressão 3D','Serviço','Outros'];
+  function fcContaOpts(sel, incTodas){
+    var h=incTodas?'<option value="">Todas as contas (consolidado)</option>':'<option value="">— selecione —</option>';
+    FC_CONTAS.forEach(function(c){ h+='<option value="'+c.id+'"'+(sel===c.id?' selected':'')+'>'+esc(c.nome)+(c.banco_nome?(' · '+esc(c.banco_nome)):'')+'</option>'; });
+    return h;
+  }
+  function initFluxoCaixa(){
+    var host=$('mod-fluxocaixa'); if(!host) return;
+    if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ host.innerHTML='<div class="empty" style="padding:22px">Acesso restrito à administração/gestão.</div>'; return; }
+    if(!FC_BUILT){ fcRenderShell(host); FC_BUILT=true; }
+    fcReload();
+  }
+  function fcRenderShell(host){
+    host.innerHTML=''
+    +'<div class="kpis" id="fcKpis"></div>'
+    +'<div class="panel" style="margin-top:14px"><div style="padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)">'
+      +'<b style="color:var(--text)">Projeção de saldo</b>'
+      +'<select id="fcPeriodo" style="margin-left:auto">'+['30 dias','60 dias','90 dias'].map(function(t,i){var v=[30,60,90][i];return '<option value="'+v+'"'+(v===FC_PERIODO?' selected':'')+'>'+t+'</option>';}).join('')+'</select>'
+      +'<select id="fcConta"></select></div>'
+      +'<div style="padding:14px 16px"><canvas id="fcChart" height="90"></canvas></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px" id="fcGrid">'
+      +'<div class="panel"><div class="modbar"><h3>Contas bancárias</h3><span class="modmsg" id="fcContaMsg"></span></div>'
+        +'<div id="fcContasLista" style="padding:6px 4px"></div>'
+        +'<div style="padding:10px 16px;border-top:1px solid var(--line)"><button class="ia-btn" id="fcNovaConta">+ Nova conta</button></div>'
+        +'<div id="fcContaForm" style="display:none;padding:12px 16px;border-top:1px solid var(--line)">'
+          +'<div class="modform">'
+          +'<div class="f full"><label>Apelido da conta *</label><input id="fcc_nome" placeholder="ex.: Itaú PJ"></div>'
+          +'<div class="f"><label>Banco</label><select id="fcc_banco"></select></div>'
+          +'<div class="f"><label>Tipo</label><select id="fcc_tipo"><option value="corrente">Conta corrente</option><option value="poupanca">Poupança</option><option value="digital">Conta digital</option><option value="caixa">Caixa / dinheiro</option></select></div>'
+          +'<div class="f"><label>Agência</label><input id="fcc_ag"></div>'
+          +'<div class="f"><label>Conta</label><input id="fcc_num"></div>'
+          +'<div class="f"><label>Saldo inicial (R$)</label><input id="fcc_saldo" type="number" step="0.01" value="0"></div>'
+          +'<div class="f"><label>Data do saldo inicial</label><input id="fcc_data" type="date"></div>'
+          +'<div class="f full" style="text-align:right"><button class="btn" id="fcc_cancel" style="background:transparent;color:var(--muted);border:1px solid var(--line);margin-right:8px">Cancelar</button><button class="btn" id="fcc_save">Salvar conta</button></div>'
+          +'</div></div>'
+      +'</div>'
+      +'<div class="panel"><div class="modbar"><h3>Novo lançamento</h3><span class="modmsg" id="fcLancMsg"></span></div>'
+        +'<div class="modform" style="padding-top:8px">'
+        +'<div class="f"><label>Tipo</label><select id="fcl_tipo"><option value="despesa">Saída (despesa)</option><option value="receita">Entrada (receita)</option></select></div>'
+        +'<div class="f"><label>Categoria</label><select id="fcl_cat"></select></div>'
+        +'<div class="f full"><label>Descrição</label><input id="fcl_desc" placeholder="ex.: Aluguel showroom"></div>'
+        +'<div class="f"><label>Valor (R$)</label><input id="fcl_valor" type="number" step="0.01"></div>'
+        +'<div class="f"><label>Vencimento</label><input id="fcl_venc" type="date"></div>'
+        +'<div class="f"><label>Conta</label><select id="fcl_conta"></select></div>'
+        +'<div class="f"><label>Situação</label><select id="fcl_pago"><option value="false">A pagar/receber (previsto)</option><option value="true">Já pago/recebido</option></select></div>'
+        +'<div class="f"><label>Repetir (meses)</label><input id="fcl_rec" type="number" min="1" value="1" title="1 = lançamento único"></div>'
+        +'<div class="f full" style="text-align:right"><button class="btn" id="fcl_save">Lançar</button></div>'
+        +'</div></div>'
+    +'</div>'
+    +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Em aberto (a pagar / a receber)</h3></div><div id="fcAbertos" style="padding:6px 4px"></div></div>'
+    +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Importar extrato (OFX / CSV)</h3><span class="modmsg" id="fcImpMsg"></span></div>'
+      +'<div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      +'<select id="fcImpConta"></select>'
+      +'<input type="file" id="fcImpFile" accept=".ofx,.csv,.txt">'
+      +'<button class="ia-btn" id="fcImpBtn" disabled>Importar movimentos</button>'
+      +'<span style="color:var(--muted);font-size:12px">OFX ou CSV (Data, Valor, Descrição). Valores positivos = entrada; negativos = saída. Duplicados são ignorados.</span></div>'
+      +'<div id="fcImpPreview" style="padding:0 16px 12px"></div></div>';
+    // opções de banco/categoria
+    $('fcc_banco').innerHTML=FC_BANCOS.filter(function(b){return b[0]!=='寿';}).map(function(b){ return '<option value="'+b[0]+'">'+esc(b[1])+(b[0]!=='999'?(' ('+b[0]+')'):'')+'</option>'; }).join('');
+    fcSyncCats();
+    // eventos
+    $('fcPeriodo').addEventListener('change', function(){ FC_PERIODO=Number(this.value)||30; fcLoadFluxo(); });
+    $('fcConta').addEventListener('change', function(){ FC_CONTA=this.value; fcLoadFluxo(); });
+    $('fcNovaConta').addEventListener('click', function(){ var f=$('fcContaForm'); f.style.display=f.style.display==='none'?'block':'none'; var d=$('fcc_data'); if(d&&!d.value) d.value=new Date().toISOString().slice(0,10); });
+    $('fcc_cancel').addEventListener('click', function(){ $('fcContaForm').style.display='none'; });
+    $('fcc_save').addEventListener('click', fcSalvarConta);
+    $('fcl_tipo').addEventListener('change', fcSyncCats);
+    $('fcl_save').addEventListener('click', fcSalvarLancamento);
+    $('fcImpFile').addEventListener('change', fcPreviewImport);
+    $('fcImpBtn').addEventListener('click', fcDoImport);
+    var vv=$('fcl_venc'); if(vv) vv.value=new Date().toISOString().slice(0,10);
+  }
+  function fcSyncCats(){ var t=($('fcl_tipo')||{}).value; var arr=(t==='receita')?FC_CAT_REC:FC_CAT_DESP; var s=$('fcl_cat'); if(s) s.innerHTML=arr.map(function(c){return '<option>'+c+'</option>';}).join(''); }
+  function fcReload(){ fcLoadContas(function(){ fcLoadFluxo(); fcLoadAbertos(); }); }
+  function fcLoadContas(cb){
+    rpc('contas_saldo',{}).then(function(d){
+      FC_CONTAS=(d&&d.ok&&Array.isArray(d.contas))?d.contas:[];
+      // selects de conta
+      var selF=$('fcConta'); if(selF){ selF.innerHTML=fcContaOpts(FC_CONTA,true); }
+      var selL=$('fcl_conta'); if(selL){ selL.innerHTML=fcContaOpts('',false); }
+      var selI=$('fcImpConta'); if(selI){ selI.innerHTML=fcContaOpts('',false); }
+      // lista de contas + saldo
+      var wrap=$('fcContasLista'); if(wrap){
+        if(!FC_CONTAS.length){ wrap.innerHTML='<div class="empty" style="padding:14px">Nenhuma conta cadastrada. Crie a primeira em “Nova conta”.</div>'; }
+        else { var tot=0; wrap.innerHTML=FC_CONTAS.map(function(c){ tot+=Number(c.saldo_atual)||0;
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--line)">'
+            +'<div><b style="color:var(--text)">'+esc(c.nome)+'</b><div style="font-size:11px;color:var(--muted)">'+esc(c.banco_nome||'—')+(c.agencia?(' · ag '+esc(c.agencia)):'')+(c.conta?(' · cc '+esc(c.conta)):'')+'</div></div>'
+            +'<div style="text-align:right"><b style="color:'+((Number(c.saldo_atual)||0)<0?'#e5534b':'var(--accent)')+'">'+moneyBR(c.saldo_atual)+'</b>'
+            +' <span class="badge" style="cursor:pointer;margin-left:6px" onclick="fcDelConta(\''+c.id+'\')">excluir</span></div></div>';
+        }).join('')
+        +'<div style="display:flex;justify-content:space-between;padding:11px 16px;border-top:2px solid var(--ouro)"><b>Saldo consolidado</b><b style="color:var(--ouro)">'+moneyBR(tot)+'</b></div>'; }
+      }
+      if(typeof cb==='function') cb();
+    }).catch(function(){ var w=$('fcContasLista'); if(w) w.innerHTML='<div class="empty" style="padding:14px">Não foi possível carregar (acesso de gestão).</div>'; });
+  }
+  function fcLoadFluxo(){
+    var ate=new Date(); var de=new Date(); de.setDate(de.getDate()); // hoje
+    var dini=new Date(); dini.setDate(dini.getDate()-7); // mostra 7 dias atrás p/ contexto
+    var dfim=new Date(); dfim.setDate(dfim.getDate()+FC_PERIODO);
+    var sDe=dini.toISOString().slice(0,10), sAte=dfim.toISOString().slice(0,10);
+    rpc('fluxo_caixa',{p_de:sDe,p_ate:sAte,p_conta:FC_CONTA||null}).then(function(d){
+      if(!d||!d.ok){ return; }
+      var dias=d.dias||[]; var abertura=Number(d.saldo_abertura)||0;
+      var hoje=new Date().toISOString().slice(0,10);
+      var labels=[], real=[], prev=[], sr=abertura, sp=abertura, entP=0, saiP=0, saldoFim=abertura;
+      dias.forEach(function(x){
+        var er=Number(x.ent_real)||0, sar=Number(x.sai_real)||0, ep=Number(x.ent_prev)||0, sap=Number(x.sai_prev)||0;
+        sp += (er - sar + ep - sap);
+        sr += (er - sar);
+        var dd=x.dia;
+        labels.push(dd.slice(8,10)+'/'+dd.slice(5,7));
+        prev.push(Math.round(sp*100)/100);
+        real.push(dd<=hoje?Math.round(sr*100)/100:null);
+        if(dd>=hoje){ entP+=ep; saiP+=sap; }
+        saldoFim=sp;
+      });
+      fcChart(labels, real, prev);
+      // KPIs
+      var saldoHoje=FC_CONTAS.reduce(function(a,c){return a+(Number(c.saldo_atual)||0);},0);
+      if(FC_CONTA){ var cc=FC_CONTAS.filter(function(c){return c.id===FC_CONTA;})[0]; if(cc) saldoHoje=Number(cc.saldo_atual)||0; }
+      var box=$('fcKpis'); if(box){ box.innerHTML=[
+        kpiCard('Saldo hoje', moneyBR(saldoHoje), FC_CONTA?'conta selecionada':'consolidado'),
+        kpiCard('A receber ('+FC_PERIODO+'d)', moneyBR(entP), 'previsto'),
+        kpiCard('A pagar ('+FC_PERIODO+'d)', moneyBR(saiP), 'previsto'),
+        kpiCard('Saldo projetado', moneyBR(saldoFim), 'em '+FC_PERIODO+' dias')
+      ].join(''); }
+    }).catch(function(e){ console.error('fluxo:',e); });
+  }
+  function fcChart(labels, real, prev){
+    if(typeof Chart==='undefined') return; var cv=$('fcChart'); if(!cv) return;
+    if(FC_CHART){ try{FC_CHART.destroy();}catch(e){} FC_CHART=null; }
+    FC_CHART=new Chart(cv.getContext('2d'),{ type:'line',
+      data:{ labels:labels, datasets:[
+        {label:'Saldo realizado', data:real, borderColor:'#CB984C', backgroundColor:'rgba(203,152,76,.12)', fill:true, tension:.25, spanGaps:false, pointRadius:0},
+        {label:'Saldo projetado', data:prev, borderColor:'#9D7D31', borderDash:[6,4], fill:false, tension:.25, pointRadius:0}
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#C9A86A',boxWidth:12}}},
+        scales:{ x:{ticks:{color:'#9a8f78',maxTicksLimit:12},grid:{color:'rgba(255,255,255,.04)'}},
+          y:{ticks:{color:'#9a8f78',callback:function(v){return 'R$ '+Number(v).toLocaleString('pt-BR');}},grid:{color:'rgba(255,255,255,.06)'}} } }
+    });
+  }
+  function fcLoadAbertos(){
+    var tok=localStorage.getItem(TOKKEY);
+    var url=SB+'/rest/v1/financeiro?select=id,tipo,descricao,valor,vencimento,categoria,conta_id&pago=eq.false&order=vencimento.asc&limit=200';
+    fetch(url,{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}).then(function(rows){
+      var w=$('fcAbertos'); if(!w) return; rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ w.innerHTML='<div class="empty" style="padding:14px">Nada em aberto. 🎉</div>'; return; }
+      var hoje=new Date().toISOString().slice(0,10);
+      w.innerHTML='<table style="width:100%"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th><th>Baixar</th></tr></thead><tbody>'
+      +rows.map(function(f){
+        var dir=(f.tipo==='receber'||f.tipo==='receita')?'entrada':'saida';
+        var venc=f.vencimento||''; var atrasado=(venc && venc<hoje);
+        return '<tr><td style="color:'+(atrasado?'#e5534b':'var(--muted)')+'">'+esc(venc?venc.split('-').reverse().join('/'):'—')+(atrasado?' ⚠':'')+'</td>'
+          +'<td style="color:var(--text)">'+esc(f.descricao||'—')+'</td><td>'+esc(f.categoria||'—')+'</td>'
+          +'<td><span class="badge" style="color:'+(dir==='entrada'?'#3ea55e':'#c9862f')+'">'+(dir==='entrada'?'a receber':'a pagar')+'</span></td>'
+          +'<td style="text-align:right;color:var(--accent)">'+moneyBR(f.valor)+'</td>'
+          +'<td><select id="fcbc_'+f.id+'" style="max-width:120px">'+fcContaOpts('',false)+'</select> <button class="badge" style="cursor:pointer" onclick="fcBaixar(\''+f.id+'\')">✓</button>'
+          +' <span class="badge" style="cursor:pointer" onclick="fcDelLanc(\''+f.id+'\')">✕</span></td></tr>';
+      }).join('')+'</tbody></table>';
+    }).catch(function(){});
+  }
+  function fcSalvarConta(){
+    var nome=($('fcc_nome')||{}).value||''; if(!nome.trim()){ $('fcContaMsg').textContent='Informe o apelido.'; return; }
+    var bsel=$('fcc_banco'); var bnome=bsel&&bsel.selectedIndex>=0?bsel.options[bsel.selectedIndex].text.replace(/\s*\(\d+\)$/,''):'';
+    var p={ nome:nome, banco_codigo:(bsel?bsel.value:''), banco_nome:bnome, tipo:($('fcc_tipo')||{}).value,
+      agencia:($('fcc_ag')||{}).value, conta:($('fcc_num')||{}).value,
+      saldo_inicial:Number(($('fcc_saldo')||{}).value)||0, saldo_inicial_data:($('fcc_data')||{}).value||null };
+    $('fcc_save').disabled=true; $('fcContaMsg').textContent='Salvando…';
+    rpc('salvar_conta_bancaria',p).then(function(r){ $('fcc_save').disabled=false;
+      if(r&&r.ok){ $('fcContaMsg').textContent='✓ Conta salva'; $('fcContaForm').style.display='none';
+        ['fcc_nome','fcc_ag','fcc_num'].forEach(function(id){ if($(id))$(id).value=''; }); if($('fcc_saldo'))$('fcc_saldo').value='0';
+        fcReload(); setTimeout(function(){ if($('fcContaMsg'))$('fcContaMsg').textContent=''; },2500); }
+      else $('fcContaMsg').textContent='Erro: '+((r&&(r.erro||r.message))||'falha');
+    }).catch(function(){ $('fcc_save').disabled=false; $('fcContaMsg').textContent='Erro de conexão.'; });
+  }
+  window.fcDelConta=function(id){ if(!confirm('Excluir esta conta? (não apaga os lançamentos)')) return;
+    rpc('excluir_conta_bancaria',{p_id:id}).then(function(){ fcReload(); }); };
+  function fcSalvarLancamento(){
+    var val=Number(($('fcl_valor')||{}).value)||0; if(val<=0){ $('fcLancMsg').textContent='Informe um valor.'; return; }
+    var p={ tipo:($('fcl_tipo')||{}).value, categoria:($('fcl_cat')||{}).value, descricao:($('fcl_desc')||{}).value,
+      valor:val, vencimento:($('fcl_venc')||{}).value||null, conta_id:($('fcl_conta')||{}).value||null,
+      pago:(($('fcl_pago')||{}).value==='true'), recorrencia_meses:Number(($('fcl_rec')||{}).value)||1 };
+    $('fcl_save').disabled=true; $('fcLancMsg').textContent='Lançando…';
+    rpc('lancar_financeiro',p).then(function(r){ $('fcl_save').disabled=false;
+      if(r&&r.ok){ $('fcLancMsg').textContent='✓ '+(r.lancamentos||1)+' lançamento(s)'; if($('fcl_desc'))$('fcl_desc').value=''; if($('fcl_valor'))$('fcl_valor').value='';
+        fcReload(); setTimeout(function(){ if($('fcLancMsg'))$('fcLancMsg').textContent=''; },2500); }
+      else $('fcLancMsg').textContent='Erro: '+((r&&(r.erro||r.message))||'falha');
+    }).catch(function(){ $('fcl_save').disabled=false; $('fcLancMsg').textContent='Erro de conexão.'; });
+  }
+  window.fcBaixar=function(id){ var sel=$('fcbc_'+id); var conta=sel?sel.value:null;
+    rpc('baixar_financeiro',{p_id:id,p_conta_id:conta||null,p_pago_em:new Date().toISOString().slice(0,10)}).then(function(r){
+      if(r&&r.ok){ fcReload(); } else alert('Não foi possível baixar.'); }).catch(function(){ alert('Erro de conexão.'); }); };
+  window.fcDelLanc=function(id){ if(!confirm('Excluir este lançamento?')) return;
+    rpc('excluir_financeiro',{p_id:id}).then(function(r){ if(r&&r.ok) fcReload(); else alert('Só lançamentos manuais/importados podem ser excluídos aqui.'); }); };
+  // ---- Importação de extrato ----
+  var FC_IMP_ROWS=[];
+  function fcParseOFX(txt){
+    var out=[], re=/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi, m;
+    function tag(b,t){ var x=b.match(new RegExp('<'+t+'>([^<\\r\\n]*)','i')); return x?x[1].trim():''; }
+    while((m=re.exec(txt))){ var b=m[1]; var dt=tag(b,'DTPOSTED').slice(0,8);
+      var data=dt.length>=8?(dt.slice(0,4)+'-'+dt.slice(4,6)+'-'+dt.slice(6,8)):'';
+      var raw=(tag(b,'TRNAMT')||'0').trim(); if(raw.indexOf(',')>=0 && raw.indexOf('.')<0) raw=raw.replace(',','.');
+      var valor=Number(raw);
+      var fitid=tag(b,'FITID'), memo=tag(b,'MEMO')||tag(b,'NAME');
+      if(data && valor) out.push({data:data,valor:valor,descricao:memo,fitid:fitid}); }
+    return out;
+  }
+  function fcParseCSV(txt){
+    var out=[], lines=txt.split(/\r?\n/).filter(function(l){return l.trim();});
+    var delim=(txt.indexOf(';')>=0 && txt.indexOf(';')<txt.indexOf(',')+2)?';':(txt.indexOf(';')>=0?';':',');
+    lines.forEach(function(l,i){
+      var p=l.split(delim); if(p.length<2) return;
+      var d=(p[0]||'').trim(); if(/data|date/i.test(d)&&i===0) return; // cabeçalho
+      var data=''; var mdmy=d.match(/(\d{2})\/(\d{2})\/(\d{4})/); var miso=d.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if(mdmy) data=mdmy[3]+'-'+mdmy[2]+'-'+mdmy[1]; else if(miso) data=d.slice(0,10);
+      var vraw=(p[1]||'').trim().replace(/[R$\s]/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.');
+      var valor=Number(vraw); var desc=(p[2]||p.slice(2).join(' ')||'Extrato').trim();
+      if(data && valor) out.push({data:data,valor:valor,descricao:desc,fitid:''});
+    });
+    return out;
+  }
+  function fcPreviewImport(e){
+    var file=e.target.files[0]; if(!file) return;
+    var rd=new FileReader();
+    rd.onload=function(){ var txt=String(rd.result||'');
+      FC_IMP_ROWS=/<STMTTRN>/i.test(txt)?fcParseOFX(txt):fcParseCSV(txt);
+      var pv=$('fcImpPreview');
+      if(!FC_IMP_ROWS.length){ pv.innerHTML='<div style="color:#e5534b;font-size:12px">Nenhum movimento reconhecido. Confira o formato (OFX ou CSV com Data, Valor, Descrição).</div>'; $('fcImpBtn').disabled=true; return; }
+      var ent=FC_IMP_ROWS.filter(function(r){return r.valor>0;}).length, sai=FC_IMP_ROWS.length-ent;
+      pv.innerHTML='<div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">'+FC_IMP_ROWS.length+' movimento(s) · '+ent+' entradas · '+sai+' saídas. Confira e importe:</div>'
+        +'<table style="width:100%;font-size:12px"><thead><tr><th>Data</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody>'
+        +FC_IMP_ROWS.slice(0,8).map(function(r){ return '<tr><td>'+esc(r.data.split('-').reverse().join('/'))+'</td><td>'+esc((r.descricao||'').slice(0,50))+'</td><td style="text-align:right;color:'+(r.valor>0?'#3ea55e':'#c9862f')+'">'+moneyBR(r.valor)+'</td></tr>'; }).join('')
+        +'</tbody></table>'+(FC_IMP_ROWS.length>8?'<div style="font-size:11px;color:var(--muted)">…e mais '+(FC_IMP_ROWS.length-8)+'</div>':'');
+      $('fcImpBtn').disabled=!($('fcImpConta')&&$('fcImpConta').value);
+    };
+    rd.readAsText(file, 'ISO-8859-1');
+  }
+  function fcDoImport(){
+    var conta=($('fcImpConta')||{}).value; if(!conta){ $('fcImpMsg').textContent='Escolha a conta.'; return; }
+    if(!FC_IMP_ROWS.length){ $('fcImpMsg').textContent='Selecione um arquivo.'; return; }
+    $('fcImpBtn').disabled=true; $('fcImpMsg').textContent='Importando…';
+    rpc('importar_extrato',{conta_id:conta,movimentos:FC_IMP_ROWS}).then(function(r){ $('fcImpBtn').disabled=false;
+      if(r&&r.ok){ $('fcImpMsg').textContent='✓ '+r.importados+' importado(s), '+r.ignorados+' já existiam'; FC_IMP_ROWS=[]; if($('fcImpFile'))$('fcImpFile').value=''; if($('fcImpPreview'))$('fcImpPreview').innerHTML=''; fcReload(); }
+      else $('fcImpMsg').textContent='Erro: '+((r&&(r.erro||r.message))||'falha');
+    }).catch(function(){ $('fcImpBtn').disabled=false; $('fcImpMsg').textContent='Erro de conexão.'; });
   }
   // ===== Relatórios: panorama em tempo real =====
   function countOf(tok,table){
