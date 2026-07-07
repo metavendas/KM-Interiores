@@ -323,6 +323,7 @@
       <a href="#" data-view="engajamento"><span class="dot"></span> Engajamento (LinkedIn)</a>
       <a href="#" data-view="produtos"><span class="dot"></span> Produtos</a>
       <a href="#" data-view="estoque"><span class="dot"></span> Estoque</a>
+      <a href="#" data-view="compras"><span class="dot"></span> Pedidos de Compra</a>
       <a href="#" data-view="pedidos"><span class="dot"></span> Pedidos</a>
       <a href="#" data-view="os"><span class="dot"></span> Ordens de Serviço</a>
       <a href="#" data-view="locacao"><span class="dot"></span> Locação (Pilar 2)</a>
@@ -683,6 +684,11 @@
         <div class="h1">Fluxo de Caixa</div>
         <div class="sub">Entradas × saídas · saldo por banco e consolidado · realizado + previsto · <b style="color:var(--accent)">só admin/gestão</b></div>
         <div id="mod-fluxocaixa"><div class="empty" style="padding:20px">Carregando…</div></div>
+      </section>
+      <section class="view" data-v="compras" hidden>
+        <div class="h1">Pedidos de Compra</div>
+        <div class="sub">Compras a fornecedores · gera contas a pagar no Fluxo de Caixa · entrada no estoque ao receber · <b style="color:var(--accent)">só admin/gestão</b></div>
+        <div id="mod-compras"><div class="empty" style="padding:20px">Carregando…</div></div>
       </section>
       <section class="view" data-v="cobranca" hidden>
         <div class="h1">Cobrança (IA)</div>
@@ -1523,6 +1529,7 @@
     if(v==='ficha360') initFicha360();
     if(v==='financeiro') loadFinanceiro();
     if(v==='fluxocaixa') initFluxoCaixa();
+    if(v==='compras') initCompras();
     if(v==='cobranca') loadCobranca();
     if(v==='chat') loadChat();
     if(v==='funil'||v==='leads') marcarVisto('leads');
@@ -3406,6 +3413,198 @@
       if(r&&r.ok){ $('fcImpMsg').textContent='✓ '+r.importados+' importado(s), '+r.ignorados+' já existiam'; FC_IMP_ROWS=[]; if($('fcImpFile'))$('fcImpFile').value=''; if($('fcImpPreview'))$('fcImpPreview').innerHTML=''; fcReload(); }
       else $('fcImpMsg').textContent='Erro: '+((r&&(r.erro||r.message))||'falha');
     }).catch(function(){ $('fcImpBtn').disabled=false; $('fcImpMsg').textContent='Erro de conexão.'; });
+  }
+  // ===== Pedidos de Compra (lado da compra) =====
+  var COMP_BUILT=false, COMP_FORN=[], COMP_CONTAS=[];
+  var COMP_STATUS={rascunho:['Rascunho','#9a9a9a'],confirmada:['Confirmada · a pagar','#c9862f'],recebida:['Recebida · estoque ok','#3ea55e'],cancelada:['Cancelada','#e5534b']};
+  function initCompras(){
+    var host=$('mod-compras'); if(!host) return;
+    if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ host.innerHTML='<div class="empty" style="padding:22px">Acesso restrito à administração/gestão.</div>'; return; }
+    if(!COMP_BUILT){ compRenderShell(host); COMP_BUILT=true; }
+    compReload();
+  }
+  function compRenderShell(host){
+    host.innerHTML=''
+    +'<div class="panel"><div class="modbar"><h3 id="compFormTitle">Novo pedido de compra</h3><span class="modmsg" id="compMsg"></span></div>'
+      +'<div class="modform">'
+      +'<div class="f"><label>Fornecedor (cadastrado)</label><select id="cp_forn"></select></div>'
+      +'<div class="f"><label>…ou digite o nome</label><input id="cp_forn_txt" placeholder="fornecedor avulso"></div>'
+      +'<div class="f"><label>Data da compra</label><input id="cp_data" type="date"></div>'
+      +'<div class="f"><label>Previsão de entrega</label><input id="cp_entrega" type="date"></div>'
+      +'<div class="f"><label>Condição</label><select id="cp_cond"><option value="a_vista">À vista</option><option value="a_prazo" selected>A prazo</option><option value="parcelado">Parcelado</option></select></div>'
+      +'<div class="f"><label>Parcelas</label><input id="cp_parc" type="number" min="1" value="1"></div>'
+      +'<div class="f"><label>Intervalo entre parcelas (dias)</label><input id="cp_int" type="number" min="0" value="30"></div>'
+      +'<div class="f"><label>1º vencimento</label><input id="cp_venc" type="date"></div>'
+      +'<div class="f"><label>Conta que vai pagar</label><select id="cp_conta"></select></div>'
+      +'<div class="f full"><label>Observação</label><input id="cp_obs" placeholder="condições, contato, referência"></div>'
+      +'<div class="f full"><label>Itens da compra</label>'
+        +'<table style="width:100%"><thead><tr><th>Produto (p/ estoque)</th><th>Descrição</th><th>Qtd</th><th>Custo unit.</th><th style="text-align:right">Total</th><th></th></tr></thead><tbody id="cp_itens"></tbody></table>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><button class="btn" id="cp_additem" style="background:transparent;color:var(--accent);border:1px solid var(--accent)">+ item</button><div>Total: <b id="cp_total" style="color:var(--ouro)">R$ 0,00</b></div></div>'
+      +'</div>'
+      +'<div class="f full" style="text-align:right"><button class="btn" id="cp_cancel" style="background:transparent;color:var(--muted);border:1px solid var(--line);margin-right:8px;display:none">Cancelar edição</button><button class="btn" id="cp_save">Salvar rascunho</button></div>'
+      +'</div></div>'
+    +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Pedidos de compra</h3></div><div id="compLista" style="padding:6px 4px"></div></div>';
+    $('cp_additem').addEventListener('click', function(){ compAddItem(); });
+    $('cp_save').addEventListener('click', compSalvar);
+    $('cp_cancel').addEventListener('click', compResetForm);
+    $('cp_itens').addEventListener('input', compRecalc);
+    $('cp_itens').addEventListener('change', function(e){
+      if(e.target && e.target.classList.contains('ci_prod')){
+        var tr=e.target.closest('tr'); var p=(PROD_CACHE||[]).filter(function(x){return x.id===e.target.value;})[0];
+        if(p){ var d=tr.querySelector('.ci_desc'); if(d&&!d.value) d.value=p.nome||''; var c=tr.querySelector('.ci_custo'); if(c&&!c.value&&p.preco) c.value=p.preco; compRecalc(); }
+      }
+    });
+    var d1=$('cp_data'), d2=$('cp_venc'); var hoje=new Date().toISOString().slice(0,10); if(d1)d1.value=hoje; if(d2)d2.value=hoje;
+    compAddItem();
+  }
+  function compAddItem(it){ it=it||{};
+    var tb=$('cp_itens'); if(!tb) return;
+    var tr=document.createElement('tr'); tr.className='comp-irow';
+    tr.innerHTML='<td><select class="ci_prod" style="min-width:140px">'+optsFrom(PROD_CACHE,'— produto (opcional) —', it.produto_id||'')+'</select></td>'
+      +'<td><input class="ci_desc" placeholder="descrição" value="'+esc(it.descricao||'')+'"></td>'
+      +'<td><input class="ci_qtd" type="number" min="1" value="'+(it.qtd||1)+'" style="width:56px"></td>'
+      +'<td><input class="ci_custo" type="number" step="0.01" value="'+(it.custo_unit!=null?it.custo_unit:'')+'" style="width:88px"></td>'
+      +'<td class="ci_tot" style="text-align:right;color:var(--muted)">R$ 0,00</td>'
+      +'<td><span class="badge" style="cursor:pointer" onclick="this.closest(\'tr\').remove();compRecalc();">✕</span></td>';
+    tb.appendChild(tr); compRecalc();
+  }
+  function compRecalc(){
+    var tot=0; document.querySelectorAll('#cp_itens .comp-irow').forEach(function(tr){
+      var q=Number((tr.querySelector('.ci_qtd')||{}).value)||0, c=Number((tr.querySelector('.ci_custo')||{}).value)||0;
+      var t=q*c; tot+=t; var cel=tr.querySelector('.ci_tot'); if(cel) cel.textContent=moneyBR(t);
+    });
+    var el=$('cp_total'); if(el) el.textContent=moneyBR(tot);
+  }
+  function compReadItens(){
+    var arr=[]; document.querySelectorAll('#cp_itens .comp-irow').forEach(function(tr){
+      var prod=(tr.querySelector('.ci_prod')||{}).value||'', desc=(tr.querySelector('.ci_desc')||{}).value||'';
+      var qtd=Number((tr.querySelector('.ci_qtd')||{}).value)||1, custo=Number((tr.querySelector('.ci_custo')||{}).value)||0;
+      if(!prod && !desc && custo<=0) return;
+      arr.push({produto_id:prod||null, descricao:desc, qtd:qtd, custo_unit:custo});
+    });
+    return arr;
+  }
+  function compReload(){
+    var tok=localStorage.getItem(TOKKEY);
+    ensureProdutos(function(){
+      // fornecedores
+      fetch(SB+'/rest/v1/fornecedores?select=id,nome&ativo=eq.true&order=nome.asc&limit=500',{headers:authHeaders(tok)})
+      .then(function(r){return r.ok?r.json():[];}).then(function(rows){ COMP_FORN=Array.isArray(rows)?rows:[];
+        var s=$('cp_forn'); if(s) s.innerHTML=optsFrom(COMP_FORN,'— fornecedor —',''); });
+      // contas
+      rpc('contas_saldo',{}).then(function(d){ COMP_CONTAS=(d&&d.ok&&d.contas)?d.contas:[];
+        var s=$('cp_conta'); if(s){ s.innerHTML='<option value="">— definir depois —</option>'+COMP_CONTAS.map(function(c){return '<option value="'+c.id+'">'+esc(c.nome)+'</option>';}).join(''); } });
+      compLoadLista();
+    });
+  }
+  function compLoadLista(){
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/ordens_compra?select=id,numero,fornecedor_nome,fornecedor_id,data_compra,status,valor_total,parcelas,previsao_entrega,recebida_em&order=created_at.desc&limit=200',{headers:authHeaders(tok)})
+    .then(function(r){return r.ok?r.json():[];}).then(function(rows){
+      var w=$('compLista'); if(!w) return; rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ w.innerHTML='<div class="empty" style="padding:14px">Nenhum pedido de compra ainda.</div>'; return; }
+      w.innerHTML='<table style="width:100%"><thead><tr><th>Nº</th><th>Fornecedor</th><th>Data</th><th>Entrega</th><th style="text-align:right">Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody>'
+      +rows.map(function(o){
+        var st=COMP_STATUS[o.status]||[o.status,'#9a9a9a'];
+        var forn=o.fornecedor_nome||fornNome(o.fornecedor_id)||'—';
+        var ac='';
+        if(o.status==='rascunho'){ ac+='<button class="badge" style="cursor:pointer;color:#3ea55e" onclick="compConfirmar(\''+o.id+'\')">Confirmar</button> '
+              +'<button class="badge" style="cursor:pointer" onclick="compEditar(\''+o.id+'\')">Editar</button> '
+              +'<button class="badge" style="cursor:pointer;color:#e5534b" onclick="compCancelar(\''+o.id+'\')">Excluir</button>'; }
+        else if(o.status==='confirmada'){ ac+='<button class="badge" style="cursor:pointer;color:#3ea55e" onclick="compReceber(\''+o.id+'\')">Receber</button> '
+              +'<button class="badge" style="cursor:pointer" onclick="compPDF(\''+o.id+'\')">PDF</button> '
+              +'<button class="badge" style="cursor:pointer;color:#e5534b" onclick="compCancelar(\''+o.id+'\')">Cancelar</button>'; }
+        else if(o.status==='recebida'){ ac+='<button class="badge" style="cursor:pointer" onclick="compPDF(\''+o.id+'\')">PDF</button>'; }
+        else { ac+='—'; }
+        return '<tr><td style="color:var(--text)">'+esc(o.numero||'')+'</td><td>'+esc(forn)+'</td>'
+          +'<td>'+esc(o.data_compra?o.data_compra.split('-').reverse().join('/'):'')+'</td>'
+          +'<td>'+esc(o.previsao_entrega?o.previsao_entrega.split('-').reverse().join('/'):'—')+'</td>'
+          +'<td style="text-align:right;color:var(--accent)">'+moneyBR(o.valor_total)+'</td>'
+          +'<td><span class="badge" style="color:'+st[1]+'">'+esc(st[0])+'</span></td><td>'+ac+'</td></tr>';
+      }).join('')+'</tbody></table>';
+    }).catch(function(){});
+  }
+  function fornNome(id){ var a=(COMP_FORN||[]).filter(function(c){return c.id===id;}); return a.length?a[0].nome:''; }
+  function compSalvar(){
+    var itens=compReadItens(); if(!itens.length){ $('compMsg').textContent='Adicione ao menos um item com custo.'; return; }
+    var p={ id:($('cp_save').dataset.edit||null), fornecedor_id:($('cp_forn')||{}).value||null, fornecedor_nome:($('cp_forn_txt')||{}).value||null,
+      data_compra:($('cp_data')||{}).value||null, previsao_entrega:($('cp_entrega')||{}).value||null,
+      condicao_pagamento:($('cp_cond')||{}).value, parcelas:Number(($('cp_parc')||{}).value)||1,
+      intervalo_dias:Number(($('cp_int')||{}).value)||30, primeiro_venc:($('cp_venc')||{}).value||null,
+      conta_id:($('cp_conta')||{}).value||null, observacao:($('cp_obs')||{}).value||null, itens:itens };
+    $('cp_save').disabled=true; $('compMsg').textContent='Salvando…';
+    rpc('salvar_ordem_compra',p).then(function(r){ $('cp_save').disabled=false;
+      if(r&&r.ok){ $('compMsg').textContent='✓ '+r.numero+' salvo ('+moneyBR(r.valor_total)+')'; compResetForm(); compLoadLista(); setTimeout(function(){ if($('compMsg'))$('compMsg').textContent=''; },3000); }
+      else $('compMsg').textContent='Erro: '+((r&&(r.erro||r.message))||'falha');
+    }).catch(function(){ $('cp_save').disabled=false; $('compMsg').textContent='Erro de conexão.'; });
+  }
+  function compResetForm(){
+    ['cp_forn_txt','cp_obs'].forEach(function(id){ if($(id))$(id).value=''; });
+    var tb=$('cp_itens'); if(tb) tb.innerHTML=''; compAddItem();
+    $('cp_save').dataset.edit=''; $('cp_save').textContent='Salvar rascunho';
+    if($('cp_cancel'))$('cp_cancel').style.display='none'; if($('compFormTitle'))$('compFormTitle').textContent='Novo pedido de compra';
+    compRecalc();
+  }
+  window.compEditar=function(id){
+    var tok=localStorage.getItem(TOKKEY);
+    Promise.all([
+      fetch(SB+'/rest/v1/ordens_compra?id=eq.'+id+'&select=*&limit=1',{headers:authHeaders(tok)}).then(function(r){return r.json();}),
+      fetch(SB+'/rest/v1/ordem_compra_itens?oc_id=eq.'+id+'&select=produto_id,descricao,qtd,custo_unit',{headers:authHeaders(tok)}).then(function(r){return r.json();})
+    ]).then(function(res){ var o=(res[0]&&res[0][0])?res[0][0]:null; var its=Array.isArray(res[1])?res[1]:[]; if(!o) return;
+      if($('cp_forn'))$('cp_forn').value=o.fornecedor_id||''; if($('cp_forn_txt'))$('cp_forn_txt').value=o.fornecedor_nome||'';
+      if($('cp_data'))$('cp_data').value=o.data_compra||''; if($('cp_entrega'))$('cp_entrega').value=o.previsao_entrega||'';
+      if($('cp_cond'))$('cp_cond').value=o.condicao_pagamento||'a_prazo'; if($('cp_parc'))$('cp_parc').value=o.parcelas||1;
+      if($('cp_int'))$('cp_int').value=o.intervalo_dias||30; if($('cp_venc'))$('cp_venc').value=o.primeiro_venc||'';
+      if($('cp_conta'))$('cp_conta').value=o.conta_id||''; if($('cp_obs'))$('cp_obs').value=o.observacao||'';
+      var tb=$('cp_itens'); if(tb){ tb.innerHTML=''; if(its.length) its.forEach(function(it){ compAddItem(it); }); else compAddItem(); }
+      $('cp_save').dataset.edit=id; $('cp_save').textContent='Atualizar rascunho';
+      if($('cp_cancel'))$('cp_cancel').style.display='inline-block'; if($('compFormTitle'))$('compFormTitle').textContent='Editando '+(o.numero||'');
+      compRecalc(); var c=document.querySelector('.content'); if(c)c.scrollTop=0;
+    });
+  };
+  window.compConfirmar=function(id){ if(!confirm('Confirmar o pedido? Isso gera as contas a pagar no Fluxo de Caixa.')) return;
+    rpc('confirmar_ordem_compra',{p_id:id}).then(function(r){
+      if(r&&r.ok){ alert('✓ '+r.parcelas+' conta(s) a pagar gerada(s). Veja em Fluxo de Caixa → “Em aberto”.'); compLoadLista(); }
+      else alert('Não foi possível: '+((r&&r.erro)||'erro')); }).catch(function(){ alert('Erro de conexão.'); }); };
+  window.compReceber=function(id){ if(!confirm('Marcar como recebido? Os itens com produto entram no estoque.')) return;
+    rpc('receber_ordem_compra',{p_id:id,p_data:new Date().toISOString().slice(0,10)}).then(function(r){
+      if(r&&r.ok){ alert('✓ Recebido. '+((r.itens_estoque||0))+' item(ns) somado(s) ao estoque.'); compLoadLista(); }
+      else alert('Não foi possível: '+((r&&r.erro)||'erro')); }).catch(function(){ alert('Erro de conexão.'); }); };
+  window.compCancelar=function(id){ if(!confirm('Cancelar/excluir este pedido? As contas a pagar em aberto dele serão removidas.')) return;
+    rpc('cancelar_ordem_compra',{p_id:id}).then(function(r){ if(r&&r.ok){ compLoadLista(); } else alert('Não foi possível.'); }).catch(function(){ alert('Erro de conexão.'); }); };
+  window.compPDF=function(id){
+    var tok=localStorage.getItem(TOKKEY);
+    Promise.all([
+      fetch(SB+'/rest/v1/ordens_compra?id=eq.'+id+'&select=*&limit=1',{headers:authHeaders(tok)}).then(function(r){return r.json();}),
+      fetch(SB+'/rest/v1/ordem_compra_itens?oc_id=eq.'+id+'&select=descricao,qtd,custo_unit,total,produtos(nome)',{headers:authHeaders(tok)}).then(function(r){return r.json();})
+    ]).then(function(res){ var o=(res[0]&&res[0][0])?res[0][0]:null; var its=Array.isArray(res[1])?res[1]:[]; if(o) gerarPdfOC(o,its); });
+  };
+  function gerarPdfOC(o, itens){
+    if(!(window.jspdf && window.jspdf.jsPDF)){ alert('jsPDF indisponível.'); return; }
+    var doc=new window.jspdf.jsPDF({unit:'pt',format:'a4'}); var W=595,x=40,y=54;
+    doc.setFillColor(20,16,10); doc.rect(0,0,W,90,'F');
+    doc.setTextColor(203,152,76); doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.text('KM INTERIORES',x,46);
+    doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(230,217,188); doc.text('Pedido de Compra — uso interno / fornecedor',x,64);
+    doc.setFontSize(11); doc.text('PEDIDO DE COMPRA '+(o.numero||''),W-x,46,{align:'right'});
+    y=120; doc.setTextColor(30,30,30); doc.setFontSize(10);
+    function linha(l,r){ doc.setFont('helvetica','bold'); doc.text(l,x,y); doc.setFont('helvetica','normal'); doc.text(''+r,x+140,y); y+=17; }
+    var forn=o.fornecedor_nome||fornNome(o.fornecedor_id)||'—';
+    function dbr(d){ try{return new Date(d+'T00:00:00').toLocaleDateString('pt-BR');}catch(e){return d||'—';} }
+    linha('Fornecedor:',forn); linha('Data:',dbr(o.data_compra)); linha('Previsão de entrega:',o.previsao_entrega?dbr(o.previsao_entrega):'—');
+    linha('Pagamento:',(o.condicao_pagamento||'')+' · '+(o.parcelas||1)+'x');
+    y+=6; doc.setDrawColor(203,152,76); doc.line(x,y,W-x,y); y+=20;
+    doc.setFont('helvetica','bold'); doc.text('Item',x,y); doc.text('Qtd',330,y,{align:'right'}); doc.text('Custo un.',430,y,{align:'right'}); doc.text('Total',W-x,y,{align:'right'}); y+=6;
+    doc.line(x,y,W-x,y); y+=16; doc.setFont('helvetica','normal');
+    (itens||[]).forEach(function(it){ var nome=(it.produtos&&it.produtos.nome)||it.descricao||'Item'; if(nome.length>44)nome=nome.slice(0,44)+'…';
+      doc.text(nome,x,y); doc.text(''+(it.qtd||1),330,y,{align:'right'});
+      doc.text('R$ '+Number(it.custo_unit||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),430,y,{align:'right'});
+      doc.text('R$ '+Number(it.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),W-x,y,{align:'right'}); y+=16;
+      if(y>760){ doc.addPage(); y=54; } });
+    y+=6; doc.line(x,y,W-x,y); y+=20; doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text('TOTAL: R$ '+Number(o.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),W-x,y,{align:'right'}); y+=24;
+    if(o.observacao){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90,90,90); doc.text('Obs.: '+(''+o.observacao).slice(0,120),x,y); }
+    doc.setFontSize(8); doc.setTextColor(150,150,150); doc.text('Documento gerado pelo KM CRM · pedido de compra ao fornecedor.',x,812);
+    doc.save('PedidoCompra_'+(o.numero||'KM')+'.pdf');
   }
   // ===== Relatórios: panorama em tempo real =====
   function countOf(tok,table){
