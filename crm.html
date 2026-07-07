@@ -2563,7 +2563,7 @@
       var prod=row.querySelector('.vi-prod'), val=row.querySelector('.vi-valor'), qtd=row.querySelector('.vi-qtd');
       prod.addEventListener('change', function(){
         var op=prod.options[prod.selectedIndex]; var preco=op?(Number(op.getAttribute('data-preco'))||0):0;
-        if(preco>0 && (!val.value || Number(val.value)===0)){ var q=Number(qtd.value)||1; val.value=(preco*q).toFixed(2); }
+        if(preco>0 && (!val.value || Number(val.value)===0)){ val.value=preco.toFixed(2); } // Valor (R$) = valor UNITÁRIO
         vendaRecalcTotal();
       });
       val.addEventListener('input', vendaRecalcTotal);
@@ -2574,8 +2574,10 @@
   function vendaRecalcTotal(){
     var host=$('venda_itens'); if(!host) return; var total=0;
     host.querySelectorAll('.vi-row').forEach(function(row){
-      var val=Number(row.querySelector('.vi-valor').value)||0; total+=val;
-      var sub=row.querySelector('.vi-sub'); if(sub) sub.textContent=vendaMoney(val);
+      var unit=Number(row.querySelector('.vi-valor').value)||0;
+      var q=Number(row.querySelector('.vi-qtd').value)||1; if(q<1) q=1;
+      var linha=unit*q; total+=linha;                       // subtotal da linha = valor × qtd
+      var sub=row.querySelector('.vi-sub'); if(sub) sub.textContent=vendaMoney(linha);
     });
     var vv=$('venda_valor'); if(vv) vv.value=total>0?total.toFixed(2):'';
     var tt=$('venda_total'); if(tt) tt.textContent=vendaMoney(total);
@@ -2585,11 +2587,11 @@
     var host=$('venda_itens'); var out=[]; if(!host) return out;
     host.querySelectorAll('.vi-row').forEach(function(row){
       var sel=row.querySelector('.vi-prod'); var pid=sel.value||null;
-      var val=Number(row.querySelector('.vi-valor').value)||0;
-      var q=Number(row.querySelector('.vi-qtd').value)||1;
-      if(!pid && val<=0) return; // linha vazia — ignora
+      var unit=Number(row.querySelector('.vi-valor').value)||0;
+      var q=Number(row.querySelector('.vi-qtd').value)||1; if(q<1) q=1;
+      if(!pid && unit<=0) return; // linha vazia — ignora
       var nome=(pid && sel.options[sel.selectedIndex])?sel.options[sel.selectedIndex].text:'';
-      out.push({ produto_id:pid, descricao:nome, qtd:q, valor:val });
+      out.push({ produto_id:pid, descricao:nome, qtd:q, valor:unit*q }); // envia o subtotal da linha (contrato da RPC: soma dos 'valor')
     });
     return out;
   }
@@ -2611,7 +2613,7 @@
         if(j&&j.ok){ $('msg-venda').innerHTML='Venda '+esc(j.numero)+' registrada ✓ · '+(j.itens||0)+' item(ns) · total '+vendaMoney(j.valor)+' · comissão R$ '+Number(j.comissao_consultor||0).toLocaleString('pt-BR');
           var ob=$('venda_obs'); if(ob) ob.value=''; renderVendaItens();
           $('venda_preview').innerHTML='Adicione ao menos um produto com valor para ver a estimativa de comissão.';
-          loadPedidos(); setTimeout(function(){ $('msg-venda').textContent=''; },5000); }
+          loadPedidos(); loadFechamento(); if(typeof loadForecast==='function'){try{loadForecast();}catch(e){}} setTimeout(function(){ $('msg-venda').textContent=''; },5000); }
         else { $('msg-venda').textContent='Não foi possível: '+((j&&j.erro)||'erro'); } })
       .catch(function(){ btn.disabled=false; btn.textContent=old; $('msg-venda').textContent='Erro de conexão.'; });
     });
