@@ -335,6 +335,8 @@
       <a href="#" data-view="chat"><span class="dot"></span> Bate-papo</a>
       <a href="#" data-view="financeiro"><span class="dot"></span> Financeiro</a>
       <a href="#" data-view="fluxocaixa"><span class="dot"></span> Fluxo de Caixa</a>
+      <a href="#" data-view="creceber"><span class="dot"></span> Contas a Receber</a>
+      <a href="#" data-view="cpagar"><span class="dot"></span> Contas a Pagar</a>
       <a href="#" data-view="cobranca"><span class="dot"></span> Cobrança (IA)</a>
       <div class="sec">Inteligência</div>
       <a href="#" data-view="agentes"><span class="dot"></span> Agentes de IA</a>
@@ -689,6 +691,16 @@
         <div class="h1">Pedidos de Compra</div>
         <div class="sub">Compras a fornecedores · gera contas a pagar no Fluxo de Caixa · entrada no estoque ao receber · <b style="color:var(--accent)">só admin/gestão</b></div>
         <div id="mod-compras"><div class="empty" style="padding:20px">Carregando…</div></div>
+      </section>
+      <section class="view" data-v="creceber" hidden>
+        <div class="h1">Contas a Receber</div>
+        <div class="sub">Clientes que ainda não pagaram · <b style="color:var(--accent)">aceita recebimento parcial</b> · vencidos em vermelho</div>
+        <div id="mod-creceber"><div class="empty" style="padding:20px">Carregando…</div></div>
+      </section>
+      <section class="view" data-v="cpagar" hidden>
+        <div class="h1">Contas a Pagar</div>
+        <div class="sub">Pagamentos a fornecedores/despesas em aberto · aceita pagamento parcial</div>
+        <div id="mod-cpagar"><div class="empty" style="padding:20px">Carregando…</div></div>
       </section>
       <section class="view" data-v="cobranca" hidden>
         <div class="h1">Cobrança (IA)</div>
@@ -1529,6 +1541,8 @@
     if(v==='ficha360') initFicha360();
     if(v==='financeiro') loadFinanceiro();
     if(v==='fluxocaixa') initFluxoCaixa();
+    if(v==='creceber') initContasReceber();
+    if(v==='cpagar') initContasPagar();
     if(v==='compras') initCompras();
     if(v==='cobranca') loadCobranca();
     if(v==='chat') loadChat();
@@ -3309,26 +3323,87 @@
           y:{ticks:{color:'#9a8f78',callback:function(v){return 'R$ '+Number(v).toLocaleString('pt-BR');}},grid:{color:'rgba(255,255,255,.06)'}} } }
     });
   }
-  function fcLoadAbertos(){
-    var tok=localStorage.getItem(TOKKEY);
-    var url=SB+'/rest/v1/financeiro?select=id,tipo,descricao,valor,vencimento,categoria,conta_id&pago=eq.false&order=vencimento.asc&limit=200';
-    fetch(url,{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}).then(function(rows){
-      var w=$('fcAbertos'); if(!w) return; rows=Array.isArray(rows)?rows:[];
-      if(!rows.length){ w.innerHTML='<div class="empty" style="padding:14px">Nada em aberto. 🎉</div>'; return; }
-      var hoje=new Date().toISOString().slice(0,10);
-      w.innerHTML='<table style="width:100%"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th><th>Baixar</th></tr></thead><tbody>'
-      +rows.map(function(f){
-        var dir=(f.tipo==='receber'||f.tipo==='receita')?'entrada':'saida';
-        var venc=f.vencimento||''; var atrasado=(venc && venc<hoje);
-        return '<tr><td style="color:'+(atrasado?'#e5534b':'var(--muted)')+'">'+esc(venc?venc.split('-').reverse().join('/'):'—')+(atrasado?' ⚠':'')+'</td>'
-          +'<td style="color:var(--text)">'+esc(f.descricao||'—')+'</td><td>'+esc(f.categoria||'—')+'</td>'
-          +'<td><span class="badge" style="color:'+(dir==='entrada'?'#3ea55e':'#c9862f')+'">'+(dir==='entrada'?'a receber':'a pagar')+'</span></td>'
-          +'<td style="text-align:right;color:var(--accent)">'+moneyBR(f.valor)+'</td>'
-          +'<td><select id="fcbc_'+f.id+'" style="max-width:120px">'+fcContaOpts('',false)+'</select> <button class="badge" style="cursor:pointer" onclick="fcBaixar(\''+f.id+'\')">✓</button>'
-          +' <span class="badge" style="cursor:pointer" onclick="fcDelLanc(\''+f.id+'\')">✕</span></td></tr>';
-      }).join('')+'</tbody></table>';
-    }).catch(function(){});
+  function fcLoadAbertos(){ crRender('fcAbertos','todos'); }
+  // ===== Contas a Receber / a Pagar (com baixa parcial) =====
+  var CR_ITENS={}, CR_CONTAS=[], CR_LAST={cid:'fcAbertos',filtro:'todos'};
+  var CR_METODOS=[['pix','PIX'],['dinheiro','Dinheiro'],['cartao','Cartão'],['transferencia','Transferência'],['boleto','Boleto'],['cheque','Cheque'],['outro','Outro']];
+  function initContasReceber(){ var h=$('mod-creceber'); if(!h) return;
+    if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ h.innerHTML='<div class="empty" style="padding:22px">Acesso restrito à gestão.</div>'; return; }
+    crEnsureContas(function(){ crRender('mod-creceber','receber'); }); }
+  function initContasPagar(){ var h=$('mod-cpagar'); if(!h) return;
+    if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ h.innerHTML='<div class="empty" style="padding:22px">Acesso restrito à gestão.</div>'; return; }
+    crEnsureContas(function(){ crRender('mod-cpagar','pagar'); }); }
+  function crEnsureContas(cb){ rpc('contas_saldo',{}).then(function(d){ CR_CONTAS=(d&&d.ok&&d.contas)?d.contas:[]; if(cb)cb(); }).catch(function(){ if(cb)cb(); }); }
+  function crContaOpts(){ return '<option value="">— conta —</option>'+CR_CONTAS.map(function(c){return '<option value="'+c.id+'">'+esc(c.nome)+'</option>';}).join(''); }
+  function crRender(cid, filtro){
+    var w=$(cid); if(!w) return; CR_LAST={cid:cid,filtro:filtro};
+    rpc('contas_abertas',{p_filtro:filtro}).then(function(d){
+      var itens=(d&&d.ok&&Array.isArray(d.itens))?d.itens:[]; itens.forEach(function(i){ CR_ITENS[i.id]=i; });
+      if(!itens.length){ w.innerHTML='<div class="empty" style="padding:16px">Nada em aberto.</div>'; return; }
+      var hoje=new Date().toISOString().slice(0,10); var totSaldo=0;
+      var isRec=(filtro==='receber');
+      w.innerHTML='<div class="panel"><table style="width:100%"><thead><tr><th>Vencimento</th><th>'+(filtro==='pagar'?'Fornecedor / descrição':(isRec?'Cliente':'Cliente / Fornecedor'))+'</th><th>Categoria</th>'
+        +'<th style="text-align:right">Total</th><th style="text-align:right">'+(isRec?'Recebido':(filtro==='pagar'?'Pago':'Baixado'))+'</th><th style="text-align:right">Saldo</th><th>Ação</th></tr></thead><tbody>'
+      +itens.map(function(f){
+        totSaldo+=Number(f.saldo)||0; var venc=f.vencimento||''; var atras=(venc&&venc<hoje&&Number(f.saldo)>0);
+        var dir=f.direcao; var lbl=(dir==='entrada')?'Receber':'Pagar';
+        var parc=(Number(f.valor_pago)>0);
+        return '<tr><td style="color:'+(atras?'#e5534b':'var(--muted)')+'">'+esc(venc?venc.split('-').reverse().join('/'):'—')+(atras?' ⚠':'')+'</td>'
+          +'<td style="color:var(--text)">'+esc(f.nome||f.descricao||'—')+(parc?' <span class="badge" style="color:#c9862f">parcial</span>':'')+'</td>'
+          +'<td>'+esc(f.categoria||'—')+'</td>'
+          +'<td style="text-align:right">'+moneyBR(f.valor)+'</td>'
+          +'<td style="text-align:right;color:var(--muted)">'+moneyBR(f.valor_pago)+'</td>'
+          +'<td style="text-align:right;color:var(--accent)"><b>'+moneyBR(f.saldo)+'</b></td>'
+          +'<td><button class="badge" style="cursor:pointer;color:#3ea55e" onclick="crAbrirBaixa(\''+f.id+'\')">'+lbl+'</button>'
+          +((f.origem==='manual'||f.origem==='importado')?' <span class="badge" style="cursor:pointer;color:#e5534b" onclick="crDel(\''+f.id+'\')">✕</span>':'')+'</td></tr>';
+      }).join('')
+      +'</tbody><tfoot><tr><td colspan="5" style="text-align:right"><b>Saldo em aberto</b></td><td style="text-align:right"><b style="color:var(--ouro)">'+moneyBR(totSaldo)+'</b></td><td></td></tr></tfoot></table></div>';
+    }).catch(function(){ w.innerHTML='<div class="empty" style="padding:16px">Não foi possível carregar (acesso de gestão).</div>'; });
   }
+  function crRefresh(){ if(CR_LAST&&CR_LAST.cid) crRender(CR_LAST.cid, CR_LAST.filtro); if(typeof FC_BUILT!=='undefined'&&FC_BUILT){ try{ fcLoadContas(function(){ fcLoadFluxo(); }); }catch(e){} } }
+  function crEnsureModal(){
+    if($('crModal')) return;
+    var m=document.createElement('div'); m.id='crModal'; m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center';
+    m.innerHTML='<div class="lmbox" style="max-width:440px"><div class="lmhead"><div><b id="cr_tit">Baixa</b><div class="lm-meta" id="cr_meta"></div></div><span class="lmx" id="cr_x">✕</span></div>'
+      +'<div class="lmbody"><div class="modform">'
+      +'<div class="f"><label>Valor a baixar (R$)</label><input id="cr_valor" type="number" step="0.01"></div>'
+      +'<div class="f"><label>Data</label><input id="cr_data" type="date"></div>'
+      +'<div class="f"><label>Conta que recebeu/pagou</label><select id="cr_conta"></select></div>'
+      +'<div class="f"><label>Método</label><select id="cr_metodo">'+CR_METODOS.map(function(x){return '<option value="'+x[0]+'">'+x[1]+'</option>';}).join('')+'</select></div>'
+      +'<div class="f full"><label>Observação</label><input id="cr_obs" placeholder="opcional"></div>'
+      +'<div class="f full" style="display:flex;gap:8px;align-items:center"><button class="btn" id="cr_ok">Registrar</button><button class="btn" id="cr_full" style="background:transparent;color:var(--accent);border:1px solid var(--accent)">Quitar total</button><span class="lm-msg" id="cr_msg"></span></div>'
+      +'</div></div></div>';
+    document.body.appendChild(m);
+    $('cr_x').addEventListener('click', crFechar);
+    m.addEventListener('click', function(e){ if(e.target===m) crFechar(); });
+    $('cr_ok').addEventListener('click', function(){ crConfirmar(false); });
+    $('cr_full').addEventListener('click', function(){ crConfirmar(true); });
+  }
+  function crFechar(){ var m=$('crModal'); if(m) m.style.display='none'; }
+  window.crAbrirBaixa=function(id){
+    var f=CR_ITENS[id]; if(!f) return; crEnsureModal();
+    var isRec=(f.direcao==='entrada');
+    $('cr_tit').textContent=(isRec?'Receber de ':'Pagar a ')+(f.nome||f.descricao||'');
+    $('cr_meta').textContent='Total '+moneyBR(f.valor)+' · já '+(isRec?'recebido ':'pago ')+moneyBR(f.valor_pago)+' · saldo '+moneyBR(f.saldo);
+    $('cr_valor').value=Number(f.saldo)||0; $('cr_valor').max=Number(f.saldo)||0;
+    $('cr_data').value=new Date().toISOString().slice(0,10);
+    $('cr_conta').innerHTML=crContaOpts(); $('cr_obs').value=''; $('cr_msg').textContent='';
+    $('cr_ok').dataset.id=id; $('cr_ok').textContent=isRec?'Registrar recebimento':'Registrar pagamento';
+    $('crModal').style.display='flex';
+  };
+  function crConfirmar(total){
+    var id=$('cr_ok').dataset.id; var f=CR_ITENS[id]; if(!f) return;
+    var valor= total? Number(f.saldo) : (Number($('cr_valor').value)||0);
+    if(valor<=0){ $('cr_msg').textContent='Informe um valor.'; return; }
+    var p={ p_financeiro_id:id, p_valor:valor, p_data:$('cr_data').value||null, p_conta_id:$('cr_conta').value||null, p_metodo:$('cr_metodo').value||null, p_obs:$('cr_obs').value||null };
+    $('cr_ok').disabled=true; $('cr_full').disabled=true; $('cr_msg').textContent='Registrando…';
+    rpc('receber_pagar_parcial',p).then(function(r){ $('cr_ok').disabled=false; $('cr_full').disabled=false;
+      if(r&&r.ok){ $('cr_msg').textContent='✓ '+moneyBR(r.baixa)+(r.quitado?' · quitado':(' · resta '+moneyBR(r.saldo_restante))); setTimeout(function(){ crFechar(); crRefresh(); },700); }
+      else $('cr_msg').textContent='Erro: '+((r&&(r.erro||r.message))||'falha');
+    }).catch(function(){ $('cr_ok').disabled=false; $('cr_full').disabled=false; $('cr_msg').textContent='Erro de conexão.'; });
+  }
+  window.crDel=function(id){ if(!confirm('Excluir este lançamento?')) return;
+    rpc('excluir_financeiro',{p_id:id}).then(function(r){ if(r&&r.ok) crRefresh(); else alert('Só lançamentos manuais/importados podem ser excluídos.'); }); };
   function fcSalvarConta(){
     var nome=($('fcc_nome')||{}).value||''; if(!nome.trim()){ $('fcContaMsg').textContent='Informe o apelido.'; return; }
     var bsel=$('fcc_banco'); var bnome=bsel&&bsel.selectedIndex>=0?bsel.options[bsel.selectedIndex].text.replace(/\s*\(\d+\)$/,''):'';
