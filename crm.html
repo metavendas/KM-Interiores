@@ -1777,6 +1777,7 @@
       +'<div class="f full"><label>Nome *</label><input data-k="nome"></div>'
       +'<div class="f"><label>Categoria</label><input data-k="categoria"></div>'
       +'<div class="f"><label>SKU (opcional)</label><input data-k="sku"></div>'
+      +'<div class="f"><label>NCM (código fiscal — p/ nota fiscal)</label><input data-k="ncm" maxlength="10" placeholder="ex.: 9403.60.00"></div>'
       +'<div class="f"><label>Preço varejo (R$)</label><input data-k="preco" type="number"></div>'
       +'<div class="f"><label>Estoque disponível</label><input data-k="estoque_disponivel" type="number"></div>'
       +'<div class="f"><label>Ranking (1 = topo)</label><input data-k="ranking" type="number"></div>'
@@ -1840,7 +1841,7 @@
     .then(function(urls){
       var fotoPrinc=urls[0];
       var itens=itensMeta.map(function(it,idx){ return {tipo:it.tipo, nome:it.nome, valor:it.valor, foto:(urls[idx+1]||it.foto||'')}; });
-      var data={ nome:nome, categoria:get('categoria')||null, sku:get('sku')||slugSku(nome),
+      var data={ nome:nome, categoria:get('categoria')||null, sku:get('sku')||slugSku(nome), ncm:get('ncm')||null,
         preco:get('preco')?Number(get('preco')):null, estoque_disponivel:get('estoque_disponivel')?Number(get('estoque_disponivel')):0,
         ranking:get('ranking')?Number(get('ranking')):null, trilha:get('trilha')||'A', destaque:get('destaque')==='true',
         video_url:get('video_url')||null, descricao:get('descricao')||null, foto_url:fotoPrinc||get('foto_url')||null, ativo:true,
@@ -1867,7 +1868,7 @@
     var p=prodById[id]; if(!p) return;
     var form=$('form-prod'); if(!form) return;
     var set=function(k,v){ var el=form.querySelector('[data-k="'+k+'"]'); if(el) el.value=(v==null?'':v); };
-    set('nome',p.nome); set('categoria',p.categoria); set('sku',p.sku); set('preco',p.preco);
+    set('nome',p.nome); set('categoria',p.categoria); set('sku',p.sku); set('ncm',p.ncm); set('preco',p.preco);
     set('estoque_disponivel',p.estoque_disponivel); set('ranking',p.ranking);
     var tr=form.querySelector('[data-k="trilha"]'); if(tr) tr.value=p.trilha||'A';
     var de=form.querySelector('[data-k="destaque"]'); if(de) de.value=(p.destaque?'true':'false');
@@ -2551,9 +2552,10 @@
         var st=canc?'CANCELADO':(PED_STATUS[p.status]||p.status||'—');
         var cls=(p.status==='pago')?'ia-tag ok':'badge';
         var pil=PILAR_LABEL[p.pilar]||p.pilar||'—';
+        var btnNF='<button class="badge" style="cursor:pointer;margin-right:4px;border-color:#9D7D31;color:#CB984C" onclick="reimprimirDanfe(\''+p.id+'\')">NF</button>';
         var acoes=canc
           ? '<button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>'
-          : '<button class="badge" style="cursor:pointer;margin-right:4px" onclick="acaoVenda(\''+p.id+'\',\'cancelado\')">Cancelar</button><button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>';
+          : btnNF+'<button class="badge" style="cursor:pointer;margin-right:4px" onclick="acaoVenda(\''+p.id+'\',\'cancelado\')">Cancelar</button><button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>';
         return '<tr'+(canc?' style="opacity:.55"':'')+'><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+esc(cli)+'</td><td>'+esc(pil)+'</td><td>'+esc(p.canal||'')+'</td><td>'+esc(vendNome(p.vendedor_id))+'</td><td style="color:var(--accent)">'+val+'</td><td style="color:var(--muted)">'+frt+'</td><td style="color:var(--ouro)">'+com+'</td><td><span class="'+cls+'">'+esc(st)+'</span></td><td>'+acoes+'</td></tr>';
       }).join('');
     })
@@ -2756,6 +2758,7 @@
         if(j&&j.ok){ $('msg-venda').innerHTML='Venda '+esc(j.numero)+' registrada ✓ · '+(j.itens||0)+' item(ns) · total '+vendaMoney(j.valor)+' · comissão R$ '+Number(j.comissao_consultor||0).toLocaleString('pt-BR');
           try{ gerarPdfPedido(j, _pdf); }catch(e){ console.error('PDF pedido:', e); }
           try{ emitirOS(j, _pdf); }catch(e){ console.error('OS pedido:', e); }
+          try{ emitirDanfe(j); }catch(e){ console.error('DANFE:', e); }
           var ob=$('venda_obs'); if(ob) ob.value=''; renderVendaItens();
           var dR=$('venda_desc_reais'), dP=$('venda_desc_pct'); if(dR){dR.value='';dR.disabled=false;} if(dP){dP.value='';dP.disabled=false;}
           $('venda_preview').innerHTML='Adicione ao menos um produto com valor para ver a estimativa de comissão.';
@@ -2850,6 +2853,220 @@
     via('2a VIA — KM INTERIORES (OPERACIONAL)');
     doc.save('OS_'+(os.numero||'KM')+'.pdf');
   }
+  // ===== DANFE interno (SEM VALOR FISCAL) — PDF automático ao lançar a venda =====
+  function emitirDanfe(j){
+    if(!j || !j.pedido_id) return;
+    rpc('emitir_danfe_interno',{p_pedido_id:j.pedido_id}).then(function(nf){
+      if(nf && nf.ok){ try{ gerarPdfDanfe(nf); }catch(e){ console.error('DANFE draw:', e); } }
+      else { console.warn('DANFE não emitida:', nf && nf.erro); }
+    }).catch(function(e){ console.error('DANFE rpc:', e); });
+  }
+  // Reimprimir a NF de um pedido já lançado (usado pelo botão da lista) — idempotente
+  window.reimprimirDanfe=function(pedidoId){
+    rpc('emitir_danfe_interno',{p_pedido_id:pedidoId}).then(function(nf){
+      if(nf && nf.ok){ gerarPdfDanfe(nf); } else { alert('Não foi possível gerar a NF: '+((nf&&nf.erro)||'erro')); }
+    }).catch(function(){ alert('Erro de conexão ao gerar a NF.'); });
+  };
+  // Code128-C (numérico) — gerador próprio, sem dependência externa
+  var C128=["212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
+    "221312","231212","112232","122132","122231","113222","123122","123221","223211","221132",
+    "221231","213212","223112","312131","311222","321122","321221","312212","322112","322211",
+    "212123","212321","232121","111323","131123","131321","112313","132113","132311","211313",
+    "231113","231311","112133","112331","132131","113123","113321","133121","313121","211331",
+    "231131","213113","213311","213131","311123","311321","331121","312113","312311","332111",
+    "314111","221411","431111","111224","111422","121124","121421","141122","141221","112214",
+    "112412","122114","122411","142112","142211","241211","221114","413111","241112","134111",
+    "111242","121142","121241","114212","124112","124211","411212","421112","421211","212141",
+    "214121","412121","111143","111341","131141","114113","114311","411113","411311","113141",
+    "114131","311141","411131","211412","211214","211232","2331112"];
+  function code128c(data){
+    data=(''+data).replace(/\D/g,''); if(data.length%2) data='0'+data;
+    var codes=[105]; // Start C
+    for(var i=0;i<data.length;i+=2){ codes.push(parseInt(data.substr(i,2),10)); }
+    var sum=105; for(var k=1;k<codes.length;k++){ sum+=codes[k]*k; }
+    codes.push(sum%103); codes.push(106); // check + stop
+    return codes.map(function(c){ return C128[c]; });
+  }
+  function drawCode128(doc, data, x, y, w, h){
+    var pats=code128c(data), tot=0, s;
+    pats.forEach(function(p){ for(var i=0;i<p.length;i++) tot+=parseInt(p[i],10); });
+    var mod=w/tot, cx=x; doc.setFillColor(0,0,0);
+    pats.forEach(function(p){ for(var i=0;i<p.length;i++){ var ww=parseInt(p[i],10)*mod; if(i%2===0){ doc.rect(cx,y,ww,h,'F'); } cx+=ww; } });
+  }
+  function gerarPdfDanfe(nf){
+    if(!(window.jspdf && window.jspdf.jsPDF)){ alert('jsPDF indisponível — recarregue a página.'); return; }
+    var doc=new window.jspdf.jsPDF({unit:'pt', format:'a4'});
+    var W=595, x0=30, x1=565, cw=x1-x0;
+    var em=nf.emitente||{}, de=nf.dest||{}, pe=nf.pedido||{}, to=nf.totais||{}, it=nf.itens||[];
+    var chave=(nf.nf&&nf.nf.chave)||'', numero=(nf.nf&&nf.nf.numero)||0, serie=(nf.nf&&nf.nf.serie)||'001';
+    function n2(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function nf9(v){ v=(''+(v||0)); while(v.length<9) v='0'+v; return v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9); }
+    function chaveFmt(c){ return (c||'').replace(/(.{4})/g,'$1 ').trim(); }
+    function dtBR(d){ try{ return new Date((d||'')+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ return d||''; } }
+    function box(x,y,w,h){ doc.setDrawColor(70,70,70); doc.rect(x,y,w,h); }
+    function lbl(t,x,y){ doc.setFont('helvetica','normal'); doc.setFontSize(5.2); doc.setTextColor(90,90,90); doc.text(t,x,y); }
+    function val(t,x,y,sz){ doc.setFont('helvetica','bold'); doc.setFontSize(sz||8); doc.setTextColor(20,20,20); doc.text(''+t,x,y); }
+
+    // marca d'água diagonal
+    doc.setTextColor(224,224,224); doc.setFont('helvetica','bold'); doc.setFontSize(40);
+    doc.text('SEM VALOR FISCAL', 300, 470, {align:'center', angle:38});
+    doc.text('DOCUMENTO INTERNO', 300, 520, {align:'center', angle:38});
+
+    var y=34;
+    // Canhoto
+    box(x0,y,cw,26);
+    doc.setTextColor(40,40,40); doc.setFont('helvetica','normal'); doc.setFontSize(5.6);
+    doc.text('RECEBEMOS DE '+(em.nome||'KM INTERIORES').toUpperCase()+' OS PRODUTOS CONSTANTES DA NOTA FISCAL INDICADA AO LADO', x0+4, y+9);
+    doc.line(x0+cw*0.62,y,x0+cw*0.62,y+26);
+    lbl('DATA DE RECEBIMENTO', x0+4, y+20); lbl('IDENTIFICAÇÃO E ASSINATURA DO RECEBEDOR', x0+cw*0.20, y+20);
+    val('NF-e', x1-4, y+11, 9); doc.text('NF-e', x1-4, y+11, {align:'right'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(20,20,20);
+    doc.text('Nº '+nf9(numero), x1-4, y+20, {align:'right'});
+    y+=32;
+
+    // Cabeçalho principal — 3 colunas
+    var hH=92, cA=cw*0.40, cB=cw*0.26, cC=cw-cA-cB;
+    box(x0,y,cA,hH); box(x0+cA,y,cB,hH); box(x0+cA+cB,y,cC,hH);
+    // Col A - emitente
+    doc.setTextColor(20,20,20); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text((em.nome||'KM Interiores'), x0+cA/2, y+20, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(60,60,60);
+    var endE=[em.logradouro,em.numero].filter(Boolean).join(', ');
+    var linhasE=[endE, [em.bairro, em.cep].filter(Boolean).join(' · '),
+      [em.municipio, em.uf].filter(Boolean).join(' - '),
+      em.fone?('Fone: '+em.fone):'', em.email||''].filter(Boolean);
+    var ey=y+36; linhasE.forEach(function(t){ doc.text(''+t, x0+cA/2, ey, {align:'center'}); ey+=10; });
+    // Col B - DANFE
+    var bx=x0+cA;
+    doc.setTextColor(20,20,20); doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('DANFE', bx+cB/2, y+18, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(5.6); doc.setTextColor(70,70,70);
+    doc.text('Documento Auxiliar da', bx+cB/2, y+27, {align:'center'});
+    doc.text('Nota Fiscal Eletrônica', bx+cB/2, y+34, {align:'center'});
+    doc.setFontSize(5.8); doc.setTextColor(30,30,30);
+    doc.text('0 - ENTRADA', bx+6, y+48); doc.text('1 - SAÍDA', bx+6, y+57);
+    box(bx+cB-22, y+44, 16, 16); doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('1', bx+cB-14, y+56, {align:'center'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(20,20,20);
+    doc.text('Nº '+nf9(numero), bx+cB/2, y+70, {align:'center'});
+    doc.text('SÉRIE '+serie, bx+cB/2, y+80, {align:'center'});
+    doc.text('FOLHA 1/1', bx+cB/2, y+90, {align:'center'});
+    // Col C - barcode + chave
+    var cx=x0+cA+cB;
+    drawCode128(doc, chave, cx+8, y+8, cC-16, 26);
+    box(cx+6, y+40, cC-12, 16);
+    doc.setFont('helvetica','normal'); doc.setFontSize(5); doc.setTextColor(90,90,90); doc.text('CHAVE DE ACESSO', cx+10, y+45);
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.4); doc.setTextColor(20,20,20); doc.text(chaveFmt(chave), cx+cC/2, y+53, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(5.4); doc.setTextColor(150,60,60);
+    doc.text('DANFE gerado internamente pelo KM CRM — SEM autorização de uso da SEFAZ.', cx+cC/2, y+66, {align:'center', maxWidth:cC-14});
+    doc.text('Documento sem valor fiscal. Não substitui a Nota Fiscal Eletrônica.', cx+cC/2, y+76, {align:'center', maxWidth:cC-14});
+    y+=hH+2;
+
+    // Natureza da operação + protocolo
+    box(x0,y,cw*0.62,22); box(x0+cw*0.62,y,cw*0.38,22);
+    lbl('NATUREZA DA OPERAÇÃO', x0+4, y+8); val(pe.natureza||'Venda de mercadoria', x0+4, y+18, 8);
+    lbl('PROTOCOLO DE AUTORIZAÇÃO DE USO', x0+cw*0.62+4, y+8);
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(150,60,60); doc.text('SEM AUTORIZAÇÃO DE USO DA SEFAZ', x0+cw*0.62+4, y+18);
+    y+=26;
+
+    // Destinatário
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.4); doc.setTextColor(20,20,20); doc.text('DESTINATÁRIO / REMETENTE', x0, y); y+=3;
+    box(x0,y,cw,52);
+    var dcol=[x0, x0+cw*0.55, x0+cw*0.80];
+    doc.line(dcol[1],y,dcol[1],y+17); doc.line(dcol[2],y,dcol[2],y+17);
+    lbl('NOME / RAZÃO SOCIAL', x0+3, y+7); val(de.nome||'Consumidor', x0+3, y+15, 8);
+    lbl('CNPJ / CPF', dcol[1]+3, y+7); val(de.doc||'—', dcol[1]+3, y+15, 8);
+    lbl('DATA DA EMISSÃO', dcol[2]+3, y+7); val(dtBR(pe.data_venda), dcol[2]+3, y+15, 7);
+    doc.line(x0,y+17,x0+cw,y+17);
+    var d2=[x0, x0+cw*0.55, x0+cw*0.80]; doc.line(d2[1],y+17,d2[1],y+35); doc.line(d2[2],y+17,d2[2],y+35);
+    var endD=[de.logradouro,de.numero,de.complemento].filter(Boolean).join(', ');
+    lbl('ENDEREÇO', x0+3, y+24); val(endD||'—', x0+3, y+32, 7.5);
+    lbl('BAIRRO', d2[1]+3, y+24); val(de.bairro||'—', d2[1]+3, y+32, 7.5);
+    lbl('CEP', d2[2]+3, y+24); val(de.cep||'—', d2[2]+3, y+32, 7.5);
+    doc.line(x0,y+35,x0+cw,y+35);
+    var d3=[x0, x0+cw*0.40, x0+cw*0.65, x0+cw*0.85]; for(var i=1;i<d3.length;i++) doc.line(d3[i],y+35,d3[i],y+52);
+    lbl('MUNICÍPIO', d3[0]+3, y+42); val(de.municipio||'—', d3[0]+3, y+50, 7.5);
+    lbl('UF', d3[1]+3, y+42); val(de.uf||'—', d3[1]+3, y+50, 7.5);
+    lbl('FONE', d3[2]+3, y+42); val(de.fone||'—', d3[2]+3, y+50, 7.5);
+    lbl('INSCRIÇÃO ESTADUAL', d3[3]+3, y+42); val(de.ie||'—', d3[3]+3, y+50, 7.5);
+    y+=58;
+
+    // Cálculo do imposto
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.4); doc.setTextColor(20,20,20); doc.text('CÁLCULO DO IMPOSTO', x0, y); y+=3;
+    box(x0,y,cw,30);
+    var ic=[x0, x0+cw*0.2, x0+cw*0.4, x0+cw*0.6, x0+cw*0.8]; for(var i=1;i<ic.length;i++) doc.line(ic[i],y,ic[i],y+15);
+    lbl('BASE DE CÁLCULO ICMS', ic[0]+3, y+7); val('0,00', ic[1]-3, y+13, 7); doc.text('0,00', ic[1]-3, y+13, {align:'right'});
+    lbl('VALOR DO ICMS', ic[1]+3, y+7); doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.text('0,00', ic[2]-3, y+13, {align:'right'});
+    lbl('BASE ICMS SUBST.', ic[2]+3, y+7); doc.setFont('helvetica','bold'); doc.text('0,00', ic[3]-3, y+13, {align:'right'});
+    lbl('VALOR ICMS SUBST.', ic[3]+3, y+7); doc.setFont('helvetica','bold'); doc.text('0,00', ic[4]-3, y+13, {align:'right'});
+    lbl('VALOR TOTAL DOS PRODUTOS', ic[4]+3, y+7); doc.setFont('helvetica','bold'); doc.text(n2(to.produtos), x0+cw-3, y+13, {align:'right'});
+    doc.line(x0,y+15,x0+cw,y+15);
+    var i2=[x0, x0+cw*0.2, x0+cw*0.4, x0+cw*0.6, x0+cw*0.8]; for(var i=1;i<i2.length;i++) doc.line(i2[i],y+15,i2[i],y+30);
+    lbl('VALOR DO FRETE', i2[0]+3, y+22); doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.text(n2(to.frete), i2[1]-3, y+28, {align:'right'});
+    lbl('DESCONTO', i2[1]+3, y+22); doc.setFont('helvetica','bold'); doc.text(n2(to.desconto), i2[2]-3, y+28, {align:'right'});
+    lbl('OUTRAS DESPESAS', i2[2]+3, y+22); doc.setFont('helvetica','bold'); doc.text('0,00', i2[3]-3, y+28, {align:'right'});
+    lbl('VALOR DO IPI', i2[3]+3, y+22); doc.setFont('helvetica','bold'); doc.text('0,00', i2[4]-3, y+28, {align:'right'});
+    lbl('VALOR TOTAL DA NOTA', i2[4]+3, y+22); doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.text(n2(to.total), x0+cw-3, y+28, {align:'right'});
+    y+=36;
+
+    // Transportador (em branco)
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.4); doc.setTextColor(20,20,20); doc.text('TRANSPORTADOR / VOLUMES TRANSPORTADOS', x0, y); y+=3;
+    box(x0,y,cw,18); lbl('RAZÃO SOCIAL', x0+3, y+7); lbl('FRETE POR CONTA', x0+cw*0.55+3, y+7);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(30,30,30); doc.text('0 - EMITENTE', x0+cw*0.55+3, y+15);
+    doc.line(x0+cw*0.55,y,x0+cw*0.55,y+18);
+    y+=24;
+
+    // Produtos
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.4); doc.setTextColor(20,20,20); doc.text('DADOS DOS PRODUTOS / SERVIÇOS', x0, y); y+=3;
+    var thY=y, rowH=14, headH=13;
+    var cols=[
+      {t:'CÓD.', w:0.08, a:'left'},
+      {t:'DESCRIÇÃO DO PRODUTO / SERVIÇO', w:0.42, a:'left'},
+      {t:'NCM', w:0.09, a:'center'},
+      {t:'CFOP', w:0.07, a:'center'},
+      {t:'UN', w:0.06, a:'center'},
+      {t:'QTD', w:0.08, a:'right'},
+      {t:'V. UNIT', w:0.10, a:'right'},
+      {t:'V. TOTAL', w:0.10, a:'right'}
+    ];
+    var n=it.length, tableH=headH + Math.max(n,1)*rowH;
+    box(x0,y,cw,tableH);
+    // header
+    doc.setFillColor(238,238,238); doc.rect(x0,y,cw,headH,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(5.4); doc.setTextColor(40,40,40);
+    var cxp=x0; cols.forEach(function(c){ var w=cw*c.w; doc.line(cxp,y,cxp,y+tableH);
+      var tx = c.a==='right'?(cxp+w-3):(c.a==='center'?(cxp+w/2):(cxp+3));
+      doc.text(c.t, tx, y+9, {align:c.a==='left'?'left':c.a}); cxp+=w; });
+    // rows
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(25,25,25);
+    var ry=y+headH;
+    if(!n){ doc.text('( sem itens )', x0+cw*0.5, ry+9, {align:'center'}); }
+    it.forEach(function(item){
+      var cxx=x0, cells=[
+        (item.sku||'—'),
+        (''+(item.descricao||'Produto')).slice(0,60),
+        (item.ncm||''), '', 'UN',
+        (item.qtd||1), n2(item.preco_unit), n2(item.total)
+      ];
+      cols.forEach(function(c,idx){ var w=cw*c.w;
+        var tx=c.a==='right'?(cxx+w-3):(c.a==='center'?(cxx+w/2):(cxx+3));
+        doc.text(''+cells[idx], tx, ry+9, {align:c.a==='left'?'left':c.a}); cxx+=w; });
+      doc.setDrawColor(210,210,210); doc.line(x0,ry+rowH,x0+cw,ry+rowH); ry+=rowH;
+    });
+    y+=tableH+8;
+
+    // Dados adicionais
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.4); doc.setTextColor(20,20,20); doc.text('DADOS ADICIONAIS', x0, y); y+=3;
+    box(x0,y,cw,44); lbl('INFORMAÇÕES COMPLEMENTARES', x0+3, y+8);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.6); doc.setTextColor(40,40,40);
+    doc.text('Pedido '+(pe.numero||'')+' · Pilar '+(pe.pilar||'')+' · Pagamento: '+(pe.forma||'')+'.', x0+3, y+18);
+    doc.setTextColor(150,60,60); doc.setFont('helvetica','bold');
+    doc.text('DOCUMENTO INTERNO SEM VALOR FISCAL — não é Nota Fiscal Eletrônica autorizada pela SEFAZ.', x0+3, y+30, {maxWidth:cw-6});
+    y+=50;
+    doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(120,120,120);
+    doc.text('Gerado pelo KM CRM em '+new Date().toLocaleString('pt-BR')+'. Chave: '+chaveFmt(chave), x0, y);
+
+    doc.save('NF_'+nf9(numero).replace(/\./g,'')+'_KM.pdf');
+  }
+
   // ===== Cancelar / Excluir venda (global p/ onclick da tabela) =====
   window.acaoVenda=function(id, status){
     var txt = status==='cancelado'
