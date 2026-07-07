@@ -2060,11 +2060,18 @@
   var CART_STATUS=[['nao_contatado','Não contatado'],['tentativa','Tentativa (não atendeu)'],['falei','Falei / em conversa'],['agendou','Agendou visita'],['proposta','Enviou proposta'],['fechou','Fechou'],['sem_interesse','Sem interesse'],['perdido','Perdido']];
   var CART_FORMA=[['whatsapp','WhatsApp'],['telefone','Telefone'],['email','E-mail'],['presencial','Presencial'],['instagram','Instagram'],['outro','Outro']];
   var CART_ROWS={};
+  var CART_VIEW={type:'grid'};
+  function recarregarCarteiraAtual(){
+    if(CART_VIEW.type==='cons'){ carteiraDoConsultor(CART_VIEW.consId, CART_VIEW.nome); }
+    else if(CART_VIEW.type==='minha'){ carteiraDaMinha(); }
+    else { initCarteira(); }
+  }
   function cartStatusLabel(k){ for(var i=0;i<CART_STATUS.length;i++){ if(CART_STATUS[i][0]===k) return CART_STATUS[i][1]; } return k||'—'; }
   function cartStatusColor(k){ return ({nao_contatado:'#9a9a9a',tentativa:'#e3b341',falei:'#59a5d8',agendou:'#5fbf6a',proposta:'#c9862f',fechou:'#3ea55e',sem_interesse:'#8a6d3b',perdido:'#e5534b'})[k]||'#9a9a9a'; }
 
   function initCarteira(){
     var wrap=$('carteiraWrap'); if(!wrap) return;
+    CART_VIEW={type:'grid'};
     if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ carteiraDaMinha(); return; }
     wrap.innerHTML='<div class="empty">Carregando distribuição…</div>';
     rpc('carteira_por_consultor',{}).then(function(rows){
@@ -2087,6 +2094,7 @@
   }
 
   function carteiraDaMinha(){
+    CART_VIEW={type:'minha'};
     var wrap=$('carteiraWrap'); wrap.innerHTML='<div class="empty">Carregando sua carteira…</div>';
     var tok=localStorage.getItem(TOKKEY);
     fetch(SB+'/rest/v1/leads_engajamento?select=*&responsavel_id=not.is.null&order=score.desc&limit=400',{headers:authHeaders(tok)})
@@ -2096,6 +2104,7 @@
   }
 
   function carteiraDoConsultor(consId, nome){
+    CART_VIEW={type:'cons', consId:consId, nome:nome};
     var wrap=$('carteiraWrap'); wrap.innerHTML='<div class="empty">Carregando carteira de '+esc(nome)+'…</div>';
     var tok=localStorage.getItem(TOKKEY);
     fetch(SB+'/rest/v1/leads_engajamento?select=*&responsavel_id=eq.'+consId+'&order=score.desc&limit=400',{headers:authHeaders(tok)})
@@ -2107,7 +2116,13 @@
   function renderCarteiraLista(rows, titulo, showBack){
     rows=Array.isArray(rows)?rows:[]; CART_ROWS={}; rows.forEach(function(l){ CART_ROWS[l.id]=l; });
     var wrap=$('carteiraWrap'), h='';
-    if(showBack) h+='<button class="ia-btn" id="cartBack" style="margin-bottom:12px">← Voltar aos consultores</button>';
+    var podeMover=(showBack && CART_VIEW.type==='cons' && (ME_ROLE==='admin'||ME_ROLE==='gestor'));
+    if(showBack){
+      h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
+      h+='<button class="ia-btn" id="cartBack">← Voltar aos consultores</button>';
+      if(podeMover && rows.length) h+='<button class="ia-btn" id="cartMoverMassa" style="border-color:#9D7D31;color:#CB984C">⇄ Mover leads para outro consultor</button>';
+      h+='</div>';
+    }
     h+='<div class="cart-listhead">'+esc(titulo)+' <span class="tagreal">'+rows.length+' leads</span></div><div class="cart-list">';
     if(!rows.length) h+='<div class="empty" style="grid-column:1/-1">Sem leads nesta carteira.</div>';
     rows.forEach(function(l){
@@ -2120,7 +2135,51 @@
     });
     h+='</div>'; wrap.innerHTML=h;
     var bk=$('cartBack'); if(bk) bk.addEventListener('click', initCarteira);
+    var mm=$('cartMoverMassa'); if(mm) mm.addEventListener('click', function(){ abrirMoverMassa(rows.length); });
     wrap.querySelectorAll('.cart-lead').forEach(function(el){ el.addEventListener('click',function(){ abrirLeadModal(el.getAttribute('data-id')); }); });
+  }
+
+  function ensureMassaModal(){
+    if($('massaModal')) return;
+    var m=document.createElement('div'); m.id='massaModal'; m.className='lmbg'; m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center';
+    m.innerHTML='<div class="lmbox" style="max-width:440px"><div class="lmhead"><div><b>Mover leads em massa</b><div class="lm-meta" id="mm_meta"></div></div><span class="lmx" id="mm_close">✕</span></div>'+
+      '<div class="lmbody">'+
+      '<span class="lmlab">Destino — consultor que vai receber</span><select id="mm_para"></select>'+
+      '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;font-size:13px;color:var(--muted)"><input type="checkbox" id="mm_soncont"> Mover apenas os leads ainda <b>não contatados</b></label>'+
+      '<div class="lmft" style="margin-top:18px"><button class="lmok" id="mm_ok" style="background:#9D7D31">Mover leads</button><button class="lmcancel" id="mm_cancel">Cancelar</button><span class="lm-msg" id="mm_msg"></span></div>'+
+      '</div></div>';
+    document.body.appendChild(m);
+    $('mm_close').addEventListener('click', fecharMassaModal);
+    $('mm_cancel').addEventListener('click', fecharMassaModal);
+    m.addEventListener('click', function(e){ if(e.target===m) fecharMassaModal(); });
+  }
+  function fecharMassaModal(){ var m=$('massaModal'); if(m) m.style.display='none'; }
+  function abrirMoverMassa(qtd){
+    if(CART_VIEW.type!=='cons') return;
+    if(!(ME_ROLE==='admin'||ME_ROLE==='gestor')) return;
+    ensureMassaModal();
+    var de=CART_VIEW.consId, deNome=CART_VIEW.nome;
+    $('mm_meta').textContent='De '+deNome+' · '+qtd+' leads na carteira';
+    $('mm_msg').textContent=''; $('mm_soncont').checked=false;
+    ensureVendedores(function(){
+      $('mm_para').innerHTML='<option value="">— selecione —</option>'+(VEND_CACHE||[]).filter(function(v){ return v.id!==de; }).map(function(v){ return '<option value="'+v.id+'">'+esc(v.nome)+'</option>'; }).join('');
+    });
+    var ok=$('mm_ok');
+    ok.onclick=function(){
+      var para=$('mm_para').value; var msg=$('mm_msg');
+      if(!para){ msg.textContent='Selecione o consultor destino.'; return; }
+      var soNc=$('mm_soncont').checked;
+      if(!confirm('Mover '+(soNc?'os não contatados':'TODOS os leads')+' de '+deNome+' para '+vendNome(para)+'?')) return;
+      ok.disabled=true; msg.textContent='Movendo…';
+      rpc('transferir_leads_massa',{p_de_consultor:de, p_para_consultor:para, p_apenas_nao_contatados:soNc}).then(function(res){
+        ok.disabled=false;
+        if(res && res.ok){
+          msg.textContent='✓ '+res.qtd+' lead(s) movido(s) para '+res.para;
+          setTimeout(function(){ fecharMassaModal(); initCarteira(); }, 1000);
+        } else { msg.textContent='Erro: '+((res&&(res.message||res.hint))||'não foi possível mover'); }
+      }).catch(function(){ ok.disabled=false; msg.textContent='Erro de conexão.'; });
+    };
+    $('massaModal').style.display='flex';
   }
 
   function ensureLeadModal(){
@@ -2141,6 +2200,11 @@
       '<div class="lm-grid" style="margin-top:12px"><div><span class="lmlab">Valor potencial (R$)</span><input id="lm_valor" type="number" min="0" step="100" placeholder="0"></div>'+
       '<div><span class="lmlab">Data do contato</span><input id="lm_contem" type="date"></div></div>'+
       '<span class="lmlab">Observação</span><textarea id="lm_obs" placeholder="Anotações da conversa…"></textarea>'+
+      '<div id="lm_transfwrap" style="display:none;border-top:1px dashed var(--line);margin:18px 0 4px;padding-top:12px">'+
+        '<span class="lmlab" style="color:var(--accent)">Transferir para outro consultor</span>'+
+        '<div class="lm-grid" style="align-items:end"><div><select id="lm_transf"></select></div>'+
+        '<div><button class="lmok" id="lm_transf_btn" style="background:#9D7D31;width:100%">Transferir lead</button></div></div>'+
+        '<span class="lm-msg" id="lm_transf_msg"></span></div>'+
       '<div class="lmft"><button class="lmok" id="lm_save">Salvar resultado</button><button class="lmcancel" id="lm_cancel">Fechar</button><span class="lm-msg" id="lm_msg"></span></div>'+
       '<input type="hidden" id="lm_id"></div></div>';
     document.body.appendChild(m);
@@ -2182,7 +2246,39 @@
     $('lm_contem').value=l.contatado_em?String(l.contatado_em).slice(0,10):'';
     $('lm_obs').value=l.obs_contato||'';
     $('lm_id').value=id; $('lm_msg').textContent='';
+    montarTransferLead(l, id);
     $('leadModal').style.display='flex';
+  }
+  function montarTransferLead(l, id){
+    var wrap=$('lm_transfwrap'); if(!wrap) return;
+    var isAdmin=(ME_ROLE==='admin'||ME_ROLE==='gestor');
+    if(!isAdmin){ wrap.style.display='none'; return; }
+    wrap.style.display='block';
+    var msg=$('lm_transf_msg'); if(msg) msg.textContent='';
+    ensureVendedores(function(){
+      var atual=l.responsavel_id;
+      $('lm_transf').innerHTML=(VEND_CACHE||[]).map(function(v){
+        return '<option value="'+v.id+'"'+(v.id===atual?' selected':'')+'>'+esc(v.nome)+(v.id===atual?' (atual)':'')+'</option>';
+      }).join('');
+    });
+    var btn=$('lm_transf_btn');
+    btn.onclick=function(){
+      var para=$('lm_transf').value; var m=$('lm_transf_msg');
+      if(!para){ m.textContent='Selecione um consultor.'; return; }
+      if(para===l.responsavel_id){ m.textContent='O lead já é deste consultor.'; return; }
+      var nome=vendNome(para);
+      if(!confirm('Transferir este lead para '+nome+'?')) return;
+      btn.disabled=true; m.textContent='Transferindo…';
+      rpc('transferir_lead_carteira',{p_lead_id:id, p_para_consultor:para}).then(function(res){
+        btn.disabled=false;
+        if(res && res.ok){
+          if(CART_ROWS[id]) CART_ROWS[id].responsavel_id=para;
+          l.responsavel_id=para;
+          m.textContent='✓ Transferido para '+ (res.para||nome) + (res.oportunidade_movida?' · oportunidade movida no funil':'');
+          setTimeout(function(){ fecharLeadModal(); if(typeof recarregarCarteiraAtual==='function') recarregarCarteiraAtual(); }, 900);
+        } else { m.textContent='Erro: '+((res&&(res.message||res.hint))||'não foi possível transferir'); }
+      }).catch(function(){ btn.disabled=false; m.textContent='Erro de conexão.'; });
+    };
   }
   function fecharLeadModal(){ var m=$('leadModal'); if(m) m.style.display='none'; }
   function salvarLeadModal(){
