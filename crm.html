@@ -2414,7 +2414,7 @@
   // Regra: arquiteto NÃO reduz o consultor — consultor recebe % cheio + arquiteto por cima.
   function estComissao(pilar,valor,comArq){
     var v=Number(valor)||0, c=0, a=0;
-    if(pilar==='p1'){ if(v<=20000){c=3.0;a=0.5;}else if(v<=40000){c=3.5;a=1.0;}else if(v<=60000){c=4.0;a=1.0;}else if(v<=80000){c=4.5;a=1.0;}else{c=5.0;a=1.0;} }
+    if(pilar==='p1'){ c=5.0; a=(v<=20000?0.5:1.0); } // Pilar 1: consultor 5% fixo (bate com o servidor)
     else if(pilar==='p3'){ if(v<=9000){c=6.0;a=1.0;}else if(v<=15000){c=6.5;a=1.0;}else if(v<=20000){c=7.0;a=1.0;}else{c=8.0;a=1.0;} }
     else if(pilar==='p2'){ c=5.0;a=1.0; }
     else if(pilar==='curadoria'){ c=7.0;a=1.0; }
