@@ -2659,6 +2659,7 @@
       .then(function(j){ btn.disabled=false; btn.textContent=old;
         if(j&&j.ok){ $('msg-venda').innerHTML='Venda '+esc(j.numero)+' registrada ✓ · '+(j.itens||0)+' item(ns) · total '+vendaMoney(j.valor)+' · comissão R$ '+Number(j.comissao_consultor||0).toLocaleString('pt-BR');
           try{ gerarPdfPedido(j, _pdf); }catch(e){ console.error('PDF pedido:', e); }
+          try{ emitirOS(j, _pdf); }catch(e){ console.error('OS pedido:', e); }
           var ob=$('venda_obs'); if(ob) ob.value=''; renderVendaItens();
           var dR=$('venda_desc_reais'), dP=$('venda_desc_pct'); if(dR){dR.value='';dR.disabled=false;} if(dP){dP.value='';dP.disabled=false;}
           $('venda_preview').innerHTML='Adicione ao menos um produto com valor para ver a estimativa de comissão.';
@@ -2699,6 +2700,59 @@
     if(d.obs){ var ob=''+d.obs; if(ob.length>90) ob=ob.slice(0,90)+'…'; doc.text('Obs.: '+ob, x, y); y+=14; }
     doc.setFontSize(8); doc.setTextColor(150,150,150); doc.text('Documento gerado automaticamente pelo KM CRM.', x, 812);
     doc.save('Pedido_'+(j.numero||'KM')+'.pdf');
+  }
+  // ===== PDF da Ordem de Serviço (roteiro de entrega, 2 vias) =====
+  function emitirOS(j, dados){
+    if(!j || !j.pedido_id) return;
+    var tok=localStorage.getItem(TOKKEY);
+    var sel='numero,cidade,endereco,distancia_km,frete,pilar,data_agendada,observacoes,clientes(nome,telefone,bairro,numero,complemento,cidade,uf,cep)';
+    fetch(SB+'/rest/v1/ordens_servico?pedido_id=eq.'+j.pedido_id+'&select='+encodeURIComponent(sel)+'&limit=1',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){ var os=(rows&&rows[0])?rows[0]:null; if(os){ try{ gerarPdfOS(os, j, dados); }catch(e){ console.error('PDF OS:', e); } } else { console.warn('OS não encontrada para o pedido', j.pedido_id); } })
+    .catch(function(e){ console.error('OS fetch:', e); });
+  }
+  function gerarPdfOS(os, j, d){
+    if(!(window.jspdf && window.jspdf.jsPDF)){ console.warn('jsPDF indisponível'); return; }
+    var doc=new window.jspdf.jsPDF({unit:'pt', format:'a4'});
+    var cli=(os && os.clientes)?os.clientes:{};
+    var nome=cli.nome||d.cliente||'', tel=cli.telefone||'';
+    var end=os.endereco||'', bairro=cli.bairro||'', numero=cli.numero||'', compl=cli.complemento||'';
+    var cidade=os.cidade||cli.cidade||'', uf=cli.uf||'', cep=cli.cep||'';
+    var itens=d.itens||[];
+    var hoje=(function(){ try{ return new Date().toLocaleDateString('pt-BR'); }catch(e){ return ''; } })();
+    function via(label){
+      var W=595, x=40, y=44;
+      doc.setFillColor(20,16,10); doc.rect(0,0,W,66,'F');
+      doc.setTextColor(203,152,76); doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('KM INTERIORES · ORDEM DE SERVIÇO', x, 30);
+      doc.setFontSize(8.5); doc.setFont('helvetica','normal'); doc.setTextColor(230,217,188); doc.text('Roteiro de entrega — uso do operacional', x, 48);
+      doc.setTextColor(203,152,76); doc.setFontSize(9); doc.text(label, W-x, 30, {align:'right'});
+      y=92; doc.setTextColor(30,30,30); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      doc.text('OS '+(os.numero||''), x, y); doc.text('Pedido '+(j.numero||''), x+170, y); doc.text('Data: '+hoje, W-x, y, {align:'right'}); y+=20;
+      doc.setFontSize(9.5);
+      function campo(l,v){ doc.setFont('helvetica','bold'); doc.text(l, x, y); doc.setFont('helvetica','normal'); doc.text(v&&(''+v).trim()?(''+v):'____________________________', x+92, y); y+=16; }
+      campo('Cliente:', nome);
+      campo('Telefone:', tel);
+      campo('Endereço:', [end, numero, compl].filter(Boolean).join(', '));
+      campo('Bairro:', bairro);
+      campo('Cidade/UF:', (cidade?cidade:'')+(uf?(' / '+uf):''));
+      campo('CEP:', cep);
+      if(Number(os.distancia_km||0)>0 || Number(os.frete||0)>0){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.text('Distância: '+(os.distancia_km||'—')+' km   ·   Frete: R$ '+Number(os.frete||0).toLocaleString('pt-BR',{minimumFractionDigits:2}), x, y); y+=16; }
+      y+=4; doc.setDrawColor(203,152,76); doc.line(x,y,W-x,y); y+=16;
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('Peças a entregar', x, y); y+=16; doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+      if(!itens.length){ doc.text('( conferir itens no pedido )', x+4, y); y+=15; }
+      itens.slice(0,14).forEach(function(it){ doc.rect(x, y-8, 9, 9); doc.text((it.qtd||1)+' × '+(''+(it.desc||'Item')).slice(0,60), x+16, y); y+=15; });
+      y+=6; doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('Roteiro de entrega (conferir cada etapa)', x, y); y+=16; doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+      ['Conferência das peças antes de sair do showroom','Proteção e manuseio adequados no transporte','Montagem e posicionamento no local combinado','Conferência final com o cliente (sem avarias)','Orientações de conservação (KM Care)','Retirada das embalagens'].forEach(function(t){ doc.rect(x,y-8,9,9); doc.text(t, x+16, y); y+=15; });
+      y+=14; doc.setFontSize(9.5); doc.text('Recebi os itens acima em conformidade.', x, y); y+=30;
+      doc.setDrawColor(120,120,120); doc.line(x, y, x+230, y); doc.line(x+270, y, W-x, y); y+=12;
+      doc.setFontSize(8.5); doc.setTextColor(90,90,90); doc.text('Assinatura do cliente', x, y); doc.text('Entregador / Responsável', x+270, y);
+      y+=16; doc.setTextColor(30,30,30); doc.setFontSize(9); doc.text('Nome: ______________________________    Data: ____/____/______', x, y);
+      if(os.observacoes){ y+=18; doc.setFontSize(8.5); doc.setTextColor(90,90,90); doc.text('Obs.: '+(''+os.observacoes).slice(0,110), x, y); }
+    }
+    via('1a VIA — CLIENTE');
+    doc.addPage();
+    via('2a VIA — KM INTERIORES (OPERACIONAL)');
+    doc.save('OS_'+(os.numero||'KM')+'.pdf');
   }
   // ===== Cancelar / Excluir venda (global p/ onclick da tabela) =====
   window.acaoVenda=function(id, status){
