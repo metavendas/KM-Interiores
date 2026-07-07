@@ -2603,9 +2603,20 @@
       var vendedor=vendaG('vendedor_id');
       var itens=vendaColetaItens();
       var total=itens.reduce(function(s,it){ return s+(Number(it.valor)||0); },0);
-      if(!vendedor){ $('msg-venda').textContent='Selecione o vendedor.'; return; }
-      if(!itens.length || total<=0){ $('msg-venda').textContent='Adicione ao menos um produto com valor.'; return; }
-      btn.disabled=true; var old=btn.textContent; btn.textContent='Registrando…'; $('msg-venda').textContent='';
+      function vendaAviso(campoId, texto){
+        var m=$('msg-venda'); if(m){ m.textContent=texto; m.style.color='#ff6b6b'; m.style.fontWeight='700'; m.style.fontSize='15px'; }
+        var el=$(campoId);
+        if(el){ el.style.outline='2px solid #ff6b6b'; el.style.borderRadius='4px';
+          try{ el.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){}
+          try{ el.focus(); }catch(e){}
+          setTimeout(function(){ el.style.outline=''; }, 4000);
+        }
+        try{ alert(texto); }catch(e){}
+      }
+      if(!vendedor){ vendaAviso('venda_vendedor','⚠ Selecione o VENDEDOR antes de registrar a venda.'); return; }
+      if(!itens.length || total<=0){ vendaAviso('venda_itens','⚠ Adicione ao menos um produto com valor.'); return; }
+      btn.disabled=true; var old=btn.textContent; btn.textContent='Registrando…';
+      var mvv=$('msg-venda'); if(mvv){ mvv.textContent=''; mvv.style.color=''; mvv.style.fontWeight=''; mvv.style.fontSize=''; }
       rpc('registrar_venda',{ cliente_id:vendaG('cliente_id')||null, vendedor_id:vendedor, parceiro_id:vendaG('parceiro_id')||null,
         itens:itens, pilar:vendaG('pilar'), canal:vendaG('canal'), forma_pagamento:vendaG('forma_pagamento'),
         status:vendaG('status'), data_venda:vendaG('data_venda')||null, observacao:vendaG('observacao') })
