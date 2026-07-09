@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /crm.html
+Disallow: /crm_BACKUP_23jun.html
+Disallow: /admin.html
+Disallow: /produtos.html
+Disallow: /area-cliente.html
+Disallow: /area-restrita.html
+Disallow: /entrar.html
+Disallow: /redefinir-senha.html
+Disallow: /carrinho.html
+Disallow: /deck.html
+
+Sitemap: https://www.kminteriores.com.br/sitemap.xml
