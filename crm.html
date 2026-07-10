@@ -3585,6 +3585,7 @@
         var ac='';
         if(o.status==='rascunho'){ ac+='<button class="badge" style="cursor:pointer;color:#3ea55e" onclick="compConfirmar(\''+o.id+'\')">Confirmar</button> '
               +'<button class="badge" style="cursor:pointer" onclick="compEditar(\''+o.id+'\')">Editar</button> '
+              +'<button class="badge" style="cursor:pointer" onclick="compPDF(\''+o.id+'\')">PDF</button> '
               +'<button class="badge" style="cursor:pointer;color:#e5534b" onclick="compCancelar(\''+o.id+'\')">Excluir</button>'; }
         else if(o.status==='confirmada'){ ac+='<button class="badge" style="cursor:pointer;color:#3ea55e" onclick="compReceber(\''+o.id+'\')">Receber</button> '
               +'<button class="badge" style="cursor:pointer" onclick="compPDF(\''+o.id+'\')">PDF</button> '
@@ -3661,12 +3662,16 @@
     doc.setTextColor(203,152,76); doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.text('KM INTERIORES',x,46);
     doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(230,217,188); doc.text('Pedido de Compra — uso interno / fornecedor',x,64);
     doc.setFontSize(11); doc.text('PEDIDO DE COMPRA '+(o.numero||''),W-x,46,{align:'right'});
+    if(o.status==='rascunho'){ doc.setFontSize(9); doc.setTextColor(229,83,75); doc.text('RASCUNHO — sujeito a confirmação',W-x,64,{align:'right'}); }
     y=120; doc.setTextColor(30,30,30); doc.setFontSize(10);
     function linha(l,r){ doc.setFont('helvetica','bold'); doc.text(l,x,y); doc.setFont('helvetica','normal'); doc.text(''+r,x+140,y); y+=17; }
     var forn=o.fornecedor_nome||fornNome(o.fornecedor_id)||'—';
     function dbr(d){ try{return new Date(d+'T00:00:00').toLocaleDateString('pt-BR');}catch(e){return d||'—';} }
+    var condMap={'a_vista':'À vista','a_prazo':'A prazo','avista':'À vista','aprazo':'A prazo'};
+    var condTxt=(condMap[o.condicao_pagamento]||o.condicao_pagamento||'—')+((o.parcelas||1)>1?' · '+o.parcelas+'x':'');
     linha('Fornecedor:',forn); linha('Data:',dbr(o.data_compra)); linha('Previsão de entrega:',o.previsao_entrega?dbr(o.previsao_entrega):'—');
-    linha('Pagamento:',(o.condicao_pagamento||'')+' · '+(o.parcelas||1)+'x');
+    linha('Pagamento:',condTxt);
+    if(o.primeiro_venc){ linha('1º vencimento:',dbr(o.primeiro_venc)); }
     y+=6; doc.setDrawColor(203,152,76); doc.line(x,y,W-x,y); y+=20;
     doc.setFont('helvetica','bold'); doc.text('Item',x,y); doc.text('Qtd',330,y,{align:'right'}); doc.text('Custo un.',430,y,{align:'right'}); doc.text('Total',W-x,y,{align:'right'}); y+=6;
     doc.line(x,y,W-x,y); y+=16; doc.setFont('helvetica','normal');
@@ -4583,5 +4588,270 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   .badge{background:rgba(8,8,7,.08) !important;color:#080807 !important;}
   #gate{background:radial-gradient(90% 80% at 80% 10%,rgba(8,8,7,.05),transparent 55%),#F1E9D2 !important;}
   </style>
+<!-- ============================================================================
+     KM Interiores · CRM · PATCH 2026-07-10
+     (1) Botão "Editar" no lead — Funil de Vendas + Engajamento (LinkedIn)
+     (2) Temporizador de sessão do consultor — registro ADMIN-ONLY (login → saída)
+     Aditivo e reversível: cole este bloco INTEIRO imediatamente ANTES de </body>.
+     Remover o bloco desfaz tudo. Não toca a lógica existente (só estende).
+     Requer a migração: KM_CRM_migration_timer_editar_2026-07-10.sql (Supabase).
+     Governança: IA propõe → Edson aprova.
+     ============================================================================ -->
+<style id="km-patch-editar-timer-css">
+  .km-modal{display:none;position:fixed;inset:0;z-index:240;background:rgba(0,0,0,.68);align-items:center;justify-content:center;padding:20px}
+  .km-modal .km-box{max-width:600px;width:100%;max-height:92vh;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:6px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .km-modal .km-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg2)}
+  .km-modal .km-head b{font-family:var(--serif,serif);font-weight:500;color:var(--accent);font-size:16px}
+  .km-modal .km-x{cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding-left:12px}
+  .km-modal .km-body{padding:18px 22px}
+  .km-lab{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ouro);margin:12px 0 6px}
+  .km-modal input,.km-modal select,.km-modal textarea,#view-km-sessoes input{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:10px 11px;font-family:var(--sans,sans-serif);font-size:13px;border-radius:4px;outline:none;box-sizing:border-box}
+  .km-modal textarea{min-height:74px;line-height:1.5;resize:vertical}
+  .km-modal input:focus,.km-modal select:focus,.km-modal textarea:focus,#view-km-sessoes input:focus{border-color:var(--accent)}
+  .km-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .km-ft{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+  .km-ok{background:#9D7D31;color:#F1E9D2;border:none;padding:11px 22px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:3px}
+  .km-ok:disabled{opacity:.6;cursor:default}
+  .km-cancel{background:transparent;border:1px solid var(--line);color:var(--text);padding:11px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-radius:3px}
+  .km-msg{font-size:12px;color:var(--champagne)}
+  button.km-eng-edit{background:transparent;border:1px solid var(--line);color:var(--accent)}
+  .km-sess-resumo{padding:14px 18px 0}
+  .km-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .km-kpi>div{background:var(--bg3);border:1px solid var(--line);border-radius:5px;padding:12px 14px;text-align:center}
+  .km-kpi span{display:block;font-size:20px;font-weight:600;color:var(--accent)}
+  .km-kpi label{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+  .km-badge-abre{background:#5fbf6a22;color:#5fbf6a;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px}
+  @media(max-width:700px){ .km-grid{grid-template-columns:1fr} .km-kpi{grid-template-columns:repeat(2,1fr)} }
+</style>
+<script id="km-patch-editar-timer-js">
+(function(){
+  "use strict";
+  if(window.__kmPatchEditarTimer) return; window.__kmPatchEditarTimer=true;
+
+  /* ---------- helpers (usam os globais do app, com fallback) ---------- */
+  var SB=window.SB||'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  var KEY=window.KEY||'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var TOKKEY=window.TOKKEY||'km_crm_token';
+  function tok(){ try{return localStorage.getItem(TOKKEY);}catch(e){return null;} }
+  function H(extra){ var h={apikey:KEY,Authorization:'Bearer '+tok()}; if(extra){for(var k in extra)h[k]=extra[k];} return h; }
+  function esc(s){ if(window.esc)return window.esc(s); return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function el(id){ return document.getElementById(id); }
+  function isAdmin(){ return window.ME_ROLE==='admin'; }
+  function rpc(name,body){
+    return fetch(SB+'/rest/v1/rpc/'+name,{method:'POST',headers:H({'Content-Type':'application/json'}),body:JSON.stringify(body||{})})
+      .then(function(r){ return r.text().then(function(t){ var j=null; try{j=t?JSON.parse(t):null;}catch(e){} if(!r.ok) throw new Error((j&&(j.message||j.hint||j.error))||t||('HTTP '+r.status)); return j; }); });
+  }
+  function restGet(path){ return fetch(SB+'/rest/v1/'+path,{headers:H()}).then(function(r){ return r.ok?r.json():[]; }); }
+  function restPatch(path,body){ return fetch(SB+'/rest/v1/'+path,{method:'PATCH',headers:H({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)}); }
+
+  /* =====================================================================
+     (A) TEMPORIZADOR DE SESSÃO — tempo bruto (login → saída), heartbeat 60s
+     ===================================================================== */
+  var SESSKEY='km_sess_id', sessId=null, hbTimer=null, sessStarted=false;
+  function sessStart(){
+    if(!tok()||sessStarted) return;
+    rpc('abrir_sessao_consultor',{p_user_agent:(navigator.userAgent||'').slice(0,400)})
+      .then(function(id){ if(id){ sessId=id; try{localStorage.setItem(SESSKEY,id);}catch(e){} sessStarted=true; startHB(); } })
+      .catch(function(){ /* migração ainda não aplicada → silencioso */ });
+  }
+  function startHB(){ if(!hbTimer) hbTimer=setInterval(function(){ beat(); },60000); }
+  function stopHB(){ if(hbTimer){ clearInterval(hbTimer); hbTimer=null; } }
+  function beat(o){ var id=sessId||safeGet(SESSKEY); if(!id||!tok()) return;
+    fetch(SB+'/rest/v1/rpc/heartbeat_sessao',{method:'POST',headers:H({'Content-Type':'application/json'}),body:JSON.stringify({p_id:id}),keepalive:!!(o&&o.keepalive)}).catch(function(){});
+  }
+  function sessEnd(motivo){ var id=sessId||safeGet(SESSKEY); stopHB(); sessStarted=false; sessId=null; safeDel(SESSKEY);
+    if(!id) return;
+    fetch(SB+'/rest/v1/rpc/encerrar_sessao',{method:'POST',headers:H({'Content-Type':'application/json'}),body:JSON.stringify({p_id:id,p_motivo:motivo||'logout'}),keepalive:true}).catch(function(){});
+  }
+  function safeGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
+  function safeDel(k){ try{localStorage.removeItem(k);}catch(e){} }
+
+  // login/boot → inicia sessão + injeta nav admin
+  wrap('showApp', function(orig,args,ret){ try{ sessStart(); injectSessNav(); }catch(e){} });
+  // logout/expiração → encerra sessão
+  wrap('showGate', function(orig,args){ try{ if(sessStarted||safeGet(SESSKEY)){ sessEnd(/expir/i.test(args[0]||'')?'expirou':'logout'); } }catch(e){} }, true /*before*/);
+  // aba fechando/oculta → heartbeat final (não fecha; o reaper/último heartbeat cuidam → sem bug multi-aba)
+  window.addEventListener('pagehide', function(){ beat({keepalive:true}); });
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) beat({keepalive:true}); else beat(); });
+  // se o boot já tinha logado antes deste patch: inicia mesmo assim (guardado por sessStarted)
+  setTimeout(function(){ var app=el('app'); if(!sessStarted && tok() && app && app.style.display!=='none'){ sessStart(); injectSessNav(); } },1500);
+
+  /* ---- nav + tela admin "Tempo de Sessão" ---- */
+  function injectSessNav(){
+    if(!el('km-nav-sessoes')){
+      var nav=document.querySelector('.nav'); if(!nav) return;
+      var a=document.createElement('a'); a.href='#'; a.id='km-nav-sessoes'; a.setAttribute('data-view','km_sessoes');
+      a.innerHTML='<span class="dot"></span> ⏱ Tempo de Sessão';
+      var eq=nav.querySelector('a[data-view="equipe"]');
+      if(eq&&eq.parentNode===nav){ eq.insertAdjacentElement('afterend',a); } else { nav.appendChild(a); }
+      a.addEventListener('click',function(e){ e.preventDefault(); if(window.showView) window.showView('km_sessoes'); renderSessoes(); });
+      ensureSessSection();
+    }
+    var lnk=el('km-nav-sessoes'); if(lnk) lnk.style.display=isAdmin()?'':'none';
+  }
+  function ensureSessSection(){
+    if(el('view-km-sessoes')) return;
+    var content=document.querySelector('.content'); if(!content) return;
+    var sec=document.createElement('section'); sec.className='view'; sec.id='view-km-sessoes'; sec.setAttribute('data-v','km_sessoes'); sec.hidden=true;
+    sec.innerHTML='<div class="h1">Tempo de Sessão · Consultores</div>'+
+      '<div class="sub">Quanto tempo cada consultor permaneceu logado no CRM · registro automático (login → saída) · fuso de Brasília · <b style="color:var(--accent)">acesso só de administradores</b></div>'+
+      '<div class="panel"><div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;padding:14px 18px 2px">'+
+      '<div><label class="km-lab">De</label><input type="date" id="km-sess-de" style="width:auto"></div>'+
+      '<div><label class="km-lab">Até</label><input type="date" id="km-sess-ate" style="width:auto"></div>'+
+      '<button class="ia-btn sug" id="km-sess-refresh">Atualizar</button>'+
+      '<span class="km-msg" id="km-sess-msg" style="color:var(--muted)"></span></div>'+
+      '<div id="km-sess-resumo" class="km-sess-resumo"></div>'+
+      '<table style="margin-top:8px"><thead><tr><th>Dia</th><th>Consultor</th><th>Nível</th><th>Sessões</th><th>Tempo logado</th><th>1ª entrada</th><th>Última saída</th></tr></thead>'+
+      '<tbody id="km-sess-body"><tr><td colspan="7" class="empty">—</td></tr></tbody></table></div>';
+    content.appendChild(sec);
+    el('km-sess-refresh').addEventListener('click', renderSessoes);
+  }
+  function fmtDur(seg){ seg=Math.max(0,Math.floor(Number(seg)||0)); var h=Math.floor(seg/3600), m=Math.floor((seg%3600)/60), s=seg%60;
+    if(h>0) return h+'h '+(m<10?'0':'')+m+'m'; if(m>0) return m+'m '+(s<10?'0':'')+s+'s'; return s+'s'; }
+  function d10(dt){ return new Date(dt).toISOString().slice(0,10); }
+  function renderSessoes(){
+    ensureSessSection();
+    var body=el('km-sess-body'), msg=el('km-sess-msg'), resumo=el('km-sess-resumo');
+    if(!isAdmin()){ if(body) body.innerHTML='<tr><td colspan="7" class="empty">Acesso restrito a administradores.</td></tr>'; return; }
+    var de=el('km-sess-de'), ate=el('km-sess-ate');
+    if(de&&!de.value) de.value=d10(Date.now()-30*86400000);
+    if(ate&&!ate.value) ate.value=d10(Date.now());
+    if(body) body.innerHTML='<tr><td colspan="7" class="empty">Carregando…</td></tr>'; if(msg) msg.textContent='';
+    rpc('relatorio_sessoes',{p_desde:(de&&de.value)||null,p_ate:(ate&&ate.value)||null}).then(function(rows){
+      rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ if(body) body.innerHTML='<tr><td colspan="7" class="empty">Nenhum registro no período. (Recém-aplicada a migração? O tempo começa a contar a partir do próximo login dos consultores.)</td></tr>'; if(resumo) resumo.innerHTML=''; return; }
+      var totSeg=0,totSess=0,abertas=0,cons={};
+      rows.forEach(function(r){ totSeg+=Number(r.total_seg)||0; totSess+=Number(r.sessoes)||0; abertas+=Number(r.abertas)||0; cons[r.user_id]=1; });
+      if(resumo) resumo.innerHTML='<div class="km-kpi"><div><span>'+fmtDur(totSeg)+'</span><label>tempo total logado</label></div>'+
+        '<div><span>'+Object.keys(cons).length+'</span><label>consultores</label></div>'+
+        '<div><span>'+totSess+'</span><label>sessões</label></div>'+
+        '<div><span>'+abertas+'</span><label>abertas agora</label></div></div>';
+      body.innerHTML=rows.map(function(r){
+        var dia=r.dia?String(r.dia).slice(0,10).split('-').reverse().join('/'):'—';
+        var pri=r.primeira?new Date(r.primeira).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}):'—';
+        var ult=r.ultima?new Date(r.ultima).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}):'—';
+        return '<tr><td>'+dia+'</td><td style="color:var(--text)">'+esc(r.email||r.user_id)+'</td><td>'+esc(r.role||'')+'</td>'+
+          '<td>'+(r.sessoes||0)+(Number(r.abertas)>0?' <span class="km-badge-abre">'+r.abertas+' aberta</span>':'')+'</td>'+
+          '<td style="color:var(--accent);font-weight:600">'+fmtDur(r.total_seg)+'</td><td>'+pri+'</td><td>'+ult+'</td></tr>';
+      }).join('');
+    }).catch(function(e){ if(body) body.innerHTML='<tr><td colspan="7" class="empty">'+(/sem_permissao/.test(e.message)?'Acesso restrito a administradores.':((/relatorio_sessoes/.test(e.message)||/does not exist|PGRST202|404/i.test(e.message))?'Migração ainda não aplicada no Supabase — rode o arquivo .sql.':'Erro ao carregar o relatório.'))+'</td></tr>'; });
+  }
+  wrap('showView', function(orig,args){ if(args[0]==='km_sessoes'){ try{ renderSessoes(); }catch(e){} } });
+
+  /* =====================================================================
+     (B) BOTÃO "EDITAR" — ENGAJAMENTO (LinkedIn), na fila pendente
+     ===================================================================== */
+  var CLASSES=[['quente','Quente'],['morno','Morno'],['frio','Frio']];
+  var TIPOS=[['cliente','Cliente'],['parceiro','Parceiro']];
+  function wireEngObserver(){
+    var body=el('engBody'); if(!body) return;
+    if(!body.__kmObs){ var obs=new MutationObserver(function(){ decorateEngRows(); }); obs.observe(body,{childList:true,subtree:true}); body.__kmObs=obs; }
+    decorateEngRows();
+  }
+  function decorateEngRows(){
+    var body=el('engBody'); if(!body) return;
+    body.querySelectorAll('button.eng-ap').forEach(function(ap){
+      var cell=ap.parentNode; if(!cell||cell.querySelector('.km-eng-edit')) return;
+      var id=ap.getAttribute('data-id'); if(!id) return;
+      var b=document.createElement('button'); b.className='ia-btn km-eng-edit'; b.setAttribute('data-id',id); b.textContent='Editar';
+      cell.insertBefore(b,ap); cell.insertBefore(document.createTextNode(' '),ap);
+    });
+  }
+  wrap('initEngajamento', function(){ setTimeout(wireEngObserver,60); });
+  document.addEventListener('click', function(e){
+    var t=e.target; if(!t||!t.closest) return;
+    var ed=t.closest('.km-eng-edit'); if(ed){ e.preventDefault(); e.stopPropagation(); abrirEngEdit(ed.getAttribute('data-id')); }
+  }, true);
+  function ensureEngModal(){
+    if(el('kmEngModal')) return;
+    var m=document.createElement('div'); m.id='kmEngModal'; m.className='km-modal';
+    m.innerHTML='<div class="km-box"><div class="km-head"><b>Editar engajador (LinkedIn)</b><span class="km-x" id="km-eng-x">✕</span></div><div class="km-body">'+
+      '<div class="km-grid"><div><label class="km-lab">Nome</label><input id="km-eng-nome"></div><div><label class="km-lab">Cargo</label><input id="km-eng-cargo"></div></div>'+
+      '<div class="km-grid"><div><label class="km-lab">Empresa</label><input id="km-eng-empresa"></div><div><label class="km-lab">Cidade</label><input id="km-eng-cidade"></div></div>'+
+      '<div class="km-grid"><div><label class="km-lab">Interação</label><input id="km-eng-interacao" placeholder="curtiu / comentou…"></div><div><label class="km-lab">Score</label><input id="km-eng-score" type="number" min="0" max="100"></div></div>'+
+      '<div class="km-grid"><div><label class="km-lab">Classe</label><select id="km-eng-classe"></select></div><div><label class="km-lab">Tipo de lead</label><select id="km-eng-tipo"></select></div></div>'+
+      '<label class="km-lab">Gancho — mensagem pronta</label><textarea id="km-eng-gancho"></textarea>'+
+      '<div class="km-ft"><button class="km-ok" id="km-eng-save">Salvar</button><button class="km-cancel" id="km-eng-cancel">Cancelar</button><span class="km-msg" id="km-eng-msg"></span></div>'+
+      '<input type="hidden" id="km-eng-id"></div></div>';
+    document.body.appendChild(m);
+    el('km-eng-x').onclick=closeEngModal; el('km-eng-cancel').onclick=closeEngModal;
+    m.addEventListener('click',function(e){ if(e.target===m) closeEngModal(); });
+    el('km-eng-classe').innerHTML=CLASSES.map(function(c){return '<option value="'+c[0]+'">'+c[1]+'</option>';}).join('');
+    el('km-eng-tipo').innerHTML=TIPOS.map(function(c){return '<option value="'+c[0]+'">'+c[1]+'</option>';}).join('');
+    el('km-eng-save').onclick=salvarEngEdit;
+  }
+  function closeEngModal(){ var m=el('kmEngModal'); if(m) m.style.display='none'; }
+  function abrirEngEdit(id){
+    ensureEngModal(); el('kmEngModal').style.display='flex'; el('km-eng-msg').textContent='Carregando…';
+    restGet('leads_engajamento?id=eq.'+id+'&select=id,nome,cargo,empresa,cidade,interacao,score,classe,gancho,tipo_lead,status&limit=1').then(function(rows){
+      var l=(rows&&rows[0])||null; if(!l){ el('km-eng-msg').textContent='Registro não encontrado.'; return; }
+      el('km-eng-id').value=id;
+      el('km-eng-nome').value=l.nome||''; el('km-eng-cargo').value=l.cargo||''; el('km-eng-empresa').value=l.empresa||'';
+      el('km-eng-cidade').value=l.cidade||''; el('km-eng-interacao').value=l.interacao||''; el('km-eng-score').value=(l.score!=null?l.score:'');
+      el('km-eng-classe').value=l.classe||'morno'; el('km-eng-tipo').value=l.tipo_lead||'cliente'; el('km-eng-gancho').value=l.gancho||'';
+      el('km-eng-msg').textContent=(l.status&&l.status!=='pendente')?('⚠ status "'+l.status+'": a edição só vale para leads pendentes'):'';
+    }).catch(function(){ el('km-eng-msg').textContent='Erro ao carregar.'; });
+  }
+  function salvarEngEdit(){
+    var id=el('km-eng-id').value, btn=el('km-eng-save'); btn.disabled=true; el('km-eng-msg').textContent='Salvando…';
+    rpc('editar_lead_engajamento',{p_id:id,
+      p_nome:el('km-eng-nome').value||null,p_cargo:el('km-eng-cargo').value||null,p_empresa:el('km-eng-empresa').value||null,
+      p_cidade:el('km-eng-cidade').value||null,p_interacao:el('km-eng-interacao').value||null,
+      p_score:(el('km-eng-score').value!==''?Number(el('km-eng-score').value):null),
+      p_classe:el('km-eng-classe').value||null,p_gancho:el('km-eng-gancho').value||null,p_tipo_lead:el('km-eng-tipo').value||null})
+    .then(function(){ btn.disabled=false; el('km-eng-msg').textContent='✓ Salvo'; setTimeout(function(){ closeEngModal(); if(window.initEngajamento) window.initEngajamento(); },600); })
+    .catch(function(e){ btn.disabled=false; el('km-eng-msg').textContent=/sem_permissao/.test(e.message)?'Sem permissão (entre como equipe).':((/editar_lead_engajamento/.test(e.message)||/does not exist|PGRST202|404/i.test(e.message))?'Migração ainda não aplicada — rode o .sql.':('Erro: '+e.message)); });
+  }
+
+  /* =====================================================================
+     (C) BOTÃO "EDITAR" — LEAD NO FUNIL (dentro do modal da oportunidade)
+     ===================================================================== */
+  function injectOpEdit(){
+    var modal=el('opModal'); if(!modal||el('km-op-editwrap')) return;
+    var body=modal.querySelector('.lmbody'); if(!body) return;
+    var wrap=document.createElement('div'); wrap.id='km-op-editwrap'; wrap.style.cssText='border-top:1px dashed var(--line);margin-top:16px;padding-top:14px';
+    wrap.innerHTML='<button class="km-ok" id="km-op-edittoggle" style="background:#9D7D31">✎ Editar dados do lead</button>'+
+      '<div id="km-op-editfields" style="display:none;margin-top:12px">'+
+      '<div class="km-grid"><div><label class="km-lab">Nome do lead / título</label><input id="km-op-titulo"></div>'+
+      '<div><label class="km-lab">Origem</label><input id="km-op-origem" placeholder="Instagram, WhatsApp, LinkedIn, indicação…"></div></div>'+
+      '<div class="km-ft"><button class="km-ok" id="km-op-savelead">Salvar dados do lead</button><span class="km-msg" id="km-op-editmsg"></span></div></div>';
+    body.appendChild(wrap);
+    el('km-op-edittoggle').addEventListener('click',function(){ var f=el('km-op-editfields'); var open=(f.style.display==='none'); f.style.display=open?'block':'none'; if(open) prefillOpEdit(); });
+    el('km-op-savelead').addEventListener('click', salvarOpLead);
+  }
+  function prefillOpEdit(){
+    var id=el('op_id')?el('op_id').value:''; var o=(window.OP_CACHE&&window.OP_CACHE[id])||{};
+    if(el('km-op-titulo')) el('km-op-titulo').value=o.titulo||'';
+    if(el('km-op-origem')) el('km-op-origem').value=o.origem||'';
+    var mm=el('km-op-editmsg'); if(mm) mm.textContent='';
+  }
+  function salvarOpLead(){
+    var id=el('op_id').value, btn=el('km-op-savelead'); if(!id) return; btn.disabled=true; el('km-op-editmsg').textContent='Salvando…';
+    var body={ titulo:((el('km-op-titulo').value||'').trim()||null), origem:((el('km-op-origem').value||'').trim()||null), updated_at:new Date().toISOString() };
+    restPatch('oportunidades?id=eq.'+id, body).then(function(r){ btn.disabled=false;
+      if(r.ok){ el('km-op-editmsg').textContent='✓ Salvo';
+        if(window.OP_CACHE&&window.OP_CACHE[id]){ window.OP_CACHE[id].titulo=body.titulo; window.OP_CACHE[id].origem=body.origem; }
+        if(el('op_nome')&&body.titulo) el('op_nome').textContent=body.titulo;
+        setTimeout(function(){ if(window.initFunil) window.initFunil(); },500);
+      } else { el('km-op-editmsg').textContent='Sem permissão para editar.'; }
+    }).catch(function(){ btn.disabled=false; el('km-op-editmsg').textContent='Erro de conexão.'; });
+  }
+  wrap('abrirOportunidadeModal', function(){ setTimeout(injectOpEdit,80); setTimeout(prefillOpEdit,450); });
+
+  /* ---------- utilitário de wrap seguro de função global ---------- */
+  function wrap(name, after, before){
+    var orig=window[name]; if(typeof orig!=='function'){ return; }
+    window[name]=function(){ var args=arguments;
+      if(before){ try{ after(orig,args); }catch(e){} return orig.apply(this,args); }
+      var ret=orig.apply(this,args); try{ after(orig,args,ret); }catch(e){} return ret;
+    };
+  }
+
+  // Caso o app já esteja aberto quando o patch carrega (hot-inject/refresh):
+  setTimeout(function(){ if(el('app')&&el('app').style.display!=='none'){ injectSessNav(); wireEngObserver(); } },300);
+})();
+</script>
+<!-- ===== FIM DO PATCH KM 2026-07-10 ===== -->
+
 </body>
 </html>
