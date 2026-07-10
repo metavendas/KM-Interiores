@@ -5495,6 +5495,21 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     };
   }
 
+  /* ===================== (1b) CIDADE DE ENTREGA COM BUSCA ===================== */
+  function ensureCidadeAutocomplete(tentativas){
+    var inp=el('venda_cidade_frete'); if(!inp) return;
+    inp.setAttribute('list','cidades_km_crm');
+    if(!inp.placeholder || /digite a cidade/i.test(inp.placeholder)) inp.placeholder='Digite a cidade e escolha na lista…';
+    var dl=el('cidades_km_crm');
+    var temCidades=window.KM_CIDADES && window.KM_CIDADES.length;
+    if(temCidades && (!dl || dl.children.length===0)){
+      if(!dl){ dl=document.createElement('datalist'); dl.id='cidades_km_crm'; document.body.appendChild(dl); }
+      dl.innerHTML=window.KM_CIDADES.map(function(c){ return '<option value="'+esc(c[0])+' / '+esc(c[1])+'"></option>'; }).join('');
+    } else if(!temCidades && (tentativas||0)<10){
+      setTimeout(function(){ ensureCidadeAutocomplete((tentativas||0)+1); }, 400);   // frete.js ainda carregando
+    }
+  }
+
   /* ===================== (4) EDITAR no recentes ===================== */
   function wirePedObserver(){
     var tb=el('pedidosBody'); if(!tb) return;
@@ -5563,7 +5578,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   }
 
   /* ===================== gatilhos ===================== */
-  function boot(){ ensureCliCombo(); ensureFreteLine(); wrapRecalc(); wireFreteInput(); wrapRpcFrete(); wirePedObserver(); }
+  function boot(){ ensureCliCombo(); ensureCidadeAutocomplete(0); ensureFreteLine(); wrapRecalc(); wireFreteInput(); wrapRpcFrete(); wirePedObserver(); }
   if(typeof window.showView==='function'){ var _sv=window.showView; window.showView=function(v){ var r=_sv.apply(this,arguments); if(v==='pedidos'){ setTimeout(boot,80); } return r; }; }
   if(typeof window.loadPedidos==='function'){ var _lp=window.loadPedidos; window.loadPedidos=function(){ var r=_lp.apply(this,arguments); setTimeout(wirePedObserver,60); return r; }; }
   setTimeout(function(){ var s=document.querySelector('.view[data-v="pedidos"]'); if(s && !s.hidden) boot(); }, 500);
