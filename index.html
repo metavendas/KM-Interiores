@@ -293,5 +293,112 @@
   }).catch(function(){});
 })();
 </script>
+<!-- ============================================================================
+     KM Interiores · SITE (index.html) · PATCH 2026-07-10 — LIGHTBOX de fotos
+     Ao clicar numa foto (Ambientes ou Catálogo) ela abre ampliada, centralizada
+     sobre um fundo escuro, com um "X" para fechar. Fecha também clicando fora
+     da foto ou apertando ESC. NÃO afeta o logo nem os botões/links.
+     Aditivo/reversível. Cole ANTES de </body>.
+     ============================================================================ -->
+<style id="km-lightbox-css">
+  #kmLb{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;
+        background:rgba(8,8,7,.92);backdrop-filter:blur(2px);padding:24px;box-sizing:border-box;
+        opacity:0;transition:opacity .18s ease}
+  #kmLb.on{display:flex;opacity:1}
+  #kmLb .km-lb-wrap{position:relative;max-width:100%;max-height:100%;display:flex;flex-direction:column;align-items:center}
+  #kmLb img{max-width:96vw;max-height:90vh;width:auto;height:auto;display:block;
+            box-shadow:0 24px 80px rgba(0,0,0,.6);border-radius:2px;background:#0c0b08;cursor:default}
+  #kmLb .km-lb-cap{margin-top:12px;color:#E9DFC5;font-size:13px;letter-spacing:.06em;text-align:center;
+            font-family:inherit;max-width:96vw}
+  #kmLb .km-lb-x{position:fixed;top:18px;right:22px;width:46px;height:46px;border-radius:50%;
+            border:1px solid rgba(233,223,197,.45);background:rgba(8,8,7,.55);color:#E9DFC5;
+            font-size:22px;line-height:44px;text-align:center;cursor:pointer;z-index:100000;
+            transition:.2s;font-family:Arial,sans-serif}
+  #kmLb .km-lb-x:hover{background:#9D7D31;color:#F1E9D2;border-color:#9D7D31;transform:rotate(90deg)}
+  .amb,.amb .ph,.cat-card,.cat-card img{cursor:zoom-in}
+</style>
+<script id="km-lightbox-js">
+(function(){
+  "use strict";
+  if(window.__kmLightbox) return; window.__kmLightbox=true;
+
+  var lb, lbImg, lbCap;
+  function build(){
+    if(lb) return;
+    lb=document.createElement('div'); lb.id='kmLb';
+    lb.innerHTML='<button class="km-lb-x" id="km-lb-x" aria-label="Fechar">✕</button>'+
+      '<div class="km-lb-wrap"><img id="km-lb-img" alt=""><div class="km-lb-cap" id="km-lb-cap"></div></div>';
+    document.body.appendChild(lb);
+    lbImg=document.getElementById('km-lb-img');
+    lbCap=document.getElementById('km-lb-cap');
+    document.getElementById('km-lb-x').addEventListener('click',close);
+    lb.addEventListener('click',function(e){ if(e.target===lb || e.target.className==='km-lb-wrap') close(); });
+    // não fecha ao clicar na própria imagem
+    lbImg.addEventListener('click',function(e){ e.stopPropagation(); });
+  }
+  function open(src,cap){
+    if(!src) return;
+    build();
+    lbImg.src=src; lbImg.alt=cap||''; lbCap.textContent=cap||'';
+    lb.classList.add('on');
+    document.documentElement.style.overflow='hidden';
+  }
+  function close(){
+    if(!lb) return;
+    lb.classList.remove('on');
+    document.documentElement.style.overflow='';
+    setTimeout(function(){ if(lbImg) lbImg.src=''; },200);
+  }
+
+  // extrai a última url(...) de um background-image (aceita gradiente + url)
+  function bgUrl(str){
+    if(!str) return '';
+    var m=String(str).match(/url\((['"]?)([^'")]+)\1\)/g);
+    if(!m||!m.length) return '';
+    var last=m[m.length-1];
+    var u=last.match(/url\((['"]?)([^'")]+)\1\)/);
+    return u?u[2]:'';
+  }
+
+  // delegação de clique: Catálogo (.cat-card img) e Ambientes (.amb .ph)
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    if(t && t.closest && t.closest('.brand')) return; // nunca o logo
+
+    // Catálogo — imagem do produto
+    var card=t.closest && t.closest('.cat-card');
+    if(card){
+      var img=card.querySelector('img');
+      if(img){
+        var src=img.currentSrc||img.getAttribute('src')||img.src;
+        e.preventDefault();
+        open(src, img.getAttribute('alt')||'');
+        return;
+      }
+    }
+
+    // Ambientes — foto de fundo do quadro
+    var amb=t.closest && t.closest('.amb');
+    if(amb){
+      var ph=amb.querySelector('.ph');
+      if(ph){
+        var url=bgUrl(ph.style.backgroundImage||getComputedStyle(ph).backgroundImage);
+        if(url){
+          var h3=amb.querySelector('.label h3,h3');
+          e.preventDefault();
+          open(url, h3?h3.textContent.trim():'');
+          return;
+        }
+      }
+    }
+  }, false);
+
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape' && lb && lb.classList.contains('on')) close();
+  });
+})();
+</script>
+<!-- ===== FIM DO PATCH LIGHTBOX KM (index.html) 2026-07-10 ===== -->
+
 </body>
 </html>
