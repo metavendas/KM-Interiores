@@ -5028,5 +5028,131 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 </script>
 <!-- ===== FIM DO PATCH SEMÁFORO KM 2026-07-10 ===== -->
 
+<!-- ============================================================================
+     KM Interiores · CRM · PATCH 2026-07-10 (c) — Correções da tela TAREFAS
+     (1) Botão de cadastro preto no tema claro (.modform .btn) → texto marfim (corrige as 17 telas)
+     (2) Busca na lista de Tarefas
+     (3) Botão "Editar" por tarefa (modal) — faltava
+     Aditivo e reversível: cole ANTES de </body>. Reusa as classes de modal do patch (a).
+     ============================================================================ -->
+<style id="km-patch-tarefas-css">
+  /* (1) conserta TODOS os botões de cadastro que ficavam pretos (ébano s/ texto) no tema claro */
+  .modform .btn{ color:#F1E9D2 !important; }
+  .modform .btn:hover{ color:#080807 !important; }   /* no hover o fundo vira champagne claro */
+  /* (2) barra de busca das tarefas */
+  #km-tar-searchbar{display:flex;gap:10px;align-items:center;margin:0 0 12px}
+  #km-tar-search{flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--line);border-radius:4px;color:var(--text);padding:9px 12px;font-size:13px;outline:none}
+  #km-tar-search:focus{border-color:var(--ouro)}
+  #km-tar-searchbar .cnt{color:var(--ouro);font-size:12px;white-space:nowrap}
+  button.km-tar-edit{background:transparent;border:1px solid var(--line);color:var(--accent);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:6px 11px;border-radius:3px;cursor:pointer;margin-right:6px}
+</style>
+<script id="km-patch-tarefas-js">
+(function(){
+  "use strict";
+  if(window.__kmPatchTarefas) return; window.__kmPatchTarefas=true;
+
+  var SB=window.SB||'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  var KEY=window.KEY||'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var TOKKEY=window.TOKKEY||'km_crm_token';
+  function tok(){ try{return localStorage.getItem(TOKKEY);}catch(e){return null;} }
+  function H(extra){ var h={apikey:KEY,Authorization:'Bearer '+tok()}; if(extra){for(var k in extra)h[k]=extra[k];} return h; }
+  function esc(s){ if(window.esc)return window.esc(s); return String(s==null?'':s); }
+  function el(id){ return document.getElementById(id); }
+
+  /* ================= (2) BUSCA NA LISTA DE TAREFAS ================= */
+  var KMTARQ='';
+  function ensureSearch(){
+    var tb=el('tarBody'); if(!tb) return;
+    var table=tb.closest('table'); if(!table) return;
+    if(el('km-tar-searchbar')) { applyFilter(); return; }
+    var bar=document.createElement('div'); bar.id='km-tar-searchbar';
+    bar.innerHTML='<input id="km-tar-search" placeholder="🔍 Buscar tarefa por título, descrição ou cliente…" autocomplete="off"><span class="cnt" id="km-tar-count"></span>';
+    table.parentNode.insertBefore(bar, table);
+    el('km-tar-search').addEventListener('input', function(){ KMTARQ=this.value.trim().toLowerCase(); applyFilter(); });
+  }
+  function applyFilter(){
+    var tb=el('tarBody'); if(!tb) return; var q=KMTARQ; var vis=0,tot=0;
+    tb.querySelectorAll('tr').forEach(function(tr){
+      if(tr.querySelector('td.empty')) return; tot++;
+      var show=!q || tr.textContent.toLowerCase().indexOf(q)>=0;
+      tr.style.display=show?'':'none'; if(show)vis++;
+    });
+    var c=el('km-tar-count'); if(c) c.textContent=q?(vis+' de '+tot):'';
+  }
+
+  /* ================= (3) BOTÃO EDITAR POR TAREFA ================= */
+  function wireObserver(){
+    var tb=el('tarBody'); if(!tb) return;
+    if(!tb.__kmObs){ var o=new MutationObserver(function(){ decorate(); applyFilter(); }); o.observe(tb,{childList:true,subtree:true}); tb.__kmObs=o; }
+    decorate();
+  }
+  function decorate(){
+    var tb=el('tarBody'); if(!tb) return;
+    tb.querySelectorAll('button[data-act="deltar"]').forEach(function(del){
+      var cell=del.parentNode; if(!cell||cell.querySelector('.km-tar-edit')) return;
+      var id=del.getAttribute('data-id'); if(!id) return;
+      var b=document.createElement('button'); b.className='km-tar-edit'; b.setAttribute('data-id',id); b.textContent='Editar';
+      cell.insertBefore(b, del);
+    });
+  }
+  document.addEventListener('click', function(e){
+    var t=e.target; if(!t||!t.closest) return;
+    var ed=t.closest('.km-tar-edit'); if(ed){ e.preventDefault(); e.stopPropagation(); abrirEdit(ed.getAttribute('data-id')); }
+  }, true);
+
+  function ensureModal(){
+    if(el('kmTarModal')) return;
+    var m=document.createElement('div'); m.id='kmTarModal'; m.className='km-modal';
+    m.innerHTML='<div class="km-box"><div class="km-head"><b>Editar tarefa</b><span class="km-x" id="km-tar-x">✕</span></div><div class="km-body">'+
+      '<label class="km-lab">Título *</label><input id="km-tar-tit">'+
+      '<div class="km-grid"><div><label class="km-lab">Prazo</label><input id="km-tar-prazo" type="datetime-local"></div>'+
+      '<div><label class="km-lab">Cliente (opcional)</label><select id="km-tar-cli"></select></div></div>'+
+      '<label class="km-lab">Descrição</label><textarea id="km-tar-desc"></textarea>'+
+      '<div class="km-ft"><button class="km-ok" id="km-tar-save">Salvar</button><button class="km-cancel" id="km-tar-cancel">Cancelar</button><span class="km-msg" id="km-tar-msg"></span></div>'+
+      '<input type="hidden" id="km-tar-id"></div></div>';
+    document.body.appendChild(m);
+    el('km-tar-x').onclick=close; el('km-tar-cancel').onclick=close;
+    m.addEventListener('click',function(e){ if(e.target===m) close(); });
+    el('km-tar-save').onclick=salvar;
+    function close(){ m.style.display='none'; }
+    m.__close=close;
+  }
+  function closeModal(){ var m=el('kmTarModal'); if(m) m.style.display='none'; }
+  function abrirEdit(id){
+    ensureModal();
+    // clona as opções de cliente do formulário nativo
+    var nativeSel=el('tar_cliente'); var cli=el('km-tar-cli');
+    cli.innerHTML=nativeSel?nativeSel.innerHTML:'<option value="">—</option>';
+    el('kmTarModal').style.display='flex'; el('km-tar-msg').textContent='Carregando…';
+    fetch(SB+'/rest/v1/tarefas?id=eq.'+id+'&select=titulo,descricao,prazo,cliente_id&limit=1',{headers:H()})
+    .then(function(r){ return r.ok?r.json():[]; }).then(function(rows){
+      var t=(rows&&rows[0])||null; if(!t){ el('km-tar-msg').textContent='Tarefa não encontrada.'; return; }
+      el('km-tar-id').value=id; el('km-tar-tit').value=t.titulo||'';
+      el('km-tar-prazo').value=t.prazo?String(t.prazo).slice(0,16):'';
+      el('km-tar-cli').value=t.cliente_id||''; el('km-tar-desc').value=t.descricao||'';
+      el('km-tar-msg').textContent='';
+    }).catch(function(){ el('km-tar-msg').textContent='Erro ao carregar.'; });
+  }
+  function salvar(){
+    var id=el('km-tar-id').value; var btn=el('km-tar-save');
+    var tit=(el('km-tar-tit').value||'').trim(); if(!tit){ el('km-tar-msg').textContent='Informe o título.'; return; }
+    btn.disabled=true; el('km-tar-msg').textContent='Salvando…';
+    var body={ titulo:tit, descricao:(el('km-tar-desc').value||'').trim()||null, prazo:el('km-tar-prazo').value||null, cliente_id:el('km-tar-cli').value||null, updated_at:new Date().toISOString() };
+    fetch(SB+'/rest/v1/tarefas?id=eq.'+id,{method:'PATCH',headers:H({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)})
+    .then(function(r){ btn.disabled=false;
+      if(r.ok){ el('km-tar-msg').textContent='✓ Salvo'; setTimeout(function(){ closeModal(); if(window.loadTarefas) window.loadTarefas(); },600); }
+      else r.text().then(function(tx){ el('km-tar-msg').textContent='Erro: '+String(tx).slice(0,90); }); })
+    .catch(function(){ btn.disabled=false; el('km-tar-msg').textContent='Erro de conexão.'; });
+  }
+
+  /* ================= gatilhos ================= */
+  function boot(){ ensureSearch(); wireObserver(); }
+  if(typeof window.loadTarefas==='function'){ var _lt=window.loadTarefas; window.loadTarefas=function(){ var r=_lt.apply(this,arguments); setTimeout(boot,60); return r; }; }
+  if(typeof window.showView==='function'){ var _sv=window.showView; window.showView=function(v){ var r=_sv.apply(this,arguments); if(v==='tarefas'){ setTimeout(boot,80); } return r; }; }
+  setTimeout(function(){ var s=document.querySelector('.view[data-v="tarefas"]'); if(s && !s.hidden){ boot(); } },400);
+})();
+</script>
+<!-- ===== FIM DO PATCH TAREFAS KM 2026-07-10 ===== -->
+
 </body>
 </html>
