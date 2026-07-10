@@ -5045,6 +5045,22 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   #km-tar-search:focus{border-color:var(--ouro)}
   #km-tar-searchbar .cnt{color:var(--ouro);font-size:12px;white-space:nowrap}
   button.km-tar-edit{background:transparent;border:1px solid var(--line);color:var(--accent);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:6px 11px;border-radius:3px;cursor:pointer;margin-right:6px}
+  /* contador de tarefas a fazer */
+  #km-tar-total{display:inline-block;margin-left:8px;background:var(--accent);color:#F1E9D2;border-radius:11px;padding:1px 10px;font-size:12px;font-weight:600;vertical-align:middle}
+  #km-tar-atras{display:inline-block;margin-left:6px;background:#d84a3f;color:#fff;border-radius:11px;padding:1px 9px;font-size:11px;font-weight:600;vertical-align:middle}
+  .nav a[data-view="tarefas"] .km-nav-badge{display:inline-block;margin-left:6px;background:#d84a3f;color:#fff;border-radius:10px;padding:0 7px;font-size:10px;font-weight:700;vertical-align:middle}
+  /* toggle Abertas | Concluídas */
+  #km-tar-toggle{display:flex;gap:8px;margin:0 0 12px}
+  #km-tar-toggle .tg{cursor:pointer}
+  #km-conc-panel .km-conc-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:12px 0 6px}
+  #km-conc-panel .km-conc-kpi{background:var(--bg3);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+  #km-conc-panel .km-conc-kpi .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  #km-conc-panel .km-conc-kpi .num{font-size:24px;font-weight:700;color:#2f9e4f;margin-top:3px}
+  #km-conc-tools{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:10px}
+  #km-conc-tools label{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ouro);margin-bottom:4px}
+  #km-conc-tools input{background:var(--bg3);border:1px solid var(--line);border-radius:4px;color:var(--text);padding:8px 10px;font-size:13px}
+  #km-conc-chartbox{position:relative;height:220px;max-width:640px;margin:6px 0 4px}
+  button.km-tar-reabrir{background:transparent;border:1px solid var(--line);color:var(--accent);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:6px 11px;border-radius:3px;cursor:pointer}
 </style>
 <script id="km-patch-tarefas-js">
 (function(){
@@ -5083,7 +5099,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   /* ================= (3) BOTÃO EDITAR POR TAREFA ================= */
   function wireObserver(){
     var tb=el('tarBody'); if(!tb) return;
-    if(!tb.__kmObs){ var o=new MutationObserver(function(){ decorate(); applyFilter(); }); o.observe(tb,{childList:true,subtree:true}); tb.__kmObs=o; }
+    if(!tb.__kmObs){ var o=new MutationObserver(function(){ decorate(); applyFilter(); updateCount(); }); o.observe(tb,{childList:true,subtree:true}); tb.__kmObs=o; }
     decorate();
   }
   function decorate(){
@@ -5145,8 +5161,122 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     .catch(function(){ btn.disabled=false; el('km-tar-msg').textContent='Erro de conexão.'; });
   }
 
+  /* ================= CONTADOR DE TAREFAS A FAZER ================= */
+  function updateCount(){
+    var tb=el('tarBody'); if(!tb) return;
+    var rows=tb.querySelectorAll('tr'); var total=0, atras=0;
+    rows.forEach(function(tr){ if(tr.querySelector('td.empty')) return; if(!tr.querySelector('.tar-ok')) return; total++;
+      if((tr.textContent||'').indexOf('⚠')>=0) atras++; });
+    // contador no título "Tarefas abertas"
+    var h3=null; var panel=tb.closest('.panel'); if(panel) h3=panel.querySelector('h3');
+    if(h3){
+      var c=el('km-tar-total'); if(!c){ c=document.createElement('span'); c.id='km-tar-total'; var tag=h3.querySelector('.tagreal'); h3.insertBefore(c, tag||null); h3.insertBefore(document.createTextNode(' '), tag||null); }
+      c.textContent=total+(total===1?' a fazer':' a fazer');
+      var a=el('km-tar-atras');
+      if(atras>0){ if(!a){ a=document.createElement('span'); a.id='km-tar-atras'; c.insertAdjacentElement('afterend', a); } a.textContent='⚠ '+atras+' atrasada'+(atras>1?'s':''); a.style.display=''; }
+      else if(a){ a.style.display='none'; }
+    }
+    // badge no menu lateral (só atrasadas, para chamar atenção)
+    var nav=document.querySelector('.nav a[data-view="tarefas"]');
+    if(nav){ var nb=nav.querySelector('.km-nav-badge');
+      if(atras>0){ if(!nb){ nb=document.createElement('span'); nb.className='km-nav-badge'; nav.appendChild(nb); } nb.textContent=atras; }
+      else if(nb){ nb.remove(); } }
+  }
+
+  /* ================= (4) ABA "CONCLUÍDAS" + RELATÓRIO POR RESPONSÁVEL ================= */
+  var MODE='abertas'; var TCH=null; function tdestroy(){ if(TCH){ try{TCH.destroy();}catch(e){} TCH=null; } }
+  function isAdmin(){ return window.ME_ROLE==='admin'||window.ME_ROLE==='gestor'; }
+  function d10(dt){ return new Date(dt).toISOString().slice(0,10); }
+  function abertasPanel(){ var tb=el('tarBody'); return tb?tb.closest('.panel'):null; }
+
+  function ensureToggle(){
+    if(el('km-tar-toggle')) return;
+    var ap=abertasPanel(); if(!ap) return;
+    var bar=document.createElement('div'); bar.id='km-tar-toggle';
+    bar.innerHTML='<button class="ia-btn sug tg" data-mode="abertas">Abertas</button><button class="ia-btn tg" data-mode="concluidas">Concluídas</button>';
+    ap.parentNode.insertBefore(bar, ap);
+    bar.querySelectorAll('.tg').forEach(function(b){ b.addEventListener('click', function(){ setMode(b.getAttribute('data-mode')); }); });
+  }
+  function ensureConcPanel(){
+    if(el('km-conc-panel')) return;
+    var ap=abertasPanel(); if(!ap) return;
+    var p=document.createElement('div'); p.className='panel'; p.id='km-conc-panel'; p.style.display='none'; p.style.marginTop='0';
+    p.innerHTML='<h3>Tarefas concluídas — auditoria <span id="km-conc-count" style="margin-left:8px;background:#2f9e4f;color:#fff;border-radius:11px;padding:1px 10px;font-size:12px;font-weight:600"></span></h3>'+
+      '<div style="padding:14px 18px">'+
+      '<div id="km-conc-tools"><div><label>Fechadas de</label><input type="date" id="km-conc-de"></div><div><label>até</label><input type="date" id="km-conc-ate"></div>'+
+      '<button class="ia-btn sug" id="km-conc-refresh">Atualizar</button>'+
+      '<input id="km-conc-search" placeholder="🔍 buscar…" style="flex:1;min-width:160px;background:var(--bg3);border:1px solid var(--line);border-radius:4px;color:var(--text);padding:8px 11px;font-size:13px"></div>'+
+      '<div id="km-conc-report"></div>'+
+      '<table style="margin-top:10px"><thead><tr><th>Tarefa</th><th>Cliente</th><th>Responsável</th><th>Fechada em</th><th style="text-align:right">Ação</th></tr></thead>'+
+      '<tbody id="km-concBody"><tr><td colspan="5" class="empty">—</td></tr></tbody></table></div>';
+    ap.parentNode.insertBefore(p, ap.nextSibling);
+    el('km-conc-refresh').addEventListener('click', renderConc);
+    el('km-conc-search').addEventListener('input', filterConc);
+  }
+  function setMode(m){
+    MODE=m; ensureToggle(); ensureConcPanel();
+    var ap=abertasPanel(), cp=el('km-conc-panel');
+    document.querySelectorAll('#km-tar-toggle .tg').forEach(function(b){ b.className='ia-btn tg'+(b.getAttribute('data-mode')===m?' sug':''); });
+    if(m==='concluidas'){ if(ap)ap.style.display='none'; if(cp)cp.style.display=''; renderConc(); }
+    else { if(ap)ap.style.display=''; if(cp)cp.style.display='none'; }
+  }
+  function filterConc(){
+    var q=(el('km-conc-search')&&el('km-conc-search').value||'').trim().toLowerCase();
+    var tb=el('km-concBody'); if(!tb) return;
+    tb.querySelectorAll('tr').forEach(function(tr){ if(tr.querySelector('td.empty'))return; tr.style.display=(!q||tr.textContent.toLowerCase().indexOf(q)>=0)?'':'none'; });
+  }
+  function respNome(id){ if(!id) return '(sem responsável)'; if(window.vendNome){ var n=window.vendNome(id); if(n&&n!=='—') return n; } return 'resp. '+String(id).slice(0,6); }
+  function renderConc(){
+    ensureConcPanel();
+    var body=el('km-concBody'), rep=el('km-conc-report'), cnt=el('km-conc-count');
+    var de=el('km-conc-de'), ate=el('km-conc-ate');
+    if(body) body.innerHTML='<tr><td colspan="5" class="empty">Carregando…</td></tr>';
+    var url=SB+'/rest/v1/tarefas?select=id,titulo,cliente_id,responsavel_id,updated_at,created_at,clientes(nome)&concluida=eq.true&order=updated_at.desc.nullslast&limit=500';
+    if(de&&de.value) url+='&updated_at=gte.'+de.value+'T00:00:00';
+    if(ate&&ate.value) url+='&updated_at=lte.'+ate.value+'T23:59:59';
+    var done=function(){
+      fetch(url,{headers:H()}).then(function(r){ return r.ok?r.json():[]; }).then(function(rows){
+        rows=Array.isArray(rows)?rows:[];
+        if(cnt) cnt.textContent=rows.length+' concluída'+(rows.length===1?'':'s');
+        // relatório por responsável
+        var byResp={}; rows.forEach(function(t){ var k=t.responsavel_id||'—'; byResp[k]=(byResp[k]||0)+1; });
+        var ids=Object.keys(byResp).sort(function(a,b){return byResp[b]-byResp[a];});
+        if(rep){
+          rep.innerHTML='<div class="km-conc-kpis"><div class="km-conc-kpi"><div class="lab">Total entregue</div><div class="num">'+rows.length+'</div></div>'+
+            '<div class="km-conc-kpi"><div class="lab">Responsáveis</div><div class="num" style="color:var(--accent)">'+ids.length+'</div></div></div>'+
+            (isAdmin()?'<div style="color:var(--muted);font-size:12px;margin:6px 0 2px">Tarefas fechadas por responsável</div><div id="km-conc-chartbox"><canvas id="km-conc-chart"></canvas></div>':'');
+          if(isAdmin() && typeof Chart!=='undefined'){
+            var top=ids.slice(0,12); tdestroy();
+            TCH=new Chart(el('km-conc-chart').getContext('2d'),{ type:'bar',
+              data:{labels:top.map(respNome),datasets:[{label:'Concluídas',data:top.map(function(k){return byResp[k];}),backgroundColor:'#2f9e4f'}]},
+              options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+                scales:{x:{beginAtZero:true,ticks:{color:cssText(),precision:0,font:{size:10}},grid:{color:'rgba(120,120,120,.18)'}},y:{ticks:{color:cssText(),font:{size:10}},grid:{display:false}}}}
+            });
+          }
+        }
+        if(!rows.length){ body.innerHTML='<tr><td colspan="5" class="empty">Nenhuma tarefa concluída no período.</td></tr>'; return; }
+        body.innerHTML=rows.map(function(t){
+          var cli=(t.clientes&&t.clientes.nome)?t.clientes.nome:'—';
+          var f=t.updated_at?new Date(t.updated_at).toLocaleString('pt-BR'):'—';
+          return '<tr><td style="color:var(--text)">'+esc(t.titulo||'')+'</td><td>'+esc(cli)+'</td><td>'+esc(respNome(t.responsavel_id))+'</td><td style="color:var(--muted)">'+esc(f)+'</td>'+
+            '<td style="text-align:right"><button class="km-tar-reabrir" data-id="'+t.id+'">Reabrir</button></td></tr>';
+        }).join('');
+        filterConc();
+      }).catch(function(){ if(body) body.innerHTML='<tr><td colspan="5" class="empty">Sem permissão ou erro de conexão.</td></tr>'; });
+    };
+    if(window.ensureVendedores){ window.ensureVendedores(done); } else { done(); }
+  }
+  function cssText(){ try{ var v=getComputedStyle(document.body).getPropertyValue('--text'); return (v&&v.trim())||'#333'; }catch(e){ return '#333'; } }
+  // reabrir
+  document.addEventListener('click', function(e){
+    var t=e.target; if(!t||!t.closest) return; var rb=t.closest('.km-tar-reabrir'); if(!rb) return;
+    e.preventDefault(); rb.disabled=true; rb.textContent='…';
+    fetch(SB+'/rest/v1/tarefas?id=eq.'+rb.getAttribute('data-id'),{method:'PATCH',headers:H({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({concluida:false})})
+    .then(function(){ renderConc(); if(window.loadTarefas) window.loadTarefas(); }).catch(function(){ rb.disabled=false; rb.textContent='Reabrir'; });
+  });
+
   /* ================= gatilhos ================= */
-  function boot(){ ensureSearch(); wireObserver(); }
+  function boot(){ ensureSearch(); wireObserver(); updateCount(); ensureToggle(); ensureConcPanel(); if(MODE==='concluidas'){ setMode('concluidas'); } }
   if(typeof window.loadTarefas==='function'){ var _lt=window.loadTarefas; window.loadTarefas=function(){ var r=_lt.apply(this,arguments); setTimeout(boot,60); return r; }; }
   if(typeof window.showView==='function'){ var _sv=window.showView; window.showView=function(v){ var r=_sv.apply(this,arguments); if(v==='tarefas'){ setTimeout(boot,80); } return r; }; }
   setTimeout(function(){ var s=document.querySelector('.view[data-v="tarefas"]'); if(s && !s.hidden){ boot(); } },400);
