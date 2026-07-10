@@ -5397,5 +5397,179 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 </script>
 <!-- ===== FIM DO PATCH AGENDA KM 2026-07-10 ===== -->
 
+<!-- ============================================================================
+     KM Interiores · CRM · PATCH 2026-07-10 (e) — PEDIDOS & VENDAS
+     (1) Cliente: seletor com busca (digitar o nome)
+     (2) Frete da "cidade de entrega" somado ao TOTAL A PAGAR (linha subtotal/desconto)
+     (3) Desconto R$/% e Observação: texto branco em fundo escuro (estavam invisíveis)
+     (4) "Pedidos & vendas recentes": botão EDITAR (via RPC editar_venda)
+     (5) Frete persistido no pedido ao registrar (via RPC atualizar_frete_venda)
+     Aditivo/reversível. Requer KM_CRM_editar_venda_2026-07-10.sql para (4) e (5).
+     ============================================================================ -->
+<style id="km-patch-venda-css">
+  /* (3) campos escuros com texto branco */
+  #venda_valor,#venda_desc_reais,#venda_desc_pct{ color:#F1E9D2 !important; }
+  #venda_obs{ background:#1b160d !important; color:#F1E9D2 !important; }
+  #venda_obs::placeholder,#venda_desc_reais::placeholder,#venda_desc_pct::placeholder{ color:rgba(241,233,210,.5) !important; }
+  /* (1) combobox cliente */
+  #km-vcli{ width:100%;max-width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--line);color:var(--text);padding:9px 11px;font-family:var(--sans);font-size:12.5px;border-radius:3px;outline:none }
+  #km-vcli:focus{ border-color:var(--accent) }
+  button.km-ped-edit{ cursor:pointer;margin-right:4px;border-color:#9D7D31;color:#CB984C }
+</style>
+<script id="km-patch-venda-js">
+(function(){
+  "use strict";
+  if(window.__kmPatchVenda) return; window.__kmPatchVenda=true;
+
+  var SB=window.SB||'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  var KEY=window.KEY||'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var TOKKEY=window.TOKKEY||'km_crm_token';
+  function tok(){ try{return localStorage.getItem(TOKKEY);}catch(e){return null;} }
+  function H(x){ var h={apikey:KEY,Authorization:'Bearer '+tok()}; if(x){for(var k in x)h[k]=x[k];} return h; }
+  function el(id){ return document.getElementById(id); }
+  function esc(s){ if(window.esc)return window.esc(s); return String(s==null?'':s); }
+  function money(v){ if(window.vendaMoney) return window.vendaMoney(v); try{return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});}catch(e){return 'R$ '+v;} }
+  function restGet(p){ return fetch(SB+'/rest/v1/'+p,{headers:H()}).then(function(r){return r.ok?r.json():[];}); }
+
+  /* ===================== (1) CLIENTE COM BUSCA ===================== */
+  function ensureCliCombo(){
+    var sel=el('venda_cliente'); if(!sel) return;
+    if(!el('km-vcli')){
+      sel.style.display='none';
+      var inp=document.createElement('input'); inp.id='km-vcli'; inp.setAttribute('list','km-vcli-dl');
+      inp.setAttribute('autocomplete','off'); inp.placeholder='Digite o nome do cliente…';
+      var dl=document.createElement('datalist'); dl.id='km-vcli-dl';
+      sel.parentNode.insertBefore(inp, sel); sel.parentNode.insertBefore(dl, sel);
+      inp.addEventListener('input', function(){ pick(); }); inp.addEventListener('change', function(){ pick(); });
+      function pick(){ var t=(inp.value||'').trim().toLowerCase(); var v='';
+        for(var i=0;i<sel.options.length;i++){ if((sel.options[i].text||'').trim().toLowerCase()===t){ v=sel.options[i].value; break; } }
+        sel.value=v; try{ sel.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){} }
+      // reconstrói a lista quando o select é (re)populado
+      var obs=new MutationObserver(syncDL); obs.observe(sel,{childList:true}); sel.__kmObs=obs;
+    }
+    syncDL();
+    function syncDL(){ var sel=el('venda_cliente'), dl=el('km-vcli-dl'), inp=el('km-vcli'); if(!sel||!dl) return;
+      var o=''; for(var i=0;i<sel.options.length;i++){ var op=sel.options[i]; if(!op.value) continue; o+='<option value="'+esc(op.text).replace(/"/g,'&quot;')+'"></option>'; }
+      dl.innerHTML=o;
+      if(inp && !inp.value && sel.selectedIndex>0){ inp.value=sel.options[sel.selectedIndex].text; }
+    }
+  }
+
+  /* ===================== (2)+(5) FRETE NO TOTAL + PERSISTÊNCIA ===================== */
+  function ensureFreteLine(){
+    var ds=el('venda_desc_show'); if(!ds || el('km-venda-frete')) return;
+    ds.insertAdjacentHTML('afterend', ' &nbsp;·&nbsp; Frete <b id="km-venda-frete" style="color:#6cb0e0">R$ 0,00</b>');
+  }
+  function applyFrete(){
+    var frete=Number(window.__kmVendaFrete)||0;
+    var fb=el('km-venda-frete'); if(fb) fb.textContent=money(frete);
+    var vv=el('venda_valor'); var liq=Number(vv&&vv.value)||0; var total=liq+frete;
+    var tt=el('venda_total'); if(tt) tt.textContent=money(total);
+    if(vv) vv.value = total>0 ? total.toFixed(2) : '';
+  }
+  function wrapRecalc(){
+    if(window.__kmRecalcWrapped || typeof window.vendaRecalcTotal!=='function') return; window.__kmRecalcWrapped=true;
+    var _v=window.vendaRecalcTotal; window.vendaRecalcTotal=function(){ var r=_v.apply(this,arguments); try{ applyFrete(); }catch(e){} return r; };
+  }
+  function wireFreteInput(){
+    var vc=el('venda_cidade_frete'); if(!vc || vc.__kmFreteWired) return; vc.__kmFreteWired=true;
+    function upd(){ var p=(vc.value||'').split('/');
+      var r=(window.kmFreteCidade)?window.kmFreteCidade((p[0]||'').trim(),(p[1]||'').trim()):null;
+      window.__kmVendaFrete=(r&&r.frete)?Number(r.frete):0;
+      var h=el('venda_frete_hint'); if(h) h.innerHTML = window.__kmVendaFrete>0 ? ('✦ '+((r&&r.km)?(r.km+' km · '):'')+'frete '+money(window.__kmVendaFrete)+' somado ao Total a pagar') : 'Escolha a cidade para ver o frete (R$ 3,50/km).';
+      if(window.vendaRecalcTotal) window.vendaRecalcTotal();
+    }
+    vc.addEventListener('change', upd); vc.addEventListener('input', upd);
+  }
+  function wrapRpcFrete(){
+    if(window.__kmRpcFreteWrapped || typeof window.rpc!=='function') return; window.__kmRpcFreteWrapped=true;
+    var _rpc=window.rpc;
+    window.rpc=function(name, body){ var pr=_rpc.apply(this, arguments);
+      if(name==='registrar_venda'){ var frete=Number(window.__kmVendaFrete)||0;
+        pr.then(function(j){ if(j&&j.ok&&j.pedido_id&&frete>0){
+          _rpc('atualizar_frete_venda',{p_pedido_id:j.pedido_id,p_valor_frete:frete})
+            .then(function(){ window.__kmVendaFrete=0; var vc=el('venda_cidade_frete'); if(vc) vc.value=''; if(window.loadPedidos) window.loadPedidos(); }).catch(function(){});
+        } }).catch(function(){});
+      }
+      return pr;
+    };
+  }
+
+  /* ===================== (4) EDITAR no recentes ===================== */
+  function wirePedObserver(){
+    var tb=el('pedidosBody'); if(!tb) return;
+    if(!tb.__kmObs){ var o=new MutationObserver(function(){ decoratePed(); }); o.observe(tb,{childList:true,subtree:true}); tb.__kmObs=o; }
+    decoratePed();
+  }
+  function decoratePed(){
+    var tb=el('pedidosBody'); if(!tb) return;
+    tb.querySelectorAll('tr').forEach(function(tr){
+      var cell=tr.querySelector('td:last-child'); if(!cell||cell.querySelector('.km-ped-edit')) return;
+      var m=cell.innerHTML.match(/(?:acaoVenda|reimprimirDanfe)\('([^']+)'/); var id=m?m[1]:null; if(!id) return;
+      var b=document.createElement('button'); b.className='badge km-ped-edit'; b.textContent='Editar'; b.setAttribute('data-id',id);
+      cell.insertBefore(b, cell.firstChild); cell.insertBefore(document.createTextNode(' '), b.nextSibling);
+    });
+  }
+  document.addEventListener('click', function(e){
+    var t=e.target; if(!t||!t.closest) return; var b=t.closest('.km-ped-edit'); if(b){ e.preventDefault(); abrirPedEdit(b.getAttribute('data-id')); }
+  }, true);
+
+  function ensurePedModal(){
+    if(el('kmPedModal')) return;
+    var m=document.createElement('div'); m.id='kmPedModal'; m.className='km-modal';
+    m.innerHTML='<div class="km-box"><div class="km-head"><b>Editar venda <span id="km-ped-num" style="color:var(--muted);font-size:12px"></span></b><span class="km-x" id="km-ped-x">✕</span></div><div class="km-body">'+
+      '<div class="km-grid"><div><label class="km-lab">Status</label><select id="km-ped-status"></select></div>'+
+      '<div><label class="km-lab">Canal</label><select id="km-ped-canal"></select></div></div>'+
+      '<div class="km-grid"><div><label class="km-lab">Forma de pagamento</label><select id="km-ped-forma"></select></div>'+
+      '<div><label class="km-lab">Data da venda</label><input id="km-ped-data" type="date"></div></div>'+
+      '<div class="km-grid"><div><label class="km-lab">Frete (R$)</label><input id="km-ped-frete" type="number" step="0.01" min="0"></div><div></div></div>'+
+      '<label class="km-lab">Observação</label><textarea id="km-ped-obs"></textarea>'+
+      '<div class="km-hint" style="font-size:11px;color:var(--muted);margin-top:6px">Valor e comissão não são editados aqui (integridade). Para mudar o valor, cancele e relance a venda.</div>'+
+      '<div class="km-ft"><button class="km-ok" id="km-ped-save">Salvar</button><button class="km-cancel" id="km-ped-cancel">Fechar</button><span class="km-msg" id="km-ped-msg"></span></div>'+
+      '<input type="hidden" id="km-ped-id"></div></div>';
+    document.body.appendChild(m);
+    // clona opções de canal/forma do formulário; status do PED_STATUS
+    var PS=window.PED_STATUS||{novo:'Novo',aguardando_pagamento:'Aguardando pagamento',pago:'Pago',producao:'Em produção',expedido:'Expedido',entregue:'Entregue',cancelado:'Cancelado'};
+    el('km-ped-status').innerHTML=Object.keys(PS).map(function(k){return '<option value="'+k+'">'+esc(PS[k])+'</option>';}).join('');
+    el('km-ped-canal').innerHTML=(el('venda_canal')?el('venda_canal').innerHTML:'<option value="">—</option>');
+    el('km-ped-forma').innerHTML=(el('venda_forma')?el('venda_forma').innerHTML:'<option value="">—</option>');
+    el('km-ped-x').onclick=close; el('km-ped-cancel').onclick=close; m.addEventListener('click',function(e){ if(e.target===m) close(); });
+    el('km-ped-save').onclick=salvarPed;
+    function close(){ m.style.display='none'; }
+  }
+  function fecharPed(){ var m=el('kmPedModal'); if(m) m.style.display='none'; }
+  function abrirPedEdit(id){
+    ensurePedModal(); el('kmPedModal').style.display='flex'; el('km-ped-msg').textContent='Carregando…';
+    restGet('pedidos?id=eq.'+id+'&select=numero,status,canal,forma_pagamento,data_venda,observacao,valor_frete&limit=1').then(function(rows){
+      var p=(rows&&rows[0])||null; if(!p){ el('km-ped-msg').textContent='Não encontrado.'; return; }
+      el('km-ped-id').value=id; el('km-ped-num').textContent=p.numero?('· '+p.numero):'';
+      if(el('km-ped-status')) el('km-ped-status').value=p.status||'';
+      if(el('km-ped-canal')) el('km-ped-canal').value=p.canal||'';
+      if(el('km-ped-forma')) el('km-ped-forma').value=p.forma_pagamento||'';
+      el('km-ped-data').value=p.data_venda?String(p.data_venda).slice(0,10):'';
+      el('km-ped-frete').value=(p.valor_frete!=null?p.valor_frete:'');
+      el('km-ped-obs').value=p.observacao||''; el('km-ped-msg').textContent='';
+    }).catch(function(){ el('km-ped-msg').textContent='Erro ao carregar.'; });
+  }
+  function salvarPed(){
+    var id=el('km-ped-id').value, btn=el('km-ped-save'); btn.disabled=true; el('km-ped-msg').textContent='Salvando…';
+    window.rpc('editar_venda',{ p_pedido_id:id, p_status:el('km-ped-status').value||null, p_canal:el('km-ped-canal').value||null,
+      p_forma_pagamento:el('km-ped-forma').value||null, p_data_venda:el('km-ped-data').value||null,
+      p_observacao:(el('km-ped-obs').value||'').trim()||null, p_valor_frete:(el('km-ped-frete').value!==''?Number(el('km-ped-frete').value):null) })
+    .then(function(j){ btn.disabled=false;
+      if(j&&j.ok){ el('km-ped-msg').textContent='✓ Salvo'; setTimeout(function(){ fecharPed(); if(window.loadPedidos) window.loadPedidos(); if(window.loadFechamento)try{window.loadFechamento();}catch(e){} },600); }
+      else el('km-ped-msg').textContent='Erro: '+((j&&j.erro)||'sem permissão / rode o SQL editar_venda'); })
+    .catch(function(){ btn.disabled=false; el('km-ped-msg').textContent='Erro: rode o SQL editar_venda no Supabase.'; });
+  }
+
+  /* ===================== gatilhos ===================== */
+  function boot(){ ensureCliCombo(); ensureFreteLine(); wrapRecalc(); wireFreteInput(); wrapRpcFrete(); wirePedObserver(); }
+  if(typeof window.showView==='function'){ var _sv=window.showView; window.showView=function(v){ var r=_sv.apply(this,arguments); if(v==='pedidos'){ setTimeout(boot,80); } return r; }; }
+  if(typeof window.loadPedidos==='function'){ var _lp=window.loadPedidos; window.loadPedidos=function(){ var r=_lp.apply(this,arguments); setTimeout(wirePedObserver,60); return r; }; }
+  setTimeout(function(){ var s=document.querySelector('.view[data-v="pedidos"]'); if(s && !s.hidden) boot(); }, 500);
+})();
+</script>
+<!-- ===== FIM DO PATCH PEDIDOS & VENDAS KM 2026-07-10 ===== -->
+
 </body>
 </html>
