@@ -4853,5 +4853,180 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 </script>
 <!-- ===== FIM DO PATCH KM 2026-07-10 ===== -->
 
+<!-- ============================================================================
+     KM Interiores · CRM · PATCH 2026-07-10 (b)
+     Relatório "Semáforo do Funil" (verde/amarelo/vermelho) com gráficos,
+     dentro da tela RELATÓRIOS — para análise dos gestores.
+     Aditivo e reversível: cole ANTES de </body> (pode ser logo após o outro patch).
+     Usa o Chart.js que o CRM já carrega. Não toca a lógica existente.
+     ============================================================================ -->
+<style id="km-patch-semaforo-css">
+  #km-semaforo .km-sem-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:14px 18px 4px}
+  #km-semaforo .km-sem-kpi{background:var(--bg3);border:1px solid var(--line);border-radius:6px;padding:12px 14px;position:relative;overflow:hidden}
+  #km-semaforo .km-sem-kpi .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  #km-semaforo .km-sem-kpi .num{font-size:26px;font-weight:700;margin-top:4px}
+  #km-semaforo .km-sem-kpi .pct{font-size:11px;color:var(--muted);margin-top:2px}
+  #km-semaforo .km-sem-kpi .bar{position:absolute;left:0;bottom:0;height:3px;width:100%}
+  #km-semaforo .km-sem-verde .num{color:#2f9e4f} #km-semaforo .km-sem-verde .bar{background:#2f9e4f}
+  #km-semaforo .km-sem-amarelo .num{color:#c98a13} #km-semaforo .km-sem-amarelo .bar{background:#d9a021}
+  #km-semaforo .km-sem-vermelho .num{color:#d23f33} #km-semaforo .km-sem-vermelho .bar{background:#d84a3f}
+  #km-semaforo .km-sem-total .num{color:var(--accent)} #km-semaforo .km-sem-total .bar{background:var(--accent)}
+  #km-semaforo .km-sem-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;padding:16px 18px}
+  #km-semaforo .km-sem-charts .ct{color:var(--muted);font-size:12.5px;margin-bottom:8px}
+  #km-semaforo .km-sem-charts .box{position:relative;height:240px}
+  #km-semaforo .km-sem-lead{padding:2px 18px 16px;font-size:13px;color:var(--text);line-height:1.6}
+  #km-semaforo .km-sem-lead b{color:var(--accent)}
+  #km-semaforo .km-sem-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:0 18px}
+  #km-semaforo .km-sem-when{color:var(--muted);font-size:11px;margin-left:auto}
+</style>
+<script id="km-patch-semaforo-js">
+(function(){
+  "use strict";
+  if(window.__kmPatchSemaforo) return; window.__kmPatchSemaforo=true;
+
+  var SB=window.SB||'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  var KEY=window.KEY||'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var TOKKEY=window.TOKKEY||'km_crm_token';
+  function tok(){ try{return localStorage.getItem(TOKKEY);}catch(e){return null;} }
+  function H(){ return {apikey:KEY,Authorization:'Bearer '+tok()}; }
+  function esc(s){ if(window.esc)return window.esc(s); return String(s==null?'':s); }
+  function el(id){ return document.getElementById(id); }
+  function cssVar(n,f){ try{ var v=getComputedStyle(document.body).getPropertyValue(n); return (v&&v.trim())||f; }catch(e){ return f; } }
+
+  var COR={verde:'#2f9e4f', amarelo:'#d9a021', vermelho:'#d84a3f'};
+  var SEMCH={};   // registro de instâncias Chart p/ destruir antes de recriar
+  function destroy(id){ if(SEMCH[id]){ try{SEMCH[id].destroy();}catch(e){} SEMCH[id]=null; } }
+  var SEM_PIPE='todos';
+
+  // rótulos de etapa (usa o do app se existir)
+  function rotEt(k){ if(window.rotuloEstagio) return window.rotuloEstagio(k); var m={novo_lead:'Novo lead',curadoria:'Curadoria',proposta:'Proposta',negociacao:'Negociação'}; return m[k]||k; }
+  var ATIVAS=['novo_lead','curadoria','proposta','negociacao'];
+  function isAdmin(){ return window.ME_ROLE==='admin'||window.ME_ROLE==='gestor'; }
+
+  function semColor(dias){ return dias>7?'vermelho':(dias>3?'amarelo':'verde'); }
+  function diasDe(o){ var ts=o.updated_at||o.created_at; if(!ts) return 0; return (Date.now()-new Date(ts).getTime())/86400000; }
+
+  function ensureUI(){
+    if(el('km-semaforo')) return true;
+    var sec=document.querySelector('.view[data-v="relatorios"]'); if(!sec) return false;
+    var panel=document.createElement('div'); panel.className='panel'; panel.id='km-semaforo'; panel.style.marginTop='14px';
+    panel.innerHTML=
+      '<h3>Semáforo do Funil — saúde dos cards <span class="km-sem-when" id="km-sem-when"></span></h3>'+
+      '<div class="km-sem-tools">'+
+        '<button class="ia-btn" data-pipe="todos" id="km-sem-p-todos">Todos</button>'+
+        '<button class="ia-btn" data-pipe="projeto" id="km-sem-p-projeto">Projeto</button>'+
+        '<button class="ia-btn" data-pipe="parceiros" id="km-sem-p-parceiros">Parceiros</button>'+
+        '<button class="ia-btn sug" id="km-sem-refresh" style="margin-left:6px">Atualizar</button>'+
+      '</div>'+
+      '<div class="km-sem-kpis" id="km-sem-kpis"></div>'+
+      '<div class="km-sem-lead" id="km-sem-lead"></div>'+
+      '<div class="km-sem-charts">'+
+        '<div><div class="ct">Distribuição (cards ativos)</div><div class="box"><canvas id="km-sem-donut"></canvas></div></div>'+
+        '<div><div class="ct">Por etapa do funil</div><div class="box"><canvas id="km-sem-etapa"></canvas></div></div>'+
+        '<div id="km-sem-cons-wrap"><div class="ct">🔴 Cards parados por consultor</div><div class="box"><canvas id="km-sem-cons"></canvas></div></div>'+
+      '</div>'+
+      '<div style="padding:0 18px 14px;color:var(--muted);font-size:11.5px">Regra: 🟢 até 3 dias na etapa · 🟡 4–7 dias · 🔴 +7 dias sem avanço. Cartões em Ganho/Arquivado não entram. Atualiza ao abrir Relatórios.</div>';
+    // insere logo após os KPIs do topo (fica em destaque para o gestor)
+    var kpis=el('relKpis');
+    if(kpis && kpis.parentNode===sec){ kpis.insertAdjacentElement('afterend', panel); } else { sec.appendChild(panel); }
+    el('km-sem-refresh').addEventListener('click', render);
+    ['todos','projeto','parceiros'].forEach(function(p){ var b=el('km-sem-p-'+p); if(b) b.addEventListener('click', function(){ SEM_PIPE=p; render(); }); });
+    return true;
+  }
+
+  function tickColor(){ return cssVar('--text','#333').trim(); }
+  function gridColor(){ return 'rgba(120,120,120,.18)'; }
+
+  function drawDonut(v,a,r){
+    if(typeof Chart==='undefined') return; var cv=el('km-sem-donut'); if(!cv) return; destroy('donut');
+    SEMCH['donut']=new Chart(cv.getContext('2d'),{ type:'doughnut',
+      data:{labels:['Verde — em dia','Amarelo — atenção','Vermelho — parado'],
+        datasets:[{data:[v,a,r],backgroundColor:[COR.verde,COR.amarelo,COR.vermelho],borderColor:cssVar('--bg2','#fff'),borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
+        plugins:{legend:{position:'bottom',labels:{color:tickColor(),font:{size:11},boxWidth:12}},
+          tooltip:{callbacks:{label:function(c){ var t=v+a+r||1; return c.label+': '+c.parsed+' ('+Math.round(c.parsed/t*100)+'%)'; }}}}}
+    });
+  }
+  function drawEtapa(byEt){
+    if(typeof Chart==='undefined') return; var cv=el('km-sem-etapa'); if(!cv) return; destroy('etapa');
+    var labels=ATIVAS.map(rotEt);
+    SEMCH['etapa']=new Chart(cv.getContext('2d'),{ type:'bar',
+      data:{labels:labels,datasets:[
+        {label:'Verde',data:ATIVAS.map(function(k){return byEt[k].verde;}),backgroundColor:COR.verde,stack:'s'},
+        {label:'Amarelo',data:ATIVAS.map(function(k){return byEt[k].amarelo;}),backgroundColor:COR.amarelo,stack:'s'},
+        {label:'Vermelho',data:ATIVAS.map(function(k){return byEt[k].vermelho;}),backgroundColor:COR.vermelho,stack:'s'}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{color:tickColor(),font:{size:10},boxWidth:12}}},
+        scales:{x:{stacked:true,ticks:{color:tickColor(),font:{size:10}},grid:{display:false}},
+                y:{stacked:true,beginAtZero:true,ticks:{color:tickColor(),font:{size:10},precision:0},grid:{color:gridColor()}}}}
+    });
+  }
+  function drawCons(names,vals){
+    var wrap=el('km-sem-cons-wrap'); if(!wrap) return;
+    if(!isAdmin()){ wrap.style.display='none'; return; } wrap.style.display='';
+    if(typeof Chart==='undefined') return; var cv=el('km-sem-cons'); if(!cv) return; destroy('cons');
+    SEMCH['cons']=new Chart(cv.getContext('2d'),{ type:'bar',
+      data:{labels:names,datasets:[{label:'Cards vermelhos',data:vals,backgroundColor:COR.vermelho}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{beginAtZero:true,ticks:{color:tickColor(),font:{size:10},precision:0},grid:{color:gridColor()}},
+                y:{ticks:{color:tickColor(),font:{size:10}},grid:{display:false}}}}
+    });
+  }
+
+  function kpi(cls,lab,num,pct){ return '<div class="km-sem-kpi '+cls+'"><div class="lab">'+lab+'</div><div class="num">'+num+'</div><div class="pct">'+(pct||'')+'</div><div class="bar"></div></div>'; }
+
+  function render(){
+    if(!ensureUI()) return;
+    // marca o pipeline ativo
+    ['todos','projeto','parceiros'].forEach(function(p){ var b=el('km-sem-p-'+p); if(b) b.className='ia-btn'+(SEM_PIPE===p?' sug':''); });
+    var kpis=el('km-sem-kpis'), lead=el('km-sem-lead');
+    if(kpis) kpis.innerHTML='<div class="km-sem-kpi"><div class="lab">Carregando…</div><div class="num">—</div><div class="pct"></div><div class="bar"></div></div>';
+    var url=SB+'/rest/v1/oportunidades?select=estagio,valor,updated_at,created_at,responsavel_id,pipeline&estagio=neq.arquivado&limit=3000';
+    fetch(url,{headers:H()}).then(function(r){ return r.ok?r.json():[]; }).then(function(rows){
+      rows=Array.isArray(rows)?rows:[];
+      if(SEM_PIPE!=='todos'){ rows=rows.filter(function(o){ return (o.pipeline||'projeto')===SEM_PIPE; }); }
+      var ativos=rows.filter(function(o){ return o.estagio!=='ganho'&&o.estagio!=='perdido'; });
+      var cont={verde:0,amarelo:0,vermelho:0};
+      var byEt={}; ATIVAS.forEach(function(k){ byEt[k]={verde:0,amarelo:0,vermelho:0}; });
+      var vermPorCons={};
+      ativos.forEach(function(o){ var c=semColor(diasDe(o)); cont[c]++;
+        var et=(ATIVAS.indexOf(o.estagio)>=0)?o.estagio:'negociacao'; if(byEt[et]) byEt[et][c]++;
+        if(c==='vermelho'){ var id=o.responsavel_id||'—'; vermPorCons[id]=(vermPorCons[id]||0)+1; }
+      });
+      var tot=ativos.length||0; var pv=tot?Math.round(cont.vermelho/tot*100):0, pa=tot?Math.round(cont.amarelo/tot*100):0, pver=tot?Math.round(cont.verde/tot*100):0;
+      if(kpis) kpis.innerHTML=
+        kpi('km-sem-total','Ativos no funil',tot,'cards em aberto')+
+        kpi('km-sem-verde','🟢 Em dia',cont.verde,pver+'%')+
+        kpi('km-sem-amarelo','🟡 Atenção',cont.amarelo,pa+'%')+
+        kpi('km-sem-vermelho','🔴 Parados',cont.vermelho,pv+'% do funil');
+      if(lead){
+        var msg='';
+        if(!tot) msg='Nenhum card ativo no funil'+(SEM_PIPE!=='todos'?(' ('+SEM_PIPE+')'):'')+'.';
+        else if(cont.vermelho===0) msg='Funil saudável: <b>0 cards vermelhos</b>. '+cont.amarelo+' em atenção — retome hoje para não virarem risco.';
+        else msg='<b>'+cont.vermelho+' card(s) vermelho(s)</b> ('+pv+'%) parados há +7 dias — priorize a ação imediata (contato + mover, ou arquivar com motivo). Mais '+cont.amarelo+' em atenção prestes a esfriar.';
+        lead.innerHTML=msg;
+      }
+      var wh=el('km-sem-when'); if(wh){ var d=new Date(); wh.textContent='atualizado '+d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+      drawDonut(cont.verde,cont.amarelo,cont.vermelho);
+      drawEtapa(byEt);
+      // por consultor (só admin/gestor)
+      if(isAdmin()){
+        var ids=Object.keys(vermPorCons).sort(function(a,b){return vermPorCons[b]-vermPorCons[a];}).slice(0,10);
+        function paint(){ var names=ids.map(function(id){ return id==='—'?'(sem responsável)':(window.vendNome?window.vendNome(id):String(id).slice(0,6)); }); drawCons(names, ids.map(function(id){return vermPorCons[id];})); }
+        if(window.ensureVendedores){ window.ensureVendedores(paint); } else { paint(); }
+      } else { drawCons([],[]); }
+    }).catch(function(){ if(kpis) kpis.innerHTML='<div class="km-sem-kpi"><div class="lab">Erro</div><div class="num">—</div><div class="pct">entre como equipe</div><div class="bar"></div></div>'; });
+  }
+
+  // dispara quando a tela Relatórios abre
+  if(typeof window.loadRelatorios==='function'){ var _lr=window.loadRelatorios; window.loadRelatorios=function(){ var r=_lr.apply(this,arguments); setTimeout(render,60); return r; }; }
+  if(typeof window.showView==='function'){ var _sv=window.showView; window.showView=function(v){ var r=_sv.apply(this,arguments); if(v==='relatorios'){ setTimeout(render,80); } return r; }; }
+  // se Relatórios já estiver aberto quando o patch carrega
+  setTimeout(function(){ var s=document.querySelector('.view[data-v="relatorios"]'); if(s && !s.hidden){ render(); } },400);
+})();
+</script>
+<!-- ===== FIM DO PATCH SEMÁFORO KM 2026-07-10 ===== -->
+
 </body>
 </html>
