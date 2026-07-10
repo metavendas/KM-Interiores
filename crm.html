@@ -5284,5 +5284,118 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 </script>
 <!-- ===== FIM DO PATCH TAREFAS KM 2026-07-10 ===== -->
 
+<!-- ============================================================================
+     KM Interiores · CRM · PATCH 2026-07-10 (d) — AGENDA: Editar + Excluir
+     Clique num evento da agenda abre um modal com: Editar (título, data/hora, tipo,
+     local, obs, responsável) · Concluir · Excluir (cancela e some do calendário,
+     mas NÃO apaga o registro — integridade preservada).
+     Aditivo/reversível. Cole ANTES de </body>. Reusa classes de modal do patch (a).
+     ============================================================================ -->
+<style id="km-patch-agenda-css">
+  #kmAgdModal .km-del{background:#d84a3f;color:#fff;border:none;padding:11px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-radius:3px;cursor:pointer}
+  #kmAgdModal .km-done{background:#2f9e4f;color:#fff;border:none;padding:11px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-radius:3px;cursor:pointer}
+  #kmAgdModal .km-open{background:#9D7D31;color:#F1E9D2;border:none;padding:11px 18px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;border-radius:3px;cursor:pointer}
+  #kmAgdModal .km-hint{font-size:11px;color:var(--muted);margin-top:8px}
+</style>
+<script id="km-patch-agenda-js">
+(function(){
+  "use strict";
+  if(window.__kmPatchAgenda) return; window.__kmPatchAgenda=true;
+
+  function el(id){ return document.getElementById(id); }
+  function esc(s){ if(window.esc)return window.esc(s); return String(s==null?'':s); }
+  function isAdmin(){ return window.ME_ROLE==='admin'||window.ME_ROLE==='gestor'; }
+  var TIPOS=[['ligacao','Ligação'],['contato','Contato'],['visita','Visita'],['reuniao','Reunião'],['followup','Follow-up']];
+
+  function toInput(iso){ if(!iso) return ''; var d=new Date(iso); if(isNaN(d)) return '';
+    var p=function(n){return String(n).padStart(2,'0');};
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
+
+  function ensureModal(){
+    if(el('kmAgdModal')) return;
+    var m=document.createElement('div'); m.id='kmAgdModal'; m.className='km-modal';
+    m.innerHTML='<div class="km-box"><div class="km-head"><b>Compromisso da agenda</b><span class="km-x" id="km-agd-x">✕</span></div><div class="km-body">'+
+      '<label class="km-lab">Título</label><input id="km-agd-tit">'+
+      '<div class="km-grid"><div><label class="km-lab">Data e hora</label><input id="km-agd-quando" type="datetime-local"></div>'+
+      '<div><label class="km-lab">Tipo</label><select id="km-agd-tipo"></select></div></div>'+
+      '<div class="km-grid"><div><label class="km-lab">Local</label><input id="km-agd-local"></div>'+
+      '<div id="km-agd-respwrap"><label class="km-lab">Responsável</label><select id="km-agd-resp"></select></div></div>'+
+      '<label class="km-lab">Observação</label><textarea id="km-agd-obs"></textarea>'+
+      '<div id="km-agd-opwrap" style="margin-top:10px"></div>'+
+      '<div class="km-ft"><button class="km-ok" id="km-agd-save">Salvar</button>'+
+      '<button class="km-done" id="km-agd-done">Concluir</button>'+
+      '<button class="km-del" id="km-agd-del">Excluir</button>'+
+      '<button class="km-cancel" id="km-agd-cancel">Fechar</button><span class="km-msg" id="km-agd-msg"></span></div>'+
+      '<div class="km-hint">"Excluir" cancela o compromisso e o remove do calendário — o registro é preservado no histórico (não é apagado).</div>'+
+      '<input type="hidden" id="km-agd-id"></div></div>';
+    document.body.appendChild(m);
+    el('km-agd-tipo').innerHTML=TIPOS.map(function(t){return '<option value="'+t[0]+'">'+t[1]+'</option>';}).join('');
+    el('km-agd-x').onclick=close; el('km-agd-cancel').onclick=close;
+    m.addEventListener('click',function(e){ if(e.target===m) close(); });
+    el('km-agd-save').onclick=salvar;
+    el('km-agd-done').onclick=function(){ mudaStatus('concluido','Concluído ✓'); };
+    el('km-agd-del').onclick=excluir;
+    function close(){ m.style.display='none'; }
+    m.__close=close;
+  }
+  function closeModal(){ var m=el('kmAgdModal'); if(m) m.style.display='none'; }
+  function reload(){ if(window.carregarAgenda) window.carregarAgenda(); if(window.atualizaSino) try{window.atualizaSino();}catch(e){} }
+
+  function abrir(id){
+    ensureModal();
+    var a=(window.AGD_EV&&window.AGD_EV[id])||null; if(!a){ return; }
+    el('km-agd-id').value=id;
+    el('km-agd-tit').value=a.titulo||'';
+    el('km-agd-quando').value=toInput(a.quando);
+    el('km-agd-tipo').value=a.tipo||'reuniao';
+    el('km-agd-local').value=a.local||'';
+    el('km-agd-obs').value=a.observacao||'';
+    el('km-agd-msg').textContent=a.status?('Status: '+a.status):'';
+    // responsável (admin/gestor)
+    var rw=el('km-agd-respwrap');
+    if(isAdmin() && window.ensureVendedores){ rw.style.display='';
+      window.ensureVendedores(function(){ var sel=el('km-agd-resp'); var cache=window.VEND_CACHE||[];
+        sel.innerHTML='<option value="">—</option>'+cache.map(function(v){ return '<option value="'+v.id+'"'+(v.id===a.responsavel_id?' selected':'')+'>'+esc(v.nome)+'</option>'; }).join(''); });
+    } else { rw.style.display='none'; }
+    // link para a oportunidade, se houver
+    var ow=el('km-agd-opwrap');
+    if(a.oportunidade_id){ ow.innerHTML='<button class="km-open" id="km-agd-open">Abrir oportunidade vinculada</button>';
+      el('km-agd-open').onclick=function(){ closeModal(); if(window.abrirOportunidadeModal) window.abrirOportunidadeModal(a.oportunidade_id); }; }
+    else ow.innerHTML='';
+    el('kmAgdModal').style.display='flex';
+  }
+
+  function salvar(){
+    var id=el('km-agd-id').value; var btn=el('km-agd-save');
+    var tit=(el('km-agd-tit').value||'').trim(); if(!tit){ el('km-agd-msg').textContent='Informe o título.'; return; }
+    var q=el('km-agd-quando').value; if(!q){ el('km-agd-msg').textContent='Informe data e hora.'; return; }
+    btn.disabled=true; el('km-agd-msg').textContent='Salvando…';
+    var payload={ p_id:id, p_titulo:tit, p_tipo:el('km-agd-tipo').value, p_quando:new Date(q).toISOString(),
+      p_local:(el('km-agd-local').value||'').trim()||null, p_obs:(el('km-agd-obs').value||'').trim()||null };
+    var rsel=el('km-agd-resp'); if(isAdmin() && rsel && rsel.value){ payload.p_responsavel=rsel.value; }
+    window.rpc('salvar_agendamento', payload).then(function(res){ btn.disabled=false;
+      if(res && !res.message){ el('km-agd-msg').textContent='✓ Salvo'; setTimeout(function(){ closeModal(); reload(); },600); }
+      else el('km-agd-msg').textContent='Erro: '+((res&&res.message)||'sem permissão'); })
+    .catch(function(){ btn.disabled=false; el('km-agd-msg').textContent='Erro de conexão.'; });
+  }
+  function mudaStatus(st, ok){
+    var id=el('km-agd-id').value; el('km-agd-msg').textContent='…';
+    window.rpc('salvar_agendamento',{p_id:id,p_status:st}).then(function(res){
+      if(res && !res.message){ el('km-agd-msg').textContent=ok||'✓'; setTimeout(function(){ closeModal(); reload(); },500); }
+      else el('km-agd-msg').textContent='Erro: '+((res&&res.message)||'sem permissão'); })
+    .catch(function(){ el('km-agd-msg').textContent='Erro de conexão.'; });
+  }
+  function excluir(){
+    var id=el('km-agd-id').value; var a=(window.AGD_EV&&window.AGD_EV[id])||{};
+    if(!confirm('Excluir da agenda "'+((a.titulo)||'este compromisso')+'"?\n\nEle será CANCELADO e sai do calendário. O registro fica preservado no histórico (não é apagado).')) return;
+    mudaStatus('cancelado','Excluído da agenda ✓');
+  }
+
+  // substitui o clique cru (confirm) por este modal — mantém o comportamento de abrir oportunidade via botão
+  window.agdAbrirEvento = abrir;
+})();
+</script>
+<!-- ===== FIM DO PATCH AGENDA KM 2026-07-10 ===== -->
+
 </body>
 </html>
