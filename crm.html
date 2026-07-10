@@ -5432,6 +5432,21 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   function restGet(p){ return fetch(SB+'/rest/v1/'+p,{headers:H()}).then(function(r){return r.ok?r.json():[];}); }
 
   /* ===================== (1) CLIENTE COM BUSCA ===================== */
+  function cliEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+  function cliSyncDL(){ var sel=el('venda_cliente'), dl=el('km-vcli-dl'), inp=el('km-vcli'); if(!sel||!dl) return;
+    var o=''; for(var i=0;i<sel.options.length;i++){ var op=sel.options[i]; if(!op.value) continue; o+='<option value="'+cliEsc(op.text)+'"></option>'; }
+    dl.innerHTML=o;
+    if(inp && !inp.value && sel.selectedIndex>0){ inp.value=sel.options[sel.selectedIndex].text; }
+  }
+  function cliPick(){ var sel=el('venda_cliente'), inp=el('km-vcli'); if(!sel||!inp) return; var t=(inp.value||'').trim().toLowerCase(); var v='';
+    for(var i=0;i<sel.options.length;i++){ if((sel.options[i].text||'').trim().toLowerCase()===t){ v=sel.options[i].value; break; } }
+    sel.value=v; try{ sel.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){} }
+  function cliRebuild(){ var sel=el('venda_cliente'); if(!sel) return;
+    // se o select ainda está vazio, carrega os clientes e então preenche a lista
+    if(sel.options.length<=1 && typeof window.ensureClientes==='function'){
+      try{ window.ensureClientes(function(){ if(typeof window.cliOptions==='function'){ el('venda_cliente').innerHTML=window.cliOptions(); } cliSyncDL(); }); }catch(e){ cliSyncDL(); }
+    } else { cliSyncDL(); }
+  }
   function ensureCliCombo(){
     var sel=el('venda_cliente'); if(!sel) return;
     if(!el('km-vcli')){
@@ -5440,19 +5455,13 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
       inp.setAttribute('autocomplete','off'); inp.placeholder='Digite o nome do cliente…';
       var dl=document.createElement('datalist'); dl.id='km-vcli-dl';
       sel.parentNode.insertBefore(inp, sel); sel.parentNode.insertBefore(dl, sel);
-      inp.addEventListener('input', function(){ pick(); }); inp.addEventListener('change', function(){ pick(); });
-      function pick(){ var t=(inp.value||'').trim().toLowerCase(); var v='';
-        for(var i=0;i<sel.options.length;i++){ if((sel.options[i].text||'').trim().toLowerCase()===t){ v=sel.options[i].value; break; } }
-        sel.value=v; try{ sel.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){} }
-      // reconstrói a lista quando o select é (re)populado
-      var obs=new MutationObserver(syncDL); obs.observe(sel,{childList:true}); sel.__kmObs=obs;
+      inp.addEventListener('input', cliPick);
+      inp.addEventListener('change', cliPick);
+      inp.addEventListener('focus', cliRebuild);   // reconstrói a lista ao focar (garante que enche)
+      inp.addEventListener('pointerdown', cliRebuild);
+      var obs=new MutationObserver(cliSyncDL); obs.observe(sel,{childList:true}); sel.__kmObs=obs;
     }
-    syncDL();
-    function syncDL(){ var sel=el('venda_cliente'), dl=el('km-vcli-dl'), inp=el('km-vcli'); if(!sel||!dl) return;
-      var o=''; for(var i=0;i<sel.options.length;i++){ var op=sel.options[i]; if(!op.value) continue; o+='<option value="'+esc(op.text).replace(/"/g,'&quot;')+'"></option>'; }
-      dl.innerHTML=o;
-      if(inp && !inp.value && sel.selectedIndex>0){ inp.value=sel.options[sel.selectedIndex].text; }
-    }
+    cliRebuild();
   }
 
   /* ===================== (2)+(5) FRETE NO TOTAL + PERSISTÊNCIA ===================== */
