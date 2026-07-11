@@ -2638,6 +2638,7 @@
         var fm={}; (peds||[]).forEach(function(p){ fm[p.id]=Number(p.valor_frete||0); });
         OS_CACHE.forEach(function(o){
           var pf=fm[o.pedido_id]||0;
+          o.__pedFrete=pf; // guarda p/ o cálculo de exibição
           if(pf>0 && Number(o.frete||0)!==pf){
             o.frete=pf; // reflete na tela imediatamente
             // persiste o frete na OS (grava o valor que veio do pedido)
@@ -2649,6 +2650,21 @@
       .catch(function(){ done&&done(); });
     }catch(e){ done&&done(); }
   }
+  // Frete a exibir p/ uma OS: valor gravado > frete do pedido > DERIVADO da cidade de entrega (tabela oficial R$3,50/km).
+  // A derivação é só p/ exibição/PDF — não altera totais financeiros lançados.
+  function osFreteFor(o){
+    var f=Number(o&&o.frete||0); if(f>0) return f;
+    var pf=Number(o&&o.__pedFrete||0); if(pf>0) return pf;
+    try{
+      if(o && o.cidade && typeof window.kmFreteCidade==='function'){
+        var partes=String(o.cidade).split('/');
+        var r=window.kmFreteCidade((partes[0]||'').trim(),(partes[1]||'').trim());
+        if(r && Number(r.frete)>0) return Number(r.frete);
+      }
+    }catch(e){}
+    return 0;
+  }
+  window.osFreteFor=osFreteFor;
   function renderOSKpis(){
     var box=$('osKpis'); if(!box) return;
     var ab=0,ag=0,er=0;
@@ -2672,7 +2688,7 @@
     var inp='background:#221b10;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:6px 8px;font-size:12.5px';
     tb.innerHTML=rows.map(function(o){
       var cli=(o.clientes&&o.clientes.nome)?o.clientes.nome:'—';
-      var frt=Number(o.frete||0)>0?('R$ '+Number(o.frete).toLocaleString('pt-BR')):'—';
+      var _fv=osFreteFor(o); var frt=_fv>0?('R$ '+Number(_fv).toLocaleString('pt-BR')):'—';
       var pil=PILAR_LABEL[o.pilar]||o.pilar||'—';
       return '<tr>'
         +'<td style="color:var(--text)">'+esc(o.numero||'')+'</td>'
@@ -2686,7 +2702,8 @@
         +'<td><select data-os="'+o.id+'" data-f="status" style="'+inp+'">'+osStatusOptions(o.status)+'</select></td>'
         +'<td style="white-space:nowrap"><button class="km-os-open" data-osid="'+o.id+'" title="Abrir a ordem de serviço em PDF">Abrir OS</button>'
         +' <button class="km-os-edit" data-osid="'+o.id+'" title="Editar a OS">✎ Editar</button>'
-        +' <button class="km-os-del" data-osid="'+o.id+'" data-osnum="'+esc(o.numero||'')+'" title="Cancelar/arquivar a OS">🗑</button></td>'
+        +' <button class="km-os-del" data-osid="'+o.id+'" data-osnum="'+esc(o.numero||'')+'" title="Cancelar/arquivar a OS">🗑</button>'
+        +' <button class="km-os-track" data-osid="'+o.id+'" data-osnum="'+esc(o.numero||'')+'" title="Link de rastreio p/ o cliente acompanhar a entrega">🔗 Rastreio</button></td>'
         +'</tr>';
     }).join('');
   }
@@ -5677,6 +5694,13 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   button.km-os-edit:hover{ border-color:#9D7D31;color:#9D7D31 }
   button.km-os-del{ background:transparent;border:1px solid rgba(158,27,27,.5);color:#9e1b1b;border-radius:4px;padding:5px 9px;font-size:11px;cursor:pointer }
   button.km-os-del:hover{ background:rgba(158,27,27,.08) }
+  button.km-os-track{ background:transparent;border:1px solid rgba(8,8,7,.32);color:#3c6e8f;border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap }
+  button.km-os-track:hover{ border-color:#2f5f7d;color:#2f5f7d }
+  #kmTrackModal .km-link{ display:flex;gap:8px;margin-top:8px }
+  #kmTrackModal .km-link input{ flex:1 }
+  #kmTrackModal .km-copy{ background:#9D7D31;color:#F1E9D2;border:none;border-radius:4px;padding:0 14px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap }
+  #kmTrackModal .km-wa{ display:inline-block;margin-top:12px;background:#25D366;color:#0b3d1e;border:none;border-radius:4px;padding:10px 18px;font-size:12px;font-weight:600;letter-spacing:.04em;text-decoration:none;cursor:pointer }
+  #kmTrackModal .km-wa:hover{ filter:brightness(1.05) }
   #kmOsPdfModal{ display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.74);padding:24px;box-sizing:border-box }
   #kmOsPdfModal .box{ max-width:900px;height:100%;margin:auto;background:#14100a;border:1px solid rgba(203,152,76,.3);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6) }
   #kmOsPdfModal .hd{ display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid rgba(203,152,76,.25) }
@@ -5787,10 +5811,13 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     .then(function(rows){
       var os=rows&&rows[0]; if(!os){ alert('OS não encontrada.'); return; }
       var pedId=os.pedido_id;
-      var pP=pedId?fetch(SB+'/rest/v1/pedidos?id=eq.'+pedId+'&select=numero',{headers:H()}).then(function(r){return r.ok?r.json():[];}).then(function(a){return (a[0]&&a[0].numero)||'';}):Promise.resolve('');
+      var pP=pedId?fetch(SB+'/rest/v1/pedidos?id=eq.'+pedId+'&select=numero,valor_frete',{headers:H()}).then(function(r){return r.ok?r.json():[];}).then(function(a){return a[0]||{};}):Promise.resolve({});
       var iP=pedId?fetch(SB+'/rest/v1/pedido_itens?pedido_id=eq.'+pedId+'&select=qtd,acabamento,produtos(nome)',{headers:H()}).then(function(r){return r.ok?r.json():[];}):Promise.resolve([]);
       Promise.all([pP,iP]).then(function(res){
-        var pedNum=res[0]||''; var its=Array.isArray(res[1])?res[1]:[];
+        var ped=res[0]||{}; var pedNum=ped.numero||''; var its=Array.isArray(res[1])?res[1]:[];
+        // frete no PDF = gravado > frete do pedido > derivado da cidade (tabela oficial)
+        os.__pedFrete=Number(ped.valor_frete||0);
+        if(typeof window.osFreteFor==='function'){ os.frete=window.osFreteFor(os); }
         var d={ open:true, cliente:(os.clientes&&os.clientes.nome)||'',
           itens: its.map(function(i){ return {qtd:i.qtd||1, desc:(i.produtos&&i.produtos.nome)||i.acabamento||'Item'}; }) };
         var url;
@@ -5844,7 +5871,9 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
       curOS=osId; curOSped=o.pedido_id||null;
       el('kmOs-num').textContent=o.numero?('· '+o.numero):'';
       el('kmOs-cidade').value=o.cidade||''; el('kmOs-dist').value=(o.distancia_km!=null?o.distancia_km:'');
-      el('kmOs-endereco').value=o.endereco||''; el('kmOs-frete').value=(o.frete!=null?o.frete:'');
+      el('kmOs-endereco').value=o.endereco||'';
+      var _fsug=(Number(o.frete||0)>0)?Number(o.frete):((typeof window.osFreteFor==='function')?window.osFreteFor(o):0);
+      el('kmOs-frete').value=(_fsug>0?_fsug:(o.frete!=null?o.frete:''));
       el('kmOs-pilar').value=o.pilar||''; el('kmOs-data').value=o.data_agendada?String(o.data_agendada).slice(0,10):'';
       el('kmOs-periodo').value=o.periodo||''; el('kmOs-resp').value=o.responsavel_id||''; el('kmOs-status').value=o.status||'';
       el('kmOs-obs').value=o.observacoes||''; el('kmOs-msg').textContent='';
@@ -5886,16 +5915,58 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     .catch(function(){ alert('Erro de conexão.'); });
   }
 
+  /* ===================== RASTREIO — link p/ o cliente acompanhar a entrega ===================== */
+  function kmTrackModal(){
+    var m=el('kmTrackModal'); if(m) return m;
+    m=document.createElement('div'); m.className='km-modal'; m.id='kmTrackModal';
+    m.innerHTML='<div class="km-box"><div class="km-head"><b>🔗 Link de rastreio <span id="kmTk-num" style="color:var(--muted);font-size:12px"></span></b><span class="km-x" id="kmTkX">✕</span></div>'
+      +'<div class="km-body"><div id="kmTk-content"></div></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){ if(e.target===m) m.style.display='none'; });
+    el('kmTkX').onclick=function(){ m.style.display='none'; };
+    return m;
+  }
+  function kmRastreioOS(osId, osNum){
+    if(!osId) return;
+    var m=kmTrackModal(); m.style.display='flex';
+    el('kmTk-num').textContent=osNum?('· '+osNum):'';
+    var c=el('kmTk-content'); c.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">Carregando…</div>';
+    fetch(SB+'/rest/v1/ordens_servico?id=eq.'+osId+'&select=rastreio_token,numero,clientes(nome,telefone)&limit=1',{headers:H()})
+    .then(function(r){ if(!r.ok) throw new Error('sem coluna rastreio_token'); return r.json(); })
+    .then(function(rows){
+      var o=rows&&rows[0];
+      if(!o || !o.rastreio_token){ c.innerHTML='<div class="km-msg" style="color:var(--champagne);line-height:1.6">O rastreio ainda não está ativo.<br><br>Rode uma vez o SQL <b>KM_CRM_rastreio_entrega_2026-07-11.sql</b> no Supabase (SQL Editor) para gerar os tokens. Depois este botão já mostra o link pronto.</div>'; return; }
+      var base=(location.origin&&location.origin.indexOf('http')===0)?location.origin:'https://www.kminteriores.com.br';
+      var link=base+'/rastreio.html?t='+encodeURIComponent(o.rastreio_token);
+      var nome=(o.clientes&&o.clientes.nome)?String(o.clientes.nome).split(' ')[0]:'';
+      var tel=(o.clientes&&o.clientes.telefone)?String(o.clientes.telefone).replace(/\D/g,''):'';
+      if(tel && tel.length>=10 && tel.slice(0,2)!=='55') tel='55'+tel;
+      var msg='Olá'+(nome?(' '+nome):'')+'! Acompanhe em tempo real a entrega do seu pedido KM Interiores: '+link;
+      var wa=(tel?('https://wa.me/'+tel):'https://wa.me/')+'?text='+encodeURIComponent(msg);
+      c.innerHTML='<div style="font-size:12.5px;color:var(--muted);line-height:1.55">Envie este link ao cliente — ele acompanha a entrega em tempo real, sem login.</div>'
+        +'<div class="km-link"><input id="kmTk-link" readonly value="'+esc(link)+'"><button class="km-copy" id="kmTk-copy">Copiar</button></div>'
+        +'<a class="km-wa" href="'+esc(wa)+'" target="_blank" rel="noopener">Enviar por WhatsApp</a>';
+      var inp=el('kmTk-link');
+      el('kmTk-copy').onclick=function(){
+        try{ inp.focus(); inp.select(); }catch(e){}
+        if(navigator.clipboard){ navigator.clipboard.writeText(link).then(function(){ el('kmTk-copy').textContent='Copiado ✓'; }).catch(function(){ var ok=false; try{ok=document.execCommand('copy');}catch(e){} el('kmTk-copy').textContent=ok?'Copiado ✓':'Selecione e copie'; }); }
+        else { var ok=false; try{ok=document.execCommand('copy');}catch(e){} el('kmTk-copy').textContent=ok?'Copiado ✓':'Selecione e copie'; }
+      };
+    })
+    .catch(function(){ c.innerHTML='<div class="km-msg" style="color:var(--champagne);line-height:1.6">O rastreio ainda não está ativo.<br><br>Rode o SQL <b>KM_CRM_rastreio_entrega_2026-07-11.sql</b> no Supabase e tente de novo.</div>'; });
+  }
+
   /* ===================== delegação de cliques (robusta a re-render) ===================== */
   document.addEventListener('click',function(e){
     var t=e.target;
     var b=t.closest&&t.closest('.km-os-open'); if(b){ e.preventDefault(); kmAbrirOS(b.getAttribute('data-osid')); return; }
     var ed=t.closest&&t.closest('.km-os-edit'); if(ed){ e.preventDefault(); kmEditarOS(ed.getAttribute('data-osid')); return; }
     var dl=t.closest&&t.closest('.km-os-del'); if(dl){ e.preventDefault(); kmExcluirOS(dl.getAttribute('data-osid'), dl.getAttribute('data-osnum')); return; }
+    var tk=t.closest&&t.closest('.km-os-track'); if(tk){ e.preventDefault(); kmRastreioOS(tk.getAttribute('data-osid'), tk.getAttribute('data-osnum')); return; }
     var le=t.closest&&t.closest('.lead-edit'); if(le){ e.preventDefault(); kmEditarLead(le.getAttribute('data-edit')); return; }
   });
 
-  window.kmEditarLead=kmEditarLead; window.kmAbrirOS=kmAbrirOS; window.kmEditarOS=kmEditarOS; window.kmExcluirOS=kmExcluirOS;
+  window.kmEditarLead=kmEditarLead; window.kmAbrirOS=kmAbrirOS; window.kmEditarOS=kmEditarOS; window.kmExcluirOS=kmExcluirOS; window.kmRastreioOS=kmRastreioOS;
 })();
 </script>
 <!-- ===== FIM DO PATCH CONTRASTE / UX KM 2026-07-11 ===== -->

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Acompanhe sua entrega · KM Interiores</title>
+<link rel="icon" href="favicon.ico">
+<style>
+  :root{--bg:#14100a;--bg2:#1c160d;--gold:#CB984C;--champ:#F1E4C9;--ouro:#9D7D31;--line:rgba(203,152,76,.20);--muted:rgba(241,228,201,.62);--ok:#5fbf6a;--rota:#e3b341;--canc:#e5534b}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 90% at 80% 0%,rgba(203,152,76,.08),transparent 55%),var(--bg);color:var(--champ);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-weight:300;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:32px 18px}
+  .wrap{width:100%;max-width:560px}
+  .brand{text-align:center;margin-bottom:22px}
+  .brand img{height:60px;object-fit:contain}
+  .brand .bn{font-family:Georgia,serif;font-size:22px;letter-spacing:.22em;color:var(--gold);font-weight:600}
+  .brand .sl{font-size:11px;letter-spacing:.14em;color:var(--muted);margin-top:6px;font-style:italic}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:26px 24px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+  h1{font-family:Georgia,serif;font-size:20px;font-weight:500;color:var(--gold);letter-spacing:.02em}
+  .sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .meta{margin:18px 0 6px;font-size:13.5px;line-height:1.7}
+  .meta b{color:var(--champ);font-weight:600}
+  .badge{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:20px;font-weight:600}
+  .tl{margin:22px 0 6px;position:relative}
+  .step{display:flex;gap:14px;position:relative;padding-bottom:22px}
+  .step:last-child{padding-bottom:0}
+  .step .rail{position:absolute;left:13px;top:26px;bottom:0;width:2px;background:var(--line)}
+  .step:last-child .rail{display:none}
+  .dot{width:28px;height:28px;border-radius:50%;flex-shrink:0;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--bg);color:var(--muted);z-index:1}
+  .step.done .dot{background:var(--gold);border-color:var(--gold);color:#14100a}
+  .step.done .rail{background:var(--gold)}
+  .step.current .dot{border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 4px rgba(203,152,76,.15)}
+  .step .txt .t{font-size:14.5px;color:var(--champ);font-weight:600}
+  .step:not(.done):not(.current) .txt .t{color:var(--muted);font-weight:400}
+  .step .txt .d{font-size:12px;color:var(--muted);margin-top:2px}
+  .note{margin-top:18px;padding:12px 14px;border-radius:8px;background:rgba(203,152,76,.07);border:1px solid var(--line);font-size:13px;line-height:1.55;color:var(--champ)}
+  .foot{text-align:center;margin-top:20px;font-size:11px;color:var(--muted);line-height:1.7}
+  .foot a{color:var(--gold);text-decoration:none}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .center{text-align:center;padding:20px 0;color:var(--muted);font-size:14px}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ok);letter-spacing:.06em}
+  .live .pulse{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pl 1.6s ease-in-out infinite}
+  @keyframes pl{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <img src="logo-dourado.png" alt="KM Interiores" onerror="this.style.display='none';document.getElementById('bntxt').style.display='block'">
+      <div class="bn" id="bntxt" style="display:none">KM INTERIORES</div>
+      <div class="sl">Design que inspira. Sofisticação que permanece.</div>
+    </div>
+    <div class="card" id="card">
+      <div class="center"><span class="spin"></span> Carregando sua entrega…</div>
+    </div>
+    <div class="foot">
+      <span class="live"><span class="pulse"></span> Atualização automática</span><br>
+      Dúvidas? Fale conosco no <a href="https://wa.me/5532999999999" id="waFoot">WhatsApp</a> · <a href="https://www.kminteriores.com.br">kminteriores.com.br</a>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  var SB='https://hpbtnlfihbwwawgtesvm.supabase.co';
+  var KEY='sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var token=(new URLSearchParams(location.search).get('t')||'').trim();
+  var card=document.getElementById('card');
+
+  var PILAR={p1:'Móveis',p2:'Locação',p3:'Impressão 3D',curadoria:'Curadoria',care:'KM Care',signature:'KM Signature'};
+  var PERIODO={manha:'Manhã',tarde:'Tarde',dia_todo:'Dia todo'};
+  // ordem do fluxo do cliente
+  var STAGES=[
+    {k:'recebido',t:'Pedido recebido',d:'Recebemos seu pedido e estamos preparando a entrega.'},
+    {k:'agendado',t:'Entrega agendada',d:'Sua entrega tem data marcada.'},
+    {k:'rota',t:'Em rota',d:'Saímos para entrega — estamos a caminho!'},
+    {k:'entregue',t:'Entregue',d:'Entrega concluída. Obrigado pela confiança!'}
+  ];
+  // status da OS -> índice do estágio atual
+  function stageIndex(st){ return ({aberta:0,agendada:1,em_rota:2,concluida:3})[st]; }
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function dataBR(d){ if(!d) return ''; try{ return new Date(d+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ return d; } }
+  function horaBR(t){ try{ return new Date(t).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+
+  function msgVazio(txt){ card.innerHTML='<h1>Rastreio não encontrado</h1><div class="note">'+esc(txt)+'</div>'; }
+
+  function render(o){
+    if(o.status==='cancelada'){
+      card.innerHTML='<h1>Entrega cancelada</h1>'
+        +'<div class="sub">'+esc(o.numero||'')+(o.cidade?(' · '+esc(o.cidade)):'')+'</div>'
+        +'<div class="note" style="border-color:rgba(229,83,75,.4);background:rgba(229,83,75,.08)">Esta entrega foi cancelada. Se você não solicitou o cancelamento, fale com a nossa equipe pelo WhatsApp.</div>';
+      return;
+    }
+    var idx=stageIndex(o.status); if(idx==null) idx=0;
+    var ola=o.cliente_nome?('Olá, '+esc(o.cliente_nome)+'! '):'';
+    var stColor=({0:'rgba(203,152,76,.16)',1:'rgba(227,179,65,.18)',2:'rgba(227,179,65,.22)',3:'rgba(95,191,106,.18)'})[idx];
+    var stText=({0:'#CB984C',1:'#e3b341',2:'#e3b341',3:'#5fbf6a'})[idx];
+
+    var steps='';
+    for(var i=0;i<STAGES.length;i++){
+      var cls=i<idx?'done':(i===idx?'current':'');
+      var mark=i<idx?'✓':(i+1);
+      var extra='';
+      if(i===1 && o.data_agendada){ extra='<div class="d">'+dataBR(o.data_agendada)+(o.periodo&&PERIODO[o.periodo]?(' · '+PERIODO[o.periodo]):'')+'</div>'; }
+      else if(i===idx){ extra='<div class="d">'+esc(STAGES[i].d)+'</div>'; }
+      steps+='<div class="step '+cls+'"><div class="rail"></div>'
+        +'<div class="dot">'+mark+'</div>'
+        +'<div class="txt"><div class="t">'+esc(STAGES[i].t)+'</div>'+extra+'</div></div>';
+    }
+
+    card.innerHTML=''
+      +'<h1>'+ola+'acompanhe sua entrega</h1>'
+      +'<div class="sub">'+esc(o.numero||'')+(o.pilar&&PILAR[o.pilar]?(' · '+PILAR[o.pilar]):'')+'</div>'
+      +'<div class="meta">'
+        +'<span class="badge" style="background:'+stColor+';color:'+stText+'">'+esc(({aberta:'Preparando',agendada:'Agendada',em_rota:'Em rota',concluida:'Entregue'})[o.status]||o.status)+'</span>'
+        +(o.cidade?('<div style="margin-top:10px">Destino: <b>'+esc(o.cidade)+'</b></div>'):'')
+        +(o.data_agendada?('<div>Previsão: <b>'+dataBR(o.data_agendada)+(o.periodo&&PERIODO[o.periodo]?(' ('+PERIODO[o.periodo]+')'):'')+'</b></div>'):'')
+      +'</div>'
+      +'<div class="tl">'+steps+'</div>'
+      +'<div class="foot" style="text-align:left;margin-top:16px">Atualizado às '+horaBR(o.atualizado_em||Date.now())+' · esta página se atualiza sozinha.</div>';
+  }
+
+  function carregar(){
+    if(!token){ msgVazio('Link de rastreio inválido. Verifique o link que você recebeu ou fale com a nossa equipe.'); return; }
+    fetch(SB+'/rest/v1/rpc/rastrear_entrega',{
+      method:'POST',
+      headers:{apikey:KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({p_token:token})
+    })
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){
+      if(!j || !j.length){ msgVazio('Não encontramos uma entrega para este link. Confira o link recebido ou fale com a nossa equipe pelo WhatsApp.'); return; }
+      render(j[0]);
+    })
+    .catch(function(){ if(!card.querySelector('.tl')) msgVazio('Não foi possível carregar agora. Tente novamente em instantes.'); });
+  }
+
+  carregar();
+  setInterval(carregar, 25000); // tempo real (atualiza a cada 25s)
+})();
+</script>
+</body>
+</html>
