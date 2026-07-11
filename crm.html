@@ -2684,7 +2684,9 @@
         +'<td><select data-os="'+o.id+'" data-f="periodo" style="'+inp+'">'+osPeriodoOptions(o.periodo)+'</select></td>'
         +'<td><select data-os="'+o.id+'" data-f="responsavel_id" style="'+inp+'">'+osRespOptions(o.responsavel_id)+'</select></td>'
         +'<td><select data-os="'+o.id+'" data-f="status" style="'+inp+'">'+osStatusOptions(o.status)+'</select></td>'
-        +'<td><button class="km-os-open" data-osid="'+o.id+'" title="Abrir a ordem de serviço em PDF">Abrir OS</button></td>'
+        +'<td style="white-space:nowrap"><button class="km-os-open" data-osid="'+o.id+'" title="Abrir a ordem de serviço em PDF">Abrir OS</button>'
+        +' <button class="km-os-edit" data-osid="'+o.id+'" title="Editar a OS">✎ Editar</button>'
+        +' <button class="km-os-del" data-osid="'+o.id+'" data-osnum="'+esc(o.numero||'')+'" title="Cancelar/arquivar a OS">🗑</button></td>'
         +'</tr>';
     }).join('');
   }
@@ -5671,6 +5673,10 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   /* (6) botão Abrir OS + modal do PDF na tela (elementos novos) */
   button.km-os-open{ background:#9D7D31;color:#F1E9D2;border:none;border-radius:4px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.04em;cursor:pointer;white-space:nowrap }
   button.km-os-open:hover{ background:#CB984C }
+  button.km-os-edit{ background:transparent;border:1px solid rgba(8,8,7,.32);color:#7a6320;border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap }
+  button.km-os-edit:hover{ border-color:#9D7D31;color:#9D7D31 }
+  button.km-os-del{ background:transparent;border:1px solid rgba(158,27,27,.5);color:#9e1b1b;border-radius:4px;padding:5px 9px;font-size:11px;cursor:pointer }
+  button.km-os-del:hover{ background:rgba(158,27,27,.08) }
   #kmOsPdfModal{ display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.74);padding:24px;box-sizing:border-box }
   #kmOsPdfModal .box{ max-width:900px;height:100%;margin:auto;background:#14100a;border:1px solid rgba(203,152,76,.3);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6) }
   #kmOsPdfModal .hd{ display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid rgba(203,152,76,.25) }
@@ -5795,14 +5801,101 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     .catch(function(e){ console.error('OS abrir fetch:', e); alert('Erro ao carregar a OS.'); });
   }
 
+  /* ===================== EDITAR OS (modal completo) ===================== */
+  function kmOsModal(){
+    var m=el('kmOsEditModal'); if(m) return m;
+    m=document.createElement('div'); m.className='km-modal'; m.id='kmOsEditModal';
+    m.innerHTML='<div class="km-box"><div class="km-head"><b>✎ Editar OS <span id="kmOs-num" style="color:var(--muted);font-size:12px"></span></b><span class="km-x" id="kmOsX">✕</span></div>'
+      +'<div class="km-body">'
+      +'<div class="km-grid"><div><label class="km-lab">Cidade</label><input id="kmOs-cidade"></div>'
+      +'<div><label class="km-lab">Distância (km)</label><input id="kmOs-dist" type="number" step="0.1" min="0"></div></div>'
+      +'<label class="km-lab">Endereço de entrega</label><input id="kmOs-endereco">'
+      +'<div class="km-grid"><div><label class="km-lab">Frete (R$)</label><input id="kmOs-frete" type="number" step="0.01" min="0"></div>'
+      +'<div><label class="km-lab">Pilar</label><select id="kmOs-pilar"></select></div></div>'
+      +'<div class="km-grid"><div><label class="km-lab">Data agendada</label><input id="kmOs-data" type="date"></div>'
+      +'<div><label class="km-lab">Período</label><select id="kmOs-periodo"></select></div></div>'
+      +'<div class="km-grid"><div><label class="km-lab">Responsável</label><select id="kmOs-resp"></select></div>'
+      +'<div><label class="km-lab">Status</label><select id="kmOs-status"></select></div></div>'
+      +'<label class="km-lab">Observações</label><textarea id="kmOs-obs"></textarea>'
+      +'<div class="km-hint" style="font-size:11px;color:var(--muted);margin-top:6px">O frete editado aqui é espelhado no pedido (fonte única). Nada é apagado.</div>'
+      +'<div class="km-ft"><button class="km-ok" id="kmOs-save">Salvar</button><button class="km-cancel" id="kmOs-cancel">Cancelar</button><span class="km-msg" id="kmOs-msg"></span></div>'
+      +'</div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){ if(e.target===m) m.style.display='none'; });
+    el('kmOsX').onclick=function(){ m.style.display='none'; };
+    el('kmOs-cancel').onclick=function(){ m.style.display='none'; };
+    el('kmOs-save').onclick=saveOS;
+    return m;
+  }
+  var curOS=null, curOSped=null;
+  function kmEditarOS(osId){
+    if(!osId) return;
+    var m=kmOsModal(); m.style.display='flex'; el('kmOs-msg').textContent='Carregando…';
+    el('kmOs-status').innerHTML=(typeof window.osStatusOptions==='function')?window.osStatusOptions(''):'<option value="">—</option>';
+    el('kmOs-periodo').innerHTML=(typeof window.osPeriodoOptions==='function')?window.osPeriodoOptions(''):'<option value="">—</option>';
+    el('kmOs-resp').innerHTML=(typeof window.osRespOptions==='function')?window.osRespOptions(''):'<option value="">— ninguém —</option>';
+    var PL=window.PILAR_LABEL||{}; var po='<option value="">—</option>'; for(var k in PL){ po+='<option value="'+k+'">'+esc(PL[k])+'</option>'; }
+    el('kmOs-pilar').innerHTML=po;
+    var sel='numero,cidade,endereco,distancia_km,frete,pilar,data_agendada,periodo,responsavel_id,status,observacoes,pedido_id';
+    fetch(SB+'/rest/v1/ordens_servico?id=eq.'+osId+'&select='+encodeURIComponent(sel)+'&limit=1',{headers:H()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      var o=rows&&rows[0]; if(!o){ el('kmOs-msg').textContent='OS não encontrada.'; return; }
+      curOS=osId; curOSped=o.pedido_id||null;
+      el('kmOs-num').textContent=o.numero?('· '+o.numero):'';
+      el('kmOs-cidade').value=o.cidade||''; el('kmOs-dist').value=(o.distancia_km!=null?o.distancia_km:'');
+      el('kmOs-endereco').value=o.endereco||''; el('kmOs-frete').value=(o.frete!=null?o.frete:'');
+      el('kmOs-pilar').value=o.pilar||''; el('kmOs-data').value=o.data_agendada?String(o.data_agendada).slice(0,10):'';
+      el('kmOs-periodo').value=o.periodo||''; el('kmOs-resp').value=o.responsavel_id||''; el('kmOs-status').value=o.status||'';
+      el('kmOs-obs').value=o.observacoes||''; el('kmOs-msg').textContent='';
+    })
+    .catch(function(){ el('kmOs-msg').textContent='Erro ao carregar.'; });
+  }
+  function saveOS(){
+    if(!curOS) return;
+    var b=el('kmOs-save'); b.disabled=true; b.textContent='Salvando…'; el('kmOs-msg').textContent='';
+    var freteVal=(el('kmOs-frete').value!==''?Number(el('kmOs-frete').value):null);
+    var body={
+      cidade:(el('kmOs-cidade').value||'').trim()||null,
+      distancia_km:(el('kmOs-dist').value!==''?Number(el('kmOs-dist').value):null),
+      endereco:(el('kmOs-endereco').value||'').trim()||null,
+      frete:(freteVal!=null&&!isNaN(freteVal))?freteVal:null,
+      pilar:el('kmOs-pilar').value||null,
+      data_agendada:el('kmOs-data').value||null,
+      periodo:el('kmOs-periodo').value||null,
+      responsavel_id:el('kmOs-resp').value||null,
+      status:el('kmOs-status').value||null,
+      observacoes:(el('kmOs-obs').value||'').trim()||null,
+      updated_at:new Date().toISOString()
+    };
+    fetch(SB+'/rest/v1/ordens_servico?id=eq.'+curOS,{method:'PATCH',headers:H({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)})
+    .then(function(r){ b.disabled=false; b.textContent='Salvar';
+      if(!r.ok){ el('kmOs-msg').textContent='Erro ao salvar (sem permissão de equipe?).'; return; }
+      if(curOSped && freteVal!=null && !isNaN(freteVal)){ fetch(SB+'/rest/v1/pedidos?id=eq.'+curOSped,{method:'PATCH',headers:H({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({valor_frete:freteVal})}).catch(function(){}); }
+      el('kmOsEditModal').style.display='none';
+      if(typeof window.loadOS==='function') try{ window.loadOS(); }catch(e){}
+    })
+    .catch(function(){ b.disabled=false; b.textContent='Salvar'; el('kmOs-msg').textContent='Erro de conexão.'; });
+  }
+  /* ===================== EXCLUIR OS = cancelar/arquivar (preserva o registro) ===================== */
+  function kmExcluirOS(osId, osNum){
+    if(!osId) return;
+    if(!confirm('Cancelar/arquivar a OS '+(osNum||'')+'?\n\nEla sai da agenda ativa e vai para o filtro "Canceladas". O registro é PRESERVADO no histórico (não é apagado do banco).')) return;
+    fetch(SB+'/rest/v1/ordens_servico?id=eq.'+osId,{method:'PATCH',headers:H({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({status:'cancelada',updated_at:new Date().toISOString()})})
+    .then(function(r){ if(!r.ok){ alert('Não foi possível cancelar a OS (sem permissão de equipe?).'); return; } if(typeof window.loadOS==='function') try{ window.loadOS(); }catch(e){} })
+    .catch(function(){ alert('Erro de conexão.'); });
+  }
+
   /* ===================== delegação de cliques (robusta a re-render) ===================== */
   document.addEventListener('click',function(e){
     var t=e.target;
     var b=t.closest&&t.closest('.km-os-open'); if(b){ e.preventDefault(); kmAbrirOS(b.getAttribute('data-osid')); return; }
+    var ed=t.closest&&t.closest('.km-os-edit'); if(ed){ e.preventDefault(); kmEditarOS(ed.getAttribute('data-osid')); return; }
+    var dl=t.closest&&t.closest('.km-os-del'); if(dl){ e.preventDefault(); kmExcluirOS(dl.getAttribute('data-osid'), dl.getAttribute('data-osnum')); return; }
     var le=t.closest&&t.closest('.lead-edit'); if(le){ e.preventDefault(); kmEditarLead(le.getAttribute('data-edit')); return; }
   });
 
-  window.kmEditarLead=kmEditarLead; window.kmAbrirOS=kmAbrirOS;
+  window.kmEditarLead=kmEditarLead; window.kmAbrirOS=kmAbrirOS; window.kmEditarOS=kmEditarOS; window.kmExcluirOS=kmExcluirOS;
 })();
 </script>
 <!-- ===== FIM DO PATCH CONTRASTE / UX KM 2026-07-11 ===== -->
