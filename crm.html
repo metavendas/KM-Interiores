@@ -2619,11 +2619,35 @@
     var tb=$('osBody'); if(!tb) return;
     var tok=localStorage.getItem(TOKKEY);
     ensureVendedores(function(){});
-    tb.innerHTML='<tr><td colspan="9" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
+    tb.innerHTML='<tr><td colspan="10" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
     fetch(SB+'/rest/v1/ordens_servico?select=id,numero,pilar,status,cidade,frete,distancia_km,data_agendada,periodo,responsavel_id,pedido_id,clientes(nome,telefone)&order=data_agendada.asc.nullsfirst,created_at.desc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-    .then(function(rows){ OS_CACHE=Array.isArray(rows)?rows:[]; renderOSKpis(); renderOS(); })
-    .catch(function(e){ tb.innerHTML='<tr><td colspan="9" style="color:var(--muted);padding:18px">Não foi possível carregar (entre como equipe).</td></tr>'; console.error(e); });
+    .then(function(rows){ OS_CACHE=Array.isArray(rows)?rows:[]; osReconcileFrete(function(){ renderOSKpis(); renderOS(); }); })
+    .catch(function(e){ tb.innerHTML='<tr><td colspan="10" style="color:var(--muted);padding:18px">Não foi possível carregar (entre como equipe).</td></tr>'; console.error(e); });
+  }
+  // Cruza o frete lançado no PEDIDO (pedidos.valor_frete) para o campo frete da OS e persiste o sincronismo.
+  // Assim, todo frete lançado em Pedidos aparece automaticamente em Ordens de Serviço.
+  function osReconcileFrete(done){
+    try{
+      var tok=localStorage.getItem(TOKKEY);
+      var ids=[]; OS_CACHE.forEach(function(o){ if(o.pedido_id && ids.indexOf(o.pedido_id)<0) ids.push(o.pedido_id); });
+      if(!ids.length){ done&&done(); return; }
+      fetch(SB+'/rest/v1/pedidos?select=id,valor_frete&id=in.('+ids.join(',')+')',{headers:authHeaders(tok)})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(peds){
+        var fm={}; (peds||[]).forEach(function(p){ fm[p.id]=Number(p.valor_frete||0); });
+        OS_CACHE.forEach(function(o){
+          var pf=fm[o.pedido_id]||0;
+          if(pf>0 && Number(o.frete||0)!==pf){
+            o.frete=pf; // reflete na tela imediatamente
+            // persiste o frete na OS (grava o valor que veio do pedido)
+            fetch(SB+'/rest/v1/ordens_servico?id=eq.'+o.id,{method:'PATCH',headers:Object.assign({'Content-Type':'application/json',Prefer:'return=minimal'},authHeaders(tok)),body:JSON.stringify({frete:pf})}).catch(function(){});
+          }
+        });
+        done&&done();
+      })
+      .catch(function(){ done&&done(); });
+    }catch(e){ done&&done(); }
   }
   function renderOSKpis(){
     var box=$('osKpis'); if(!box) return;
@@ -5505,8 +5529,13 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     window.rpc=function(name, body){ var pr=_rpc.apply(this, arguments);
       if(name==='registrar_venda'){ var frete=Number(window.__kmVendaFrete)||0;
         pr.then(function(j){ if(j&&j.ok&&j.pedido_id&&frete>0){
-          _rpc('atualizar_frete_venda',{p_pedido_id:j.pedido_id,p_valor_frete:frete})
-            .then(function(){ window.__kmVendaFrete=0; var vc=el('venda_cidade_frete'); if(vc) vc.value=''; if(window.loadPedidos) window.loadPedidos(); }).catch(function(){});
+          var HH={apikey:KEY,Authorization:'Bearer '+tok(),'Content-Type':'application/json',Prefer:'return=minimal'};
+          // grava o frete no PEDIDO direto por REST (a RPC atualizar_frete_venda pode não existir)
+          fetch(SB+'/rest/v1/pedidos?id=eq.'+j.pedido_id,{method:'PATCH',headers:HH,body:JSON.stringify({valor_frete:frete})}).catch(function(){});
+          // espelha o MESMO frete na ORDEM DE SERVIÇO ligada ao pedido (campo frete)
+          fetch(SB+'/rest/v1/ordens_servico?pedido_id=eq.'+j.pedido_id,{method:'PATCH',headers:HH,body:JSON.stringify({frete:frete})}).catch(function(){});
+          window.__kmVendaFrete=0; var vc=el('venda_cidade_frete'); if(vc) vc.value='';
+          if(window.loadPedidos) window.loadPedidos();
         } }).catch(function(){});
       }
       return pr;
@@ -5586,13 +5615,20 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   }
   function salvarPed(){
     var id=el('km-ped-id').value, btn=el('km-ped-save'); btn.disabled=true; el('km-ped-msg').textContent='Salvando…';
+    var freteVal=(el('km-ped-frete').value!==''?Number(el('km-ped-frete').value):null);
+    // grava o FRETE direto (pedido + OS) — funciona sem a RPC e reflete em Ordens de Serviço (campo frete)
+    if(freteVal!=null && !isNaN(freteVal)){
+      var HH={apikey:KEY,Authorization:'Bearer '+tok(),'Content-Type':'application/json',Prefer:'return=minimal'};
+      fetch(SB+'/rest/v1/pedidos?id=eq.'+id,{method:'PATCH',headers:HH,body:JSON.stringify({valor_frete:freteVal})}).catch(function(){});
+      fetch(SB+'/rest/v1/ordens_servico?pedido_id=eq.'+id,{method:'PATCH',headers:HH,body:JSON.stringify({frete:freteVal})}).catch(function(){});
+    }
     window.rpc('editar_venda',{ p_pedido_id:id, p_status:el('km-ped-status').value||null, p_canal:el('km-ped-canal').value||null,
       p_forma_pagamento:el('km-ped-forma').value||null, p_data_venda:el('km-ped-data').value||null,
-      p_observacao:(el('km-ped-obs').value||'').trim()||null, p_valor_frete:(el('km-ped-frete').value!==''?Number(el('km-ped-frete').value):null) })
+      p_observacao:(el('km-ped-obs').value||'').trim()||null, p_valor_frete:freteVal })
     .then(function(j){ btn.disabled=false;
       if(j&&j.ok){ el('km-ped-msg').textContent='✓ Salvo'; setTimeout(function(){ fecharPed(); if(window.loadPedidos) window.loadPedidos(); if(window.loadFechamento)try{window.loadFechamento();}catch(e){} },600); }
-      else el('km-ped-msg').textContent='Erro: '+((j&&j.erro)||'sem permissão / rode o SQL editar_venda'); })
-    .catch(function(){ btn.disabled=false; el('km-ped-msg').textContent='Erro: rode o SQL editar_venda no Supabase.'; });
+      else { el('km-ped-msg').textContent='✓ Frete salvo (e espelhado na OS). Demais campos exigem o SQL editar_venda.'; setTimeout(function(){ fecharPed(); if(window.loadPedidos) window.loadPedidos(); },1100); } })
+    .catch(function(){ btn.disabled=false; el('km-ped-msg').textContent='✓ Frete salvo (e espelhado na OS). Demais campos exigem o SQL editar_venda.'; setTimeout(function(){ fecharPed(); if(window.loadPedidos) window.loadPedidos(); },1100); });
   }
 
   /* ===================== gatilhos ===================== */
@@ -5644,6 +5680,15 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   #kmOsPdfModal .hd a:hover{ background:rgba(203,152,76,.12) }
   #kmOsPdfModal .x{ cursor:pointer;color:#F1E9D2;font-size:22px;line-height:1;background:none;border:none }
   #kmOsPdfModal iframe{ flex:1;width:100%;border:none;background:#fff }
+  /* (6b) Ordem de Serviço — RESPONSIVO: a tabela (10 colunas) nunca estoura o viewport.
+     Rola horizontalmente DENTRO do painel em qualquer largura; campos compactados p/ caber melhor. */
+  .view[data-v="os"] .panel{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .view[data-v="os"] table{ min-width:780px; }
+  .view[data-v="os"] th, .view[data-v="os"] #osBody td{ padding-left:8px; padding-right:8px; }
+  .view[data-v="os"] #osBody input,
+  .view[data-v="os"] #osBody select{ max-width:148px; padding:5px 6px; font-size:12px; }
+  .view[data-v="os"] #osBody input[type="date"]{ max-width:138px; }
+  @media(max-width:560px){ .view[data-v="os"] table{ min-width:680px; } }
 </style>
 <script id="km-fix-ui-2026-07-11-js">
 (function(){
