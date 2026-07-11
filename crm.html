@@ -2700,7 +2700,9 @@
         +'<td><select data-os="'+o.id+'" data-f="periodo" style="'+inp+'">'+osPeriodoOptions(o.periodo)+'</select></td>'
         +'<td><select data-os="'+o.id+'" data-f="responsavel_id" style="'+inp+'">'+osRespOptions(o.responsavel_id)+'</select></td>'
         +'<td><select data-os="'+o.id+'" data-f="status" style="'+inp+'">'+osStatusOptions(o.status)+'</select></td>'
-        +'<td style="white-space:nowrap"><button class="km-os-open" data-osid="'+o.id+'" title="Abrir a ordem de serviço em PDF">Abrir OS</button>'
+        +'<td style="white-space:nowrap">'
+        +((o.status==='aberta'||o.status==='agendada')?('<button class="km-os-go" data-osid="'+o.id+'" data-osnum="'+esc(o.numero||'')+'" data-to="em_rota" title="Marcar que saiu para entrega (o cliente vê no rastreio)">🚚 Saiu p/ entrega</button> '):(o.status==='em_rota'?('<button class="km-os-go" data-osid="'+o.id+'" data-osnum="'+esc(o.numero||'')+'" data-to="concluida" title="Marcar como entregue">✅ Entregue</button> '):''))
+        +'<button class="km-os-open" data-osid="'+o.id+'" title="Abrir a ordem de serviço em PDF">Abrir OS</button>'
         +' <button class="km-os-edit" data-osid="'+o.id+'" title="Editar a OS">✎ Editar</button>'
         +' <button class="km-os-del" data-osid="'+o.id+'" data-osnum="'+esc(o.numero||'')+'" title="Cancelar/arquivar a OS">🗑</button>'
         +' <button class="km-os-track" data-osid="'+o.id+'" data-osnum="'+esc(o.numero||'')+'" title="Link de rastreio p/ o cliente acompanhar a entrega">🔗 Rastreio</button></td>'
@@ -2910,6 +2912,7 @@
       function campo(l,v){ doc.setFont('helvetica','bold'); doc.text(l, x, y); doc.setFont('helvetica','normal'); doc.text(v&&(''+v).trim()?(''+v):'____________________________', x+92, y); y+=16; }
       campo('Cliente:', nome);
       campo('Telefone:', tel);
+      if(d.vendedor) campo('Consultor(a):', d.vendedor);
       campo('Endereço:', [end, numero, compl].filter(Boolean).join(', '));
       campo('Bairro:', bairro);
       campo('Cidade/UF:', (cidade?cidade:'')+(uf?(' / '+uf):''));
@@ -2930,8 +2933,81 @@
     via('1a VIA — CLIENTE');
     doc.addPage();
     via('2a VIA — KM INTERIORES (OPERACIONAL)');
+    if(d && d.rota){ try{ kmRotaPaginaPDF(doc, d.rota, os, d); }catch(e){ console.error('rota PDF:', e); } }
     if(d && d.open){ try{ return doc.output('bloburl'); }catch(e){ /* fallback abaixo */ } }
     doc.save('OS_'+(os.numero||'KM')+'.pdf');
+  }
+  // Premissas de custo (ajustáveis num só lugar — pode virar setting do admin depois)
+  var KM_ROTA_CFG = window.KM_ROTA_CFG || { kmPorLitro:8, precoLitroReais:6.20, custoPedagioReais:9.50, custoRefeicaoReais:40, idaEVolta:true };
+  function kmHM(min){ min=Math.max(0,Math.round(min||0)); var h=Math.floor(min/60), m=min%60; return (h>0?(h+'h '):'')+(m<10&&h>0?('0'+m):m)+'min'; }
+  function kmBRL(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  // Página de ROTA DE ENTREGA no PDF da OS: dados da entrega + tempo + custo estimado + pedágios/postos/restaurantes.
+  function kmRotaPaginaPDF(doc, r, os, d){
+    var cfg=KM_ROTA_CFG, mult=cfg.idaEVolta?2:1;
+    var kmIda=r.km||0, kmTot=kmIda*mult, minIda=r.duracaoMin||0, minTot=minIda*mult;
+    var litros=cfg.kmPorLitro>0?(kmTot/cfg.kmPorLitro):0, combustivel=litros*cfg.precoLitroReais;
+    var qtdPed=(r.pedagios||[]).length*mult, pedagioCusto=qtdPed*cfg.custoPedagioReais;
+    var horas=minTot/60, refeicoes=horas>=3?Math.max(1,Math.round(horas/5)):0, alimentacao=refeicoes*cfg.custoRefeicaoReais;
+    var totalCusto=combustivel+pedagioCusto+alimentacao;
+    os=os||{}; d=d||{}; var cli=(os.clientes||{});
+    var PERI={manha:'Manhã',tarde:'Tarde',dia_todo:'Dia todo'};
+    var PIL={p1:'Móveis',p2:'Locação',p3:'Impressão 3D',curadoria:'Curadoria',care:'KM Care',signature:'KM Signature'};
+    function dtBR(s){ if(!s) return '—'; try{ return new Date(String(s).slice(0,10)+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ return s; } }
+
+    doc.addPage(); var W=595, x=40, y=44;
+    doc.setFillColor(20,16,10); doc.rect(0,0,W,66,'F');
+    doc.setTextColor(203,152,76); doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('KM INTERIORES · ROTA DE ENTREGA', x, 30);
+    doc.setFontSize(8.5); doc.setFont('helvetica','normal'); doc.setTextColor(230,217,188); doc.text('Apoio ao motorista — tempo, custo estimado, pedágios, combustível e alimentação', x, 48);
+    y=90; doc.setTextColor(30,30,30); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text((r.origem||'Ubá/MG')+'   ->   '+(r.destino||'')+'      ·      '+kmIda+' km (ida)', x, y); y+=8;
+    doc.setDrawColor(203,152,76); doc.line(x,y,W-x,y); y+=18;
+
+    // linha auxiliar rótulo:valor
+    function linha(l,v){ doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(90,90,90); doc.text(l, x+6, y);
+      doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30); doc.text(''+v, x+150, y); y+=15; }
+    function titulo(t){ if(y>780){ doc.addPage(); y=54; } doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(157,125,49); doc.text(t, x, y); y+=16; }
+
+    // DADOS DA ENTREGA
+    titulo('Dados da entrega');
+    linha('Cliente:', cli.nome||d.cliente||'—');
+    linha('Telefone:', cli.telefone||'—');
+    linha('Cidade / destino:', os.cidade||r.destino||'—');
+    linha('Agendada para:', dtBR(os.data_agendada)+(os.periodo&&PERI[os.periodo]?(' · '+PERI[os.periodo]):''));
+    linha('Pilar:', PIL[os.pilar]||os.pilar||'—');
+    if(d.vendedor) linha('Consultor(a):', d.vendedor);
+    y+=6;
+
+    // RESUMO DA VIAGEM
+    titulo('Resumo da viagem');
+    linha('Distância:', kmIda+' km (ida)   ·   '+kmTot+' km (ida e volta)');
+    linha('Tempo estimado:', kmHM(minIda)+' (ida)   ·   '+kmHM(minTot)+' (ida e volta)');
+    y+=6;
+
+    // CUSTO ESTIMADO
+    titulo('Custo estimado da entrega ('+(cfg.idaEVolta?'ida e volta':'somente ida')+')');
+    linha('Combustível:', litros.toFixed(1).replace('.',',')+' L  ·  '+kmBRL(combustivel));
+    linha('Pedágios:', qtdPed+'x  ·  '+kmBRL(pedagioCusto));
+    linha('Alimentação:', (refeicoes>0?(refeicoes+' refeição(ões)  ·  '+kmBRL(alimentacao)):'não estimada (viagem curta)'));
+    doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(157,125,49); doc.text('CUSTO TOTAL ESTIMADO:', x+6, y);
+    doc.setTextColor(20,16,10); doc.text(kmBRL(totalCusto), x+150, y); y+=16;
+    doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(130,130,130);
+    doc.text('Estimativa: '+cfg.kmPorLitro+' km/L · '+kmBRL(cfg.precoLitroReais)+'/L · pedágio '+kmBRL(cfg.custoPedagioReais)+' · refeição '+kmBRL(cfg.custoRefeicaoReais)+'. Ajuste conforme o veículo/preços do dia.', x+6, y); y+=16;
+    if(y>770){ doc.addPage(); y=54; }
+    doc.setDrawColor(203,152,76); doc.line(x,y,W-x,y); y+=18;
+
+    function secao(t, itens, vazio){
+      if(y>780){ doc.addPage(); y=54; }
+      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(157,125,49); doc.text(t, x, y); y+=15;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(40,40,40);
+      if(!itens || !itens.length){ doc.setTextColor(120,120,120); doc.text(vazio, x+6, y); y+=20; return; }
+      itens.forEach(function(it){ if(y>805){ doc.addPage(); y=54; } var kmS=('km '+it.km); while(kmS.length<7) kmS+=' ';
+        doc.text(kmS+'  ·  '+String(it.nome||'').slice(0,62), x+6, y); y+=14; });
+      y+=10;
+    }
+    secao('Pedágios na rota (todos)', r.pedagios, 'Sem pedágios mapeados nesta rota.');
+    secao('Postos de combustível (até 2 a cada 30 km)', r.postos, 'Sem postos mapeados nesta rota.');
+    secao('Restaurantes (até 2 a cada 30 km)', r.restaurantes, 'Sem restaurantes mapeados nesta rota (dado indisponível no mapa aberto).');
+    doc.setFontSize(8); doc.setTextColor(150,150,150); doc.text('Rota, tempo e pontos: OpenStreetMap / OSRM · valores de custo são estimativa de apoio, confirme na estrada.', x, 812);
   }
   // ===== DANFE interno (SEM VALOR FISCAL) — PDF automático ao lançar a venda =====
   function emitirDanfe(j){
@@ -5696,6 +5772,10 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   button.km-os-del:hover{ background:rgba(158,27,27,.08) }
   button.km-os-track{ background:transparent;border:1px solid rgba(8,8,7,.32);color:#3c6e8f;border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap }
   button.km-os-track:hover{ border-color:#2f5f7d;color:#2f5f7d }
+  button.km-os-go{ background:#2f7d4f;color:#F1E9D2;border:none;border-radius:4px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.03em;cursor:pointer;white-space:nowrap }
+  button.km-os-go:hover{ background:#3a955f }
+  button.km-os-go[data-to="concluida"]{ background:#9D7D31 }
+  button.km-os-go[data-to="concluida"]:hover{ background:#CB984C }
   #kmTrackModal .km-link{ display:flex;gap:8px;margin-top:8px }
   #kmTrackModal .km-link input{ flex:1 }
   #kmTrackModal .km-copy{ background:#9D7D31;color:#F1E9D2;border:none;border-radius:4px;padding:0 14px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap }
@@ -5710,6 +5790,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   #kmOsPdfModal .hd a:hover{ background:rgba(203,152,76,.12) }
   #kmOsPdfModal .x{ cursor:pointer;color:#F1E9D2;font-size:22px;line-height:1;background:none;border:none }
   #kmOsPdfModal iframe{ flex:1;width:100%;border:none;background:#fff }
+  @keyframes kmspin{ to{ transform:rotate(360deg) } }
   /* (6b) Ordem de Serviço — RESPONSIVO: a tabela (10 colunas) nunca estoura o viewport.
      Rola horizontalmente DENTRO do painel em qualquer largura; campos compactados p/ caber melhor. */
   .view[data-v="os"] .panel{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -5786,17 +5867,58 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   }
 
   /* ===================== (6) ABRIR OS EM PDF NA TELA ===================== */
-  function kmShowOsPdf(url,num){
+  /* ===================== ROTA DE ENTREGA (OSM/OSRM/Overpass) ===================== */
+  var KM_ORIGEM={lat:-21.12,lon:-42.9428,nome:'Ubá/MG'};   // showroom KM (origem das entregas)
+  var __kmRotaCache={};
+  function kmHav(a,b,c,d){ var R=6371000,p=Math.PI/180; var dLat=(c-a)*p,dLon=(d-b)*p; var s=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a*p)*Math.cos(c*p)*Math.sin(dLon/2)*Math.sin(dLon/2); return 2*R*Math.asin(Math.sqrt(s)); }
+  function kmGeo(q){ return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(q)).then(function(r){return r.ok?r.json():[];}).then(function(j){ return (j&&j[0])?{lat:+j[0].lat,lon:+j[0].lon}:null; }).catch(function(){return null;}); }
+  function kmRotaEntrega(cidade, uf){
+    var chave=(cidade||'').toLowerCase()+'|'+(uf||'');
+    if(__kmRotaCache[chave]) return Promise.resolve(__kmRotaCache[chave]);
+    if(!cidade) return Promise.resolve(null);
+    return kmGeo(cidade+', '+(uf||'Minas Gerais')+', Brasil').then(function(dest){
+      if(!dest) return null;
+      var url='https://router.project-osrm.org/route/v1/driving/'+KM_ORIGEM.lon+','+KM_ORIGEM.lat+';'+dest.lon+','+dest.lat+'?overview=full&geometries=geojson';
+      return fetch(url).then(function(r){return r.ok?r.json():null;}).then(function(rj){
+        if(!rj||!rj.routes||!rj.routes[0]) return null;
+        var coords=rj.routes[0].geometry.coordinates; var kmTotal=Math.round(rj.routes[0].distance/1000);
+        var durMin=Math.round((rj.routes[0].duration||0)/60);
+        var stp=Math.max(1,Math.floor(coords.length/120)); var samp=[];
+        for(var i=0;i<coords.length;i+=stp){ samp.push([coords[i][1],coords[i][0]]); }
+        var lastc=coords[coords.length-1]; samp.push([lastc[1],lastc[0]]);
+        var cum=[0]; for(var k=1;k<samp.length;k++){ cum[k]=cum[k-1]+kmHav(samp[k-1][0],samp[k-1][1],samp[k][0],samp[k][1]); }
+        var around=samp.map(function(p){return p[0].toFixed(5)+','+p[1].toFixed(5);}).join(',');
+        function kmDe(lat,lon){ var best=1e18,bi=0; for(var j=0;j<samp.length;j++){ var dd=(samp[j][0]-lat)*(samp[j][0]-lat)+(samp[j][1]-lon)*(samp[j][1]-lon); if(dd<best){best=dd;bi=j;} } return Math.round(cum[bi]/1000); }
+        function overpass(sel,radius){ return fetch('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'Content-Type':'text/plain'},body:'[out:json][timeout:35];('+sel+'(around:'+radius+','+around+'););out center 80;'}).then(function(r){return r.ok?r.json():{elements:[]};}).then(function(j){return j.elements||[];}).catch(function(){return [];}); }
+        function nomeDe(e,fb){ var t=e.tags||{}; return t.name||t.operator||t.brand||fb; }
+        function posDe(e){ return e.type==='node'?[e.lat,e.lon]:(e.center?[e.center.lat,e.center.lon]:null); }
+        function mapear(els,fb){ var arr=[]; (els||[]).forEach(function(e){ var p=posDe(e); if(!p)return; arr.push({nome:nomeDe(e,fb),km:kmDe(p[0],p[1])}); }); arr.sort(function(a,b){return a.km-b.km;}); return arr; }
+        function dedup(arr){ var s={},o=[]; arr.forEach(function(x){ var kk=(x.nome||'')+'@'+x.km; if(!s[kk]){s[kk]=1;o.push(x);} }); return o; }
+        function por30(arr,mx){ var b={},o=[]; dedup(arr).forEach(function(x){ var g=Math.floor(x.km/30); b[g]=b[g]||0; if(b[g]<mx){ b[g]++; o.push(x); } }); return o; }
+        return Promise.all([ overpass('node[barrier=toll_booth]',500), overpass('node[amenity=fuel]',600), overpass('node[amenity=restaurant];node[amenity=fast_food]',600) ])
+        .then(function(res){
+          var ped=dedup(mapear(res[0],'Pedágio')).filter(function(x){return x.km>=0 && x.km<=kmTotal;});
+          var pos=por30(mapear(res[1],'Posto').filter(function(x){return x.km>2 && x.km<kmTotal-2;}),2);
+          var rst=por30(mapear(res[2],'Restaurante').filter(function(x){return x.km>2 && x.km<kmTotal-2;}),2);
+          var outObj={km:kmTotal, duracaoMin:durMin, origem:KM_ORIGEM.nome, destino:cidade+(uf?('/'+uf):''), pedagios:ped, postos:pos, restaurantes:rst};
+          __kmRotaCache[chave]=outObj; return outObj;
+        });
+      });
+    }).catch(function(){ return null; });
+  }
+
+  function kmShowOsPdf(url,num,loadingMsg){
     var m=el('kmOsPdfModal');
     if(!m){ m=document.createElement('div'); m.id='kmOsPdfModal';
-      m.innerHTML='<div class="box"><div class="hd"><b>Ordem de Serviço</b><span class="rt"><a id="kmOsPdfDl" href="#" download>Baixar PDF</a><button class="x" id="kmOsPdfX">✕</button></span></div><iframe id="kmOsPdfFrame"></iframe></div>';
+      m.innerHTML='<div class="box"><div class="hd"><b>Ordem de Serviço</b><span class="rt"><a id="kmOsPdfDl" href="#" download>Baixar PDF</a><button class="x" id="kmOsPdfX">✕</button></span></div><div id="kmOsPdfLoad" style="flex:1;display:none;align-items:center;justify-content:center;color:#F1E9D2;font-size:14px;text-align:center;padding:30px;line-height:1.6"></div><iframe id="kmOsPdfFrame"></iframe></div>';
       document.body.appendChild(m);
       m.addEventListener('click',function(e){ if(e.target===m) kmCloseOsPdf(); });
       el('kmOsPdfX').onclick=kmCloseOsPdf;
     }
     m.querySelector('.hd b').textContent='Ordem de Serviço '+(num||'');
-    el('kmOsPdfFrame').src=url;
-    var dl=el('kmOsPdfDl'); dl.href=url; dl.download='OS_'+(num||'KM')+'.pdf';
+    var f=el('kmOsPdfFrame'), ld=el('kmOsPdfLoad'), dl=el('kmOsPdfDl');
+    if(url){ if(ld) ld.style.display='none'; f.style.display=''; f.src=url; if(dl){ dl.style.display=''; dl.href=url; dl.download='OS_'+(num||'KM')+'.pdf'; } }
+    else { f.style.display='none'; if(dl) dl.style.display='none'; if(ld){ ld.style.display='flex'; ld.innerHTML='<div><span style="display:inline-block;width:18px;height:18px;border:2px solid rgba(203,152,76,.3);border-top-color:#CB984C;border-radius:50%;animation:kmspin .8s linear infinite;vertical-align:middle"></span><br><br>'+(loadingMsg||'Gerando…')+'</div>'; } }
     m.style.display='block';
   }
   function kmCloseOsPdf(){ var m=el('kmOsPdfModal'); if(m){ m.style.display='none'; var f=el('kmOsPdfFrame'); if(f) f.src='about:blank'; } }
@@ -5811,7 +5933,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     .then(function(rows){
       var os=rows&&rows[0]; if(!os){ alert('OS não encontrada.'); return; }
       var pedId=os.pedido_id;
-      var pP=pedId?fetch(SB+'/rest/v1/pedidos?id=eq.'+pedId+'&select=numero,valor_frete',{headers:H()}).then(function(r){return r.ok?r.json():[];}).then(function(a){return a[0]||{};}):Promise.resolve({});
+      var pP=pedId?fetch(SB+'/rest/v1/pedidos?id=eq.'+pedId+'&select=numero,valor_frete,colaboradores(nome)',{headers:H()}).then(function(r){return r.ok?r.json():[];}).then(function(a){return a[0]||{};}):Promise.resolve({});
       var iP=pedId?fetch(SB+'/rest/v1/pedido_itens?pedido_id=eq.'+pedId+'&select=qtd,acabamento,produtos(nome)',{headers:H()}).then(function(r){return r.ok?r.json():[];}):Promise.resolve([]);
       Promise.all([pP,iP]).then(function(res){
         var ped=res[0]||{}; var pedNum=ped.numero||''; var its=Array.isArray(res[1])?res[1]:[];
@@ -5819,10 +5941,19 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
         os.__pedFrete=Number(ped.valor_frete||0);
         if(typeof window.osFreteFor==='function'){ os.frete=window.osFreteFor(os); }
         var d={ open:true, cliente:(os.clientes&&os.clientes.nome)||'',
+          vendedor:(ped.colaboradores&&ped.colaboradores.nome)||'',
           itens: its.map(function(i){ return {qtd:i.qtd||1, desc:(i.produtos&&i.produtos.nome)||i.acabamento||'Item'}; }) };
-        var url;
-        try{ url=window.gerarPdfOS(os, {numero:pedNum}, d); }catch(e){ console.error('PDF OS abrir:', e); alert('Não foi possível gerar o PDF da OS.'); return; }
-        if(url) kmShowOsPdf(url, os.numero||'');
+        // rota de entrega (OSM) — best-effort, com timeout; nunca bloqueia a OS
+        kmShowOsPdf(null, os.numero||'', 'Gerando a OS e calculando a rota de entrega (pedágios, postos e restaurantes)…');
+        var cidade=os.cidade||(os.clientes&&os.clientes.cidade)||'';
+        var uf=(os.clientes&&os.clientes.uf)||'';
+        var rotaP=cidade?Promise.race([ kmRotaEntrega(cidade, uf), new Promise(function(rs){ setTimeout(function(){ rs(null); }, 16000); }) ]):Promise.resolve(null);
+        rotaP.then(function(rota){
+          if(rota) d.rota=rota;
+          var url;
+          try{ url=window.gerarPdfOS(os, {numero:pedNum}, d); }catch(e){ console.error('PDF OS abrir:', e); alert('Não foi possível gerar o PDF da OS.'); kmCloseOsPdf(); return; }
+          if(url) kmShowOsPdf(url, os.numero||''); else kmCloseOsPdf();
+        });
       });
     })
     .catch(function(e){ console.error('OS abrir fetch:', e); alert('Erro ao carregar a OS.'); });
@@ -5914,6 +6045,14 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     .then(function(r){ if(!r.ok){ alert('Não foi possível cancelar a OS (sem permissão de equipe?).'); return; } if(typeof window.loadOS==='function') try{ window.loadOS(); }catch(e){} })
     .catch(function(){ alert('Erro de conexão.'); });
   }
+  /* ===================== 1 CLIQUE: avançar status (aciona o rastreio do cliente) ===================== */
+  function kmAvancarOS(osId, to, osNum){
+    if(!osId||!to) return;
+    if(to==='concluida' && !confirm('Marcar a OS '+(osNum||'')+' como ENTREGUE?\n\nO cliente verá "Entregue" no rastreio.')) return;
+    fetch(SB+'/rest/v1/ordens_servico?id=eq.'+osId,{method:'PATCH',headers:H({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({status:to,updated_at:new Date().toISOString()})})
+    .then(function(r){ if(!r.ok){ alert('Não foi possível atualizar (sem permissão de equipe?).'); return; } if(typeof window.loadOS==='function') try{ window.loadOS(); }catch(e){} })
+    .catch(function(){ alert('Erro de conexão.'); });
+  }
 
   /* ===================== RASTREIO — link p/ o cliente acompanhar a entrega ===================== */
   function kmTrackModal(){
@@ -5962,11 +6101,12 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     var b=t.closest&&t.closest('.km-os-open'); if(b){ e.preventDefault(); kmAbrirOS(b.getAttribute('data-osid')); return; }
     var ed=t.closest&&t.closest('.km-os-edit'); if(ed){ e.preventDefault(); kmEditarOS(ed.getAttribute('data-osid')); return; }
     var dl=t.closest&&t.closest('.km-os-del'); if(dl){ e.preventDefault(); kmExcluirOS(dl.getAttribute('data-osid'), dl.getAttribute('data-osnum')); return; }
+    var go=t.closest&&t.closest('.km-os-go'); if(go){ e.preventDefault(); kmAvancarOS(go.getAttribute('data-osid'), go.getAttribute('data-to'), go.getAttribute('data-osnum')); return; }
     var tk=t.closest&&t.closest('.km-os-track'); if(tk){ e.preventDefault(); kmRastreioOS(tk.getAttribute('data-osid'), tk.getAttribute('data-osnum')); return; }
     var le=t.closest&&t.closest('.lead-edit'); if(le){ e.preventDefault(); kmEditarLead(le.getAttribute('data-edit')); return; }
   });
 
-  window.kmEditarLead=kmEditarLead; window.kmAbrirOS=kmAbrirOS; window.kmEditarOS=kmEditarOS; window.kmExcluirOS=kmExcluirOS; window.kmRastreioOS=kmRastreioOS;
+  window.kmEditarLead=kmEditarLead; window.kmAbrirOS=kmAbrirOS; window.kmEditarOS=kmEditarOS; window.kmExcluirOS=kmExcluirOS; window.kmRastreioOS=kmRastreioOS; window.kmAvancarOS=kmAvancarOS;
 })();
 </script>
 <!-- ===== FIM DO PATCH CONTRASTE / UX KM 2026-07-11 ===== -->
