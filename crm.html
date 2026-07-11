@@ -664,8 +664,8 @@
             <span id="os_count" style="color:var(--ouro);font-size:12px;white-space:nowrap"></span>
           </div>
           <table>
-            <thead><tr><th>Nº OS</th><th>Cliente</th><th>Cidade</th><th>Pilar</th><th>Frete</th><th>Data agendada</th><th>Período</th><th>Responsável</th><th>Status</th></tr></thead>
-            <tbody id="osBody"><tr><td colspan="9" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
+            <thead><tr><th>Nº OS</th><th>Cliente</th><th>Cidade</th><th>Pilar</th><th>Frete</th><th>Data agendada</th><th>Período</th><th>Responsável</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="osBody"><tr><td colspan="10" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -1031,7 +1031,14 @@
       tb.innerHTML=rows.map(function(l){
         var contato=[l.telefone,l.email].filter(Boolean).join(' · ');
         var d=new Date(l.created_at); var dt=isNaN(d)?'':d.toLocaleString('pt-BR');
-        return '<tr><td style="color:var(--text)">'+esc(l.nome||'—')+'</td><td>'+esc(contato)+'</td><td><span class="badge">'+esc(l.interesse||'—')+'</span></td><td>'+esc(l.origem||'—')+'</td><td>'+esc(dt)+'</td><td>'+leadIaCell(l)+' <button class="lead-del" data-del="'+l.id+'" title="Apagar lead" style="margin-left:6px;border:1px solid rgba(211,154,154,.5);color:#d39a9a;background:transparent;border-radius:4px;padding:4px 9px;font-size:11px;cursor:pointer">🗑 Apagar</button></td></tr>';
+        // Interesse = o que o cliente realmente escreveu (DM do Instagram fica em l.mensagem); categoria (l.interesse) vira badge quando houver
+        var _cat=(l.interesse||'').toString().trim();
+        var _msg=(l.mensagem||'').toString().trim();
+        var _iCell='';
+        if(_cat) _iCell+='<span class="badge">'+esc(_cat)+'</span>';
+        if(_msg){ var _mShort=_msg.length>70?_msg.slice(0,70)+'…':_msg; _iCell+=(_cat?'<br>':'')+'<span title="'+esc(_msg)+'" style="color:var(--text);font-size:12px">'+esc(_mShort)+'</span>'; }
+        if(!_iCell) _iCell='—';
+        return '<tr><td style="color:var(--text)">'+esc(l.nome||'—')+'</td><td>'+esc(contato)+'</td><td>'+_iCell+'</td><td>'+esc(l.origem||'—')+'</td><td>'+esc(dt)+'</td><td>'+leadIaCell(l)+' <button class="lead-edit" data-edit="'+l.id+'" title="Editar lead">✎ Editar</button> <button class="lead-del" data-del="'+l.id+'" title="Apagar lead" style="margin-left:6px;border:1px solid rgba(158,27,27,.5);color:#9e1b1b;background:transparent;border-radius:4px;padding:4px 9px;font-size:11px;cursor:pointer">🗑 Apagar</button></td></tr>';
       }).join('');
     })
     .catch(function(e){ $('leadsBody').innerHTML='<tr><td colspan="6" class="empty">Sem permissão para ler os leads (seu usuário ainda não é staff) ou erro de conexão.</td></tr>'; console.error(e); });
@@ -2637,7 +2644,7 @@
       return okS && (!q || hay.indexOf(q)>=0);
     });
     var c=$('os_count'); if(c) c.textContent=rows.length+' OS';
-    if(!rows.length){ tb.innerHTML='<tr><td colspan="9" style="color:var(--muted);padding:18px">Nenhuma OS neste filtro.</td></tr>'; return; }
+    if(!rows.length){ tb.innerHTML='<tr><td colspan="10" style="color:var(--muted);padding:18px">Nenhuma OS neste filtro.</td></tr>'; return; }
     var inp='background:#221b10;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:6px 8px;font-size:12.5px';
     tb.innerHTML=rows.map(function(o){
       var cli=(o.clientes&&o.clientes.nome)?o.clientes.nome:'—';
@@ -2653,6 +2660,7 @@
         +'<td><select data-os="'+o.id+'" data-f="periodo" style="'+inp+'">'+osPeriodoOptions(o.periodo)+'</select></td>'
         +'<td><select data-os="'+o.id+'" data-f="responsavel_id" style="'+inp+'">'+osRespOptions(o.responsavel_id)+'</select></td>'
         +'<td><select data-os="'+o.id+'" data-f="status" style="'+inp+'">'+osStatusOptions(o.status)+'</select></td>'
+        +'<td><button class="km-os-open" data-osid="'+o.id+'" title="Abrir a ordem de serviço em PDF">Abrir OS</button></td>'
         +'</tr>';
     }).join('');
   }
@@ -2823,7 +2831,7 @@
     if(Number(j.desconto||0)>0) tot('Desconto:', -Number(j.desconto));
     tot('TOTAL A PAGAR:', j.valor, true);
     y+=6; doc.setFontSize(9); doc.setTextColor(90,90,90);
-    doc.text('Comissão do consultor: R$ '+Number(j.comissao_consultor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})+' ('+(j.comissao_pct||0)+'%)', x, y); y+=14;
+    /* Comissão do consultor NÃO sai no PDF do pedido — documento do cliente/pedido, sem dado interno de comissão (2026-07-11) */
     if(d.obs){ var ob=''+d.obs; if(ob.length>90) ob=ob.slice(0,90)+'…'; doc.text('Obs.: '+ob, x, y); y+=14; }
     doc.setFontSize(8); doc.setTextColor(150,150,150); doc.text('Documento gerado automaticamente pelo KM CRM.', x, 812);
     doc.save('Pedido_'+(j.numero||'KM')+'.pdf');
@@ -2879,6 +2887,7 @@
     via('1a VIA — CLIENTE');
     doc.addPage();
     via('2a VIA — KM INTERIORES (OPERACIONAL)');
+    if(d && d.open){ try{ return doc.output('bloburl'); }catch(e){ /* fallback abaixo */ } }
     doc.save('OS_'+(os.numero||'KM')+'.pdf');
   }
   // ===== DANFE interno (SEM VALOR FISCAL) — PDF automático ao lançar a venda =====
@@ -5594,6 +5603,164 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 })();
 </script>
 <!-- ===== FIM DO PATCH PEDIDOS & VENDAS KM 2026-07-10 ===== -->
+
+<!-- ============================================================================
+     KM Interiores · CRM · PATCH 2026-07-11 — CONTRASTE / UX (6 itens)
+     (1) Botões OUTLINE (Importar CSV, + item) marfim s/ fundo → texto escuro
+     (2) Ficha 360: seletor + botão "Abrir ficha" (caixas escuras) → texto marfim
+     (3) Leads: apagar em vermelho escuro + botão Editar + Interesse = DM real
+     (5) Pedidos & Vendas: preview de comissão preto-no-preto → marfim
+     (6) Ordem de Serviço: campos preto-no-preto → marfim + botão "Abrir OS" (PDF na tela)
+     Tudo aditivo/reversível. Correções de tema aplicadas só quando o tema claro está ativo
+     (html.km-light), preservando o tema ébano se o bloco #km-tema-claro for removido.
+     ============================================================================ -->
+<style id="km-fix-ui-2026-07-11">
+  /* (1)+(4) botões outline dentro de .modform ficavam marfim sobre fundo claro (invisíveis) */
+  html.km-light .modform .btn[style*="transparent"]{ color:#080807 !important; border-color:#080807 !important; }
+  html.km-light .modform .btn[style*="transparent"]:hover{ background:rgba(8,8,7,.06) !important; }
+  /* (2) Ficha 360 — seletor e botão "Abrir ficha" têm caixa escura fixa → texto marfim */
+  html.km-light #fc_cliente{ color:#F1E9D2 !important; }
+  html.km-light #fc_cliente option{ color:#080807 !important; }
+  html.km-light #fc_abrir{ color:#F1E9D2 !important; }
+  /* (5) preview de comissão em Pedidos & Vendas (caixa #1b160d) → marfim; números em dourado */
+  html.km-light #venda_preview{ color:#F1E9D2 !important; }
+  html.km-light #venda_preview b{ color:#CB984C !important; }
+  /* (6) Ordem de Serviço — filtros, busca e campos da agenda (caixas #221b10) → marfim */
+  html.km-light .view[data-v="os"] input,
+  html.km-light .view[data-v="os"] select{ color:#F1E9D2 !important; }
+  html.km-light .view[data-v="os"] select option{ color:#080807 !important; }
+  /* (3) botão Editar do lead (elemento novo) */
+  button.lead-edit{ background:transparent;border:1px solid rgba(8,8,7,.32);color:#7a6320;border-radius:4px;padding:4px 9px;font-size:11px;cursor:pointer;margin-left:6px }
+  button.lead-edit:hover{ border-color:#9D7D31;color:#9D7D31 }
+  /* (6) botão Abrir OS + modal do PDF na tela (elementos novos) */
+  button.km-os-open{ background:#9D7D31;color:#F1E9D2;border:none;border-radius:4px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.04em;cursor:pointer;white-space:nowrap }
+  button.km-os-open:hover{ background:#CB984C }
+  #kmOsPdfModal{ display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.74);padding:24px;box-sizing:border-box }
+  #kmOsPdfModal .box{ max-width:900px;height:100%;margin:auto;background:#14100a;border:1px solid rgba(203,152,76,.3);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6) }
+  #kmOsPdfModal .hd{ display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid rgba(203,152,76,.25) }
+  #kmOsPdfModal .hd b{ color:#CB984C;font-size:15px;font-family:var(--serif,serif) }
+  #kmOsPdfModal .hd .rt{ display:flex;align-items:center;gap:10px }
+  #kmOsPdfModal .hd a{ color:#CB984C;text-decoration:none;font-size:12px;border:1px solid rgba(203,152,76,.4);padding:6px 12px;border-radius:4px }
+  #kmOsPdfModal .hd a:hover{ background:rgba(203,152,76,.12) }
+  #kmOsPdfModal .x{ cursor:pointer;color:#F1E9D2;font-size:22px;line-height:1;background:none;border:none }
+  #kmOsPdfModal iframe{ flex:1;width:100%;border:none;background:#fff }
+</style>
+<script id="km-fix-ui-2026-07-11-js">
+(function(){
+  "use strict";
+  if(window.__kmFixUi20260711) return; window.__kmFixUi20260711=true;
+
+  var SB=window.SB||'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  var KEY=window.KEY||'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var TOKKEY=window.TOKKEY||'km_crm_token';
+  function tok(){ try{return localStorage.getItem(TOKKEY);}catch(e){return null;} }
+  function H(x){ var h={apikey:KEY,Authorization:'Bearer '+tok()}; if(x){for(var k in x)h[k]=x[k];} return h; }
+  function el(id){ return document.getElementById(id); }
+  function esc(s){ if(window.esc)return window.esc(s); return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  /* marca o tema claro para escopar as correções de contraste (não afeta o tema ébano) */
+  if(document.getElementById('km-tema-claro')) document.documentElement.classList.add('km-light');
+
+  /* ===================== (3) EDITAR LEAD ===================== */
+  function leadObj(id){ return (window.leadsById&&window.leadsById[id])||{}; }
+  function ensureLeadModal(){
+    var m=el('kmLeadEditModal'); if(m) return m;
+    m=document.createElement('div'); m.className='km-modal'; m.id='kmLeadEditModal';
+    m.innerHTML='<div class="km-box"><div class="km-head"><b>✎ Editar lead</b><span class="km-x" id="kmLeadX">✕</span></div>'
+      +'<div class="km-body">'
+      +'<label class="km-lab">Nome</label><input id="kmLd-nome">'
+      +'<div class="km-grid"><div><label class="km-lab">Telefone</label><input id="kmLd-telefone"></div>'
+      +'<div><label class="km-lab">E-mail</label><input id="kmLd-email"></div></div>'
+      +'<div class="km-grid"><div><label class="km-lab">Origem</label><input id="kmLd-origem" placeholder="instagram, whatsapp, site…"></div>'
+      +'<div><label class="km-lab">Cidade</label><input id="kmLd-cidade"></div></div>'
+      +'<label class="km-lab">Interesse (categoria)</label><input id="kmLd-interesse" placeholder="ex.: Mobiliário (venda), Locação…">'
+      +'<label class="km-lab">Mensagem do cliente (DM / o que escreveu)</label><textarea id="kmLd-mensagem"></textarea>'
+      +'<div class="km-ft"><button class="km-ok" id="kmLd-save">Salvar</button><button class="km-cancel" id="kmLd-cancel">Cancelar</button><span class="km-msg" id="kmLd-msg"></span></div>'
+      +'</div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){ if(e.target===m) m.style.display='none'; });
+    el('kmLeadX').onclick=function(){ m.style.display='none'; };
+    el('kmLd-cancel').onclick=function(){ m.style.display='none'; };
+    el('kmLd-save').onclick=saveLead;
+    return m;
+  }
+  var curLead=null;
+  function kmEditarLead(id){
+    var l=leadObj(id); curLead=id;
+    var m=ensureLeadModal(); m.style.display='flex';
+    el('kmLd-nome').value=l.nome||''; el('kmLd-telefone').value=l.telefone||'';
+    el('kmLd-email').value=l.email||''; el('kmLd-origem').value=l.origem||'';
+    el('kmLd-cidade').value=l.cidade||''; el('kmLd-interesse').value=l.interesse||'';
+    el('kmLd-mensagem').value=l.mensagem||''; el('kmLd-msg').textContent='';
+  }
+  function saveLead(){
+    if(!curLead) return;
+    var body={ nome:(el('kmLd-nome').value||'').trim()||null, telefone:(el('kmLd-telefone').value||'').trim()||null,
+      email:(el('kmLd-email').value||'').trim()||null, origem:(el('kmLd-origem').value||'').trim()||null,
+      cidade:(el('kmLd-cidade').value||'').trim()||null, interesse:(el('kmLd-interesse').value||'').trim()||null,
+      mensagem:(el('kmLd-mensagem').value||'').trim()||null };
+    var b=el('kmLd-save'); b.disabled=true; b.textContent='Salvando…'; el('kmLd-msg').textContent='';
+    fetch(SB+'/rest/v1/leads?id=eq.'+curLead,{method:'PATCH',headers:H({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)})
+    .then(function(r){ b.disabled=false; b.textContent='Salvar';
+      if(!r.ok){ el('kmLd-msg').textContent='Erro ao salvar (sem permissão de equipe?).'; return; }
+      if(window.leadsById&&window.leadsById[curLead]){ for(var k in body) window.leadsById[curLead][k]=body[k]; }
+      el('kmLeadEditModal').style.display='none';
+      if(typeof window.loadLeads==='function') try{ window.loadLeads(); }catch(e){}
+    })
+    .catch(function(){ b.disabled=false; b.textContent='Salvar'; el('kmLd-msg').textContent='Erro de conexão.'; });
+  }
+
+  /* ===================== (6) ABRIR OS EM PDF NA TELA ===================== */
+  function kmShowOsPdf(url,num){
+    var m=el('kmOsPdfModal');
+    if(!m){ m=document.createElement('div'); m.id='kmOsPdfModal';
+      m.innerHTML='<div class="box"><div class="hd"><b>Ordem de Serviço</b><span class="rt"><a id="kmOsPdfDl" href="#" download>Baixar PDF</a><button class="x" id="kmOsPdfX">✕</button></span></div><iframe id="kmOsPdfFrame"></iframe></div>';
+      document.body.appendChild(m);
+      m.addEventListener('click',function(e){ if(e.target===m) kmCloseOsPdf(); });
+      el('kmOsPdfX').onclick=kmCloseOsPdf;
+    }
+    m.querySelector('.hd b').textContent='Ordem de Serviço '+(num||'');
+    el('kmOsPdfFrame').src=url;
+    var dl=el('kmOsPdfDl'); dl.href=url; dl.download='OS_'+(num||'KM')+'.pdf';
+    m.style.display='block';
+  }
+  function kmCloseOsPdf(){ var m=el('kmOsPdfModal'); if(m){ m.style.display='none'; var f=el('kmOsPdfFrame'); if(f) f.src='about:blank'; } }
+
+  function kmAbrirOS(osId){
+    if(!osId) return;
+    if(!(window.jspdf && window.jspdf.jsPDF)){ alert('Gerador de PDF ainda carregando. Tente novamente em instantes.'); return; }
+    if(typeof window.gerarPdfOS!=='function'){ alert('Função de PDF da OS indisponível.'); return; }
+    var sel='numero,cidade,endereco,distancia_km,frete,pilar,data_agendada,observacoes,pedido_id,clientes(nome,telefone,bairro,numero,complemento,cidade,uf,cep)';
+    fetch(SB+'/rest/v1/ordens_servico?id=eq.'+osId+'&select='+encodeURIComponent(sel)+'&limit=1',{headers:H()})
+    .then(function(r){ return r.ok?r.json():[]; })
+    .then(function(rows){
+      var os=rows&&rows[0]; if(!os){ alert('OS não encontrada.'); return; }
+      var pedId=os.pedido_id;
+      var pP=pedId?fetch(SB+'/rest/v1/pedidos?id=eq.'+pedId+'&select=numero',{headers:H()}).then(function(r){return r.ok?r.json():[];}).then(function(a){return (a[0]&&a[0].numero)||'';}):Promise.resolve('');
+      var iP=pedId?fetch(SB+'/rest/v1/pedido_itens?pedido_id=eq.'+pedId+'&select=qtd,acabamento,produtos(nome)',{headers:H()}).then(function(r){return r.ok?r.json():[];}):Promise.resolve([]);
+      Promise.all([pP,iP]).then(function(res){
+        var pedNum=res[0]||''; var its=Array.isArray(res[1])?res[1]:[];
+        var d={ open:true, cliente:(os.clientes&&os.clientes.nome)||'',
+          itens: its.map(function(i){ return {qtd:i.qtd||1, desc:(i.produtos&&i.produtos.nome)||i.acabamento||'Item'}; }) };
+        var url;
+        try{ url=window.gerarPdfOS(os, {numero:pedNum}, d); }catch(e){ console.error('PDF OS abrir:', e); alert('Não foi possível gerar o PDF da OS.'); return; }
+        if(url) kmShowOsPdf(url, os.numero||'');
+      });
+    })
+    .catch(function(e){ console.error('OS abrir fetch:', e); alert('Erro ao carregar a OS.'); });
+  }
+
+  /* ===================== delegação de cliques (robusta a re-render) ===================== */
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    var b=t.closest&&t.closest('.km-os-open'); if(b){ e.preventDefault(); kmAbrirOS(b.getAttribute('data-osid')); return; }
+    var le=t.closest&&t.closest('.lead-edit'); if(le){ e.preventDefault(); kmEditarLead(le.getAttribute('data-edit')); return; }
+  });
+
+  window.kmEditarLead=kmEditarLead; window.kmAbrirOS=kmAbrirOS;
+})();
+</script>
+<!-- ===== FIM DO PATCH CONTRASTE / UX KM 2026-07-11 ===== -->
 
 </body>
 </html>
