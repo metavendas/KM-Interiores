@@ -1797,7 +1797,7 @@
   // ===== Admin de Produtos (imagem + vídeo + estoque + ranking) =====
   function brl(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
   function slugSku(nome){ return 'KM-'+(nome||'PROD').toUpperCase().normalize('NFD').replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,16)+'-'+Math.random().toString(36).slice(2,5).toUpperCase(); }
-  var prodEditId=null, prodById={}, prodEditItens=[];
+  var prodEditId=null, prodById={}, prodEditItens=[], PROD_FIND={};
   var KM_PALETA=[['branco','#ffffff'],['cinza','#9aa0a6'],['preto','#1a1a1a'],['verde','#2e7d32'],['azul','#1565c0'],['marrom','#6d4c41'],['vermelho','#c62828'],['dourado','#c9a227'],['bege','#d8c3a5'],['gelo','#eef2f3']];
   function itemFieldsHTML(i){
     return '<div class="f"><select data-k="item_tipo'+i+'"><option value="">Item '+i+' — tipo</option><option value="variacao">Variação (escolhe uma)</option><option value="adicional">Adicional (soma)</option></select></div>'
@@ -1822,6 +1822,7 @@
     if(host.dataset.built){ loadProdutos(); return; } host.dataset.built='1';
     host.innerHTML='<div class="panel">'
       +'<div class="modbar"><h3 id="prodFormTitle">Novo produto</h3><span class="modmsg" id="msg-prod"></span></div>'
+      +'<div class="modform" style="padding-bottom:0"><div class="f full"><label>🔍 Localizar produto — digite o nome para achar rápido</label><input id="prodFind" list="prodFindList" placeholder="Comece a digitar o nome do produto e selecione para editar…" autocomplete="off"><datalist id="prodFindList"></datalist></div></div>'
       +'<div class="modform" id="form-prod">'
       +'<div class="f full"><label>Nome *</label><input data-k="nome"></div>'
       +'<div class="f"><label>Categoria</label><input data-k="categoria"></div>'
@@ -1854,6 +1855,7 @@
       if(act==='edit') editProduto(id); else if(act==='del') delProduto(id);
     });
     $('msg-prod').addEventListener('click', function(e){ if(e.target && e.target.id==='prodCancelEdit') resetProdForm(); });
+    var pf=$('prodFind'); if(pf) pf.addEventListener('change', function(){ var id=PROD_FIND[csvNorm(this.value)]; if(id){ editProduto(id); this.value=''; } });
     loadProdutos();
   }
   function loadProdutos(){
@@ -1861,14 +1863,19 @@
     fetch(SB+'/rest/v1/produtos?select=id,nome,categoria,sku,preco,estoque_disponivel,ranking,trilha,destaque,video_url,descricao,foto_url,itens,cores_disponiveis&order=ranking.asc.nullslast,nome.asc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
-      var tb=$('body-prod'); prodById={};
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="9" class="empty">Nenhum produto. Cadastre acima.</td></tr>'; return; }
+      var tb=$('body-prod'); prodById={}; PROD_FIND={};
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="9" class="empty">Nenhum produto. Cadastre acima.</td></tr>'; var dl0=$('prodFindList'); if(dl0) dl0.innerHTML=''; return; }
+      var seenNome={}, findOpts='';
       tb.innerHTML=rows.map(function(p){
         prodById[p.id]=p;
+        var base=p.nome||'(sem nome)', key=csvNorm(base), val=base;
+        if(seenNome[key]) val=base+' · '+(p.sku||String(p.id).slice(0,4)); // desambigua nomes repetidos
+        seenNome[key]=true; PROD_FIND[csvNorm(val)]=p.id; findOpts+='<option value="'+esc(val)+'">';
         var img=p.foto_url?('<img src="'+esc(p.foto_url)+'" style="width:44px;height:44px;object-fit:cover;border-radius:3px;border:1px solid var(--line)">'):'<span style="color:var(--ouro)">—</span>';
         return '<tr><td>'+img+'</td><td style="color:var(--text)">'+esc(p.nome||'')+'</td><td><span class="badge">'+esc(p.categoria||'—')+'</span></td><td>'+brl(p.preco)+'</td><td>'+(p.estoque_disponivel==null?'—':p.estoque_disponivel)+'</td><td>'+(p.ranking==null?'—':p.ranking)+'</td><td>'+esc(p.trilha||'—')+'</td>'
           +'<td style="text-align:right;white-space:nowrap"><button class="ia-btn" data-act="edit" data-id="'+p.id+'">Editar</button> <button class="ia-btn" data-act="del" data-id="'+p.id+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Deletar</button></td></tr>';
       }).join('');
+      var dl=$('prodFindList'); if(dl) dl.innerHTML=findOpts;
     })
     .catch(function(e){ $('body-prod').innerHTML='<tr><td colspan="9" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; console.error(e); });
   }
