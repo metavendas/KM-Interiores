@@ -2715,14 +2715,19 @@
         var frt=Number(p.valor_frete||0)>0?('R$ '+Number(p.valor_frete).toLocaleString('pt-BR')):'—';
         var com=Number(p.comissao_valor||0)>0?('R$ '+Number(p.comissao_valor).toLocaleString('pt-BR')):'—';
         var canc=(p.status==='cancelado');
-        var st=canc?'CANCELADO':(PED_STATUS[p.status]||p.status||'—');
-        var cls=(p.status==='pago')?'ia-tag ok':'badge';
+        // Status: para pedidos NÃO pagos, mostra QUANTO FALTA RECEBER (valor + frete) no lugar de "aguardando pagamento".
+        var pend=(p.status==='novo'||p.status==='aguardando_pagamento'||p.status==='pagamento_recusado');
+        var faltaReceber=Number(p.valor||0)+Number(p.valor_frete||0);
+        var stHtml;
+        if(canc){ stHtml='<span class="badge">CANCELADO</span>'; }
+        else if(pend){ var pre=(p.status==='pagamento_recusado')?'Pgto recusado · falta ':'Falta receber '; stHtml='<span class="badge" style="color:#c9862f;white-space:nowrap" title="'+esc(PED_STATUS[p.status]||'')+'">'+esc(pre)+'R$ '+faltaReceber.toLocaleString('pt-BR')+'</span>'; }
+        else { var cls=(p.status==='pago')?'ia-tag ok':'badge'; stHtml='<span class="'+cls+'">'+esc(PED_STATUS[p.status]||p.status||'—')+'</span>'; }
         var pil=PILAR_LABEL[p.pilar]||p.pilar||'—';
         var btnNF='<button class="badge" style="cursor:pointer;margin-right:4px;border-color:#9D7D31;color:#CB984C" onclick="reimprimirDanfe(\''+p.id+'\')">NF</button>';
         var acoes=canc
           ? '<button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>'
           : btnNF+'<button class="badge" style="cursor:pointer;margin-right:4px" onclick="acaoVenda(\''+p.id+'\',\'cancelado\')">Cancelar</button><button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>';
-        return '<tr'+(canc?' style="opacity:.55"':'')+'><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+esc(cli)+'</td><td>'+esc(pil)+'</td><td>'+esc(p.canal||'')+'</td><td>'+esc(vendNome(p.vendedor_id))+'</td><td style="color:var(--accent)">'+val+'</td><td style="color:var(--muted)">'+frt+'</td><td style="color:var(--ouro)">'+com+'</td><td><span class="'+cls+'">'+esc(st)+'</span></td><td>'+acoes+'</td></tr>';
+        return '<tr'+(canc?' style="opacity:.55"':'')+'><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+esc(cli)+'</td><td>'+esc(pil)+'</td><td>'+esc(p.canal||'')+'</td><td>'+esc(vendNome(p.vendedor_id))+'</td><td style="color:var(--accent)">'+val+'</td><td style="color:var(--muted)">'+frt+'</td><td style="color:var(--ouro)">'+com+'</td><td>'+stHtml+'</td><td>'+acoes+'</td></tr>';
       }).join('');
     })
     .catch(function(e){ tb.innerHTML='<tr><td colspan="11" style="color:var(--muted);padding:18px">Não foi possível carregar (entre como equipe).</td></tr>'; console.error(e); });
