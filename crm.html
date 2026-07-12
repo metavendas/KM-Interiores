@@ -3401,14 +3401,16 @@
       if(typeof Chart!=='undefined'){
         var cv=document.getElementById('chForecast');
         if(cv){ kmDestroy('chForecast');
+          var fcLight=document.documentElement.classList.contains('km-light');
+          var fcTXT=fcLight?'#3d2c10':'#E9D9BC', fcGRID=fcLight?'rgba(0,0,0,.12)':'rgba(255,255,255,.06)';
           KMCH['chForecast']=new Chart(cv.getContext('2d'),{type:'bar',
             data:{labels:labels,datasets:[
               {label:'Meta',data:meta,backgroundColor:'#5E3D12'},
               {label:'Previsto',data:prev,backgroundColor:'#CB984C'}]},
             options:{responsive:true,maintainAspectRatio:false,
-              plugins:{legend:{display:true,position:'bottom',labels:{color:'#E9D9BC',font:{size:11},boxWidth:12}},
+              plugins:{legend:{display:true,position:'bottom',labels:{color:fcTXT,font:{size:11},boxWidth:12}},
                 tooltip:{callbacks:{label:function(c){ return c.dataset.label+': R$ '+Number(c.parsed.y).toLocaleString('pt-BR'); }}}},
-              scales:{x:{ticks:{color:'#C9B79A',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#C9B79A',font:{size:10},callback:function(v){ return 'R$ '+Number(v).toLocaleString('pt-BR'); }},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}}}
+              scales:{x:{ticks:{color:fcTXT,font:{size:10}},grid:{display:false}},y:{ticks:{color:fcTXT,font:{size:10},callback:function(v){ return 'R$ '+Number(v).toLocaleString('pt-BR'); }},grid:{color:fcGRID},beginAtZero:true}}}
           });
         }
       }
@@ -3456,24 +3458,28 @@
   function finCharts(v){
     if(typeof Chart==='undefined') return;
     var money=function(x){ return 'R$ '+Number(x||0).toLocaleString('pt-BR'); };
-    var LEG={position:'bottom',labels:{color:'#E9D9BC',font:{size:11},boxWidth:12}};
+    var light=document.documentElement.classList.contains('km-light');
+    var TXT=light?'#3d2c10':'#E9D9BC';           // texto legível no tema claro e no escuro
+    var GRID=light?'rgba(0,0,0,.12)':'rgba(255,255,255,.06)';
+    var BORD=light?'#F1E4C9':'#14100a';          // borda entre fatias combina com o fundo do tema
+    var LEG={position:'bottom',labels:{color:TXT,font:{size:11},boxWidth:12}};
     var TT={callbacks:{label:function(c){ var val=(c.parsed!=null&&c.parsed.y!=null)?c.parsed.y:c.parsed; return (c.label?c.label+': ':'')+money(val); }}};
     // 1) Onde está o dinheiro (curto prazo)
     var c1=document.getElementById('chFinPatrimonio');
     if(c1){ kmDestroy('chFinPatrimonio'); KMCH['chFinPatrimonio']=new Chart(c1.getContext('2d'),{type:'doughnut',
-      data:{labels:['Caixa','Recebíveis','Estoque'],datasets:[{data:[v.saldoCaixa,v.receb,v.estoque],backgroundColor:['#CB984C','#9D7D31','#5E3D12'],borderColor:'#14100a',borderWidth:2}]},
+      data:{labels:['Caixa','Recebíveis','Estoque'],datasets:[{data:[v.saldoCaixa,v.receb,v.estoque],backgroundColor:['#CB984C','#9D7D31','#5E3D12'],borderColor:BORD,borderWidth:2}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:LEG,tooltip:TT}}}); }
     // 2) Receita do mês por origem
     var c2=document.getElementById('chFinReceita');
     if(c2){ kmDestroy('chFinReceita'); KMCH['chFinReceita']=new Chart(c2.getContext('2d'),{type:'doughnut',
-      data:{labels:['Loja','Pilares (locação/3D/programas)'],datasets:[{data:[v.rLoja,v.rPil],backgroundColor:['#CB984C','#7a6a48'],borderColor:'#14100a',borderWidth:2}]},
+      data:{labels:['Loja','Pilares (locação/3D/programas)'],datasets:[{data:[v.rLoja,v.rPil],backgroundColor:['#CB984C','#7a6a48'],borderColor:BORD,borderWidth:2}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:LEG,tooltip:TT}}}); }
     // 3) Recebíveis × A pagar
     var c3=document.getElementById('chFinObrig');
     if(c3){ kmDestroy('chFinObrig'); KMCH['chFinObrig']=new Chart(c3.getContext('2d'),{type:'bar',
-      data:{labels:['A receber','Vencidos','A pagar'],datasets:[{data:[v.receb,v.vencidos,v.apagar],backgroundColor:['#4a8f5e','#c0603a','#9D7D31'],borderColor:'#14100a',borderWidth:1}]},
+      data:{labels:['A receber','Vencidos','A pagar'],datasets:[{data:[v.receb,v.vencidos,v.apagar],backgroundColor:['#4a8f5e','#c0603a','#9D7D31'],borderColor:BORD,borderWidth:1}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT},
-        scales:{x:{ticks:{color:'#C9B79A',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#C9B79A',font:{size:10},callback:function(x){ return 'R$ '+Number(x).toLocaleString('pt-BR'); }},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}}}}); }
+        scales:{x:{ticks:{color:TXT,font:{size:10}},grid:{display:false}},y:{ticks:{color:TXT,font:{size:10},callback:function(x){ return 'R$ '+Number(x).toLocaleString('pt-BR'); }},grid:{color:GRID},beginAtZero:true}}}}); }
   }
   // ===== Fluxo de Caixa =====
   var FC_BUILT=false, FC_PERIODO=30, FC_CONTA='', FC_CONTAS=[], FC_CHART=null;
