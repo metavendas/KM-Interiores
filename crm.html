@@ -672,14 +672,24 @@
 
       <section class="view" data-v="financeiro" hidden>
         <div class="h1">Financeiro</div>
-        <div class="sub">Receita e recebíveis em tempo real · baseado nos pedidos do site</div>
+        <div class="sub">Retrato financeiro do momento · receita, caixa, estoque, recebíveis e obrigações — em tempo real</div>
         <div class="kpis" id="finKpis"><div class="kpi"><div class="l">Carregando…</div><div class="n">—</div></div></div>
+        <div class="panel" style="margin-top:14px"><h3>Retrato do momento</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;padding:16px 18px">
+            <div><div style="color:var(--muted);font-size:12px;margin-bottom:8px;text-align:center">Onde está o dinheiro (curto prazo)</div><div style="height:230px"><canvas id="chFinPatrimonio"></canvas></div></div>
+            <div><div style="color:var(--muted);font-size:12px;margin-bottom:8px;text-align:center">Receita do mês por origem</div><div style="height:230px"><canvas id="chFinReceita"></canvas></div></div>
+            <div><div style="color:var(--muted);font-size:12px;margin-bottom:8px;text-align:center">Recebíveis × A pagar</div><div style="height:230px"><canvas id="chFinObrig"></canvas></div></div>
+          </div></div>
         <div class="panel" style="margin-top:14px"><h3>Como é calculado</h3>
           <div style="padding:16px 20px;color:var(--muted);font-size:13px;line-height:1.7">
             <b style="color:var(--text)">Receita (mês)</b> = pedidos com status <b>Pago</b> no mês corrente. ·
-            <b style="color:var(--text)">Recebíveis</b> = pedidos <b>novos / aguardando pagamento</b>. ·
-            <b style="color:var(--text)">A pagar</b> = lançamentos do financeiro ainda em aberto.<br>
-            Os números atualizam sozinhos conforme o Mercado Pago confirma cada pagamento.
+            <b style="color:var(--text)">Saldo em caixa</b> = soma dos saldos das contas bancárias (Fluxo de Caixa). ·
+            <b style="color:var(--text)">Valor total em estoque</b> = soma de (peças × valor unitário) dos itens de estoque. ·
+            <b style="color:var(--text)">Recebíveis</b> = pedidos <b>novos / aguardando pagamento</b> + contratos. ·
+            <b style="color:var(--text)">A pagar</b> = lançamentos do financeiro ainda em aberto. ·
+            <b style="color:var(--text)">Posição líquida</b> = caixa + a receber − a pagar. ·
+            <b style="color:var(--text)">Patrimônio de curto prazo</b> = caixa + recebíveis + estoque.<br>
+            Os números atualizam sozinhos conforme o Mercado Pago confirma cada pagamento e conforme o estoque é lançado.
           </div></div>
       </section>
       <section class="view" data-v="fluxocaixa" hidden>
@@ -3410,22 +3420,60 @@
     var box=$('finKpis'); if(!box) return;
     var tok=localStorage.getItem(TOKKEY);
     box.innerHTML=kpiCard('Carregando…','—','');
-    fetch(SB+'/rest/v1/rpc/get_financeiro_resumo',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:'{}'})
-    .then(function(r){ return r.json(); })
-    .then(function(d){
+    var H=Object.assign(authHeaders(tok),{'Content-Type':'application/json'});
+    var pResumo=fetch(SB+'/rest/v1/rpc/get_financeiro_resumo',{method:'POST',headers:H,body:'{}'}).then(function(r){ return r.json(); }).catch(function(){ return null; });
+    var pCaixa=rpc('contas_saldo',{}).then(function(d){ return (d&&d.ok&&Array.isArray(d.contas))?d.contas:[]; }).catch(function(){ return []; });
+    // estoque valorizado (tolerante: coluna valor_total só existe após o SQL)
+    var pEstVal=fetch(SB+'/rest/v1/estoque?select=valor_total',{headers:authHeaders(tok)}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; });
+    var pEstPecas=fetch(SB+'/rest/v1/estoque?select=total_pecas',{headers:authHeaders(tok)}).then(function(r){ return r.ok?r.json():[]; }).catch(function(){ return []; });
+    Promise.all([pResumo,pCaixa,pEstVal,pEstPecas]).then(function(res){
+      var d=res[0], contas=res[1], estVal=res[2], estPecas=res[3];
       if(!d || d.erro){ box.innerHTML=kpiCard('Sem permissão','—','entre como equipe'); return; }
+      var saldoCaixa=contas.reduce(function(a,c){ return a+(Number(c.saldo_atual)||0); },0);
+      var estoqueValor=Array.isArray(estVal)?estVal.reduce(function(a,x){ return a+(Number(x.valor_total)||0); },0):null;
+      var pecas=(Array.isArray(estPecas)?estPecas:[]).reduce(function(a,x){ return a+(Number(x.total_pecas)||0); },0);
+      var receb=Number(d.recebiveis)||0, apagar=Number(d.a_pagar)||0, vencidos=Number(d.recebiveis_vencidos)||0;
+      var rLoja=Number(d.receita_loja_mes)||0, rPil=Number(d.receita_pilares_mes)||0;
+      var posLiq=saldoCaixa+receb-apagar;
+      var patrimCP=saldoCaixa+receb+(estoqueValor||0);
       box.innerHTML=[
         kpiCard('Faturamento (mês)',moneyBR(d.faturamento_mes),'loja + locação/programas/3D'),
         kpiCard('Receita recorrente (MRR)',moneyBR(d.mrr),(d.contratos_ativos||0)+' contratos ativos'),
         kpiCard('Receita loja (mês)',moneyBR(d.receita_loja_mes),'pedidos pagos'),
         kpiCard('Receita pilares (mês)',moneyBR(d.receita_pilares_mes),'recebido: locação/programas/3D'),
+        kpiCard('Saldo em caixa',moneyBR(saldoCaixa),(contas.length||0)+' conta(s) · disponível agora'),
+        kpiCard('Valor total em estoque',(estoqueValor==null?'—':moneyBR(estoqueValor)),(estoqueValor==null?'ative o estoque valorizado (SQL)':(pecas+' peças em estoque'))),
         kpiCard('Recebíveis',moneyBR(d.recebiveis),'loja + contratos'),
         kpiCard('Recebíveis vencidos',moneyBR(d.recebiveis_vencidos),'em atraso · ver Cobrança'),
-        kpiCard('Ticket médio',moneyBR(d.ticket_medio),'por pedido pago'),
-        kpiCard('A pagar',moneyBR(d.a_pagar),'em aberto')
+        kpiCard('A pagar',moneyBR(d.a_pagar),'em aberto'),
+        kpiCard('Posição líquida',moneyBR(posLiq),'caixa + a receber − a pagar'),
+        kpiCard('Patrimônio de curto prazo',moneyBR(patrimCP),'caixa + recebíveis + estoque'),
+        kpiCard('Ticket médio',moneyBR(d.ticket_medio),'por pedido pago')
       ].join('');
-    })
-    .catch(function(e){ box.innerHTML=kpiCard('Erro ao carregar','—',''); console.error(e); });
+      finCharts({saldoCaixa:saldoCaixa, receb:receb, estoque:(estoqueValor||0), vencidos:vencidos, apagar:apagar, rLoja:rLoja, rPil:rPil});
+    }).catch(function(e){ box.innerHTML=kpiCard('Erro ao carregar','—',''); console.error(e); });
+  }
+  function finCharts(v){
+    if(typeof Chart==='undefined') return;
+    var money=function(x){ return 'R$ '+Number(x||0).toLocaleString('pt-BR'); };
+    var LEG={position:'bottom',labels:{color:'#E9D9BC',font:{size:11},boxWidth:12}};
+    var TT={callbacks:{label:function(c){ var val=(c.parsed!=null&&c.parsed.y!=null)?c.parsed.y:c.parsed; return (c.label?c.label+': ':'')+money(val); }}};
+    // 1) Onde está o dinheiro (curto prazo)
+    var c1=document.getElementById('chFinPatrimonio');
+    if(c1){ kmDestroy('chFinPatrimonio'); KMCH['chFinPatrimonio']=new Chart(c1.getContext('2d'),{type:'doughnut',
+      data:{labels:['Caixa','Recebíveis','Estoque'],datasets:[{data:[v.saldoCaixa,v.receb,v.estoque],backgroundColor:['#CB984C','#9D7D31','#5E3D12'],borderColor:'#14100a',borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:LEG,tooltip:TT}}}); }
+    // 2) Receita do mês por origem
+    var c2=document.getElementById('chFinReceita');
+    if(c2){ kmDestroy('chFinReceita'); KMCH['chFinReceita']=new Chart(c2.getContext('2d'),{type:'doughnut',
+      data:{labels:['Loja','Pilares (locação/3D/programas)'],datasets:[{data:[v.rLoja,v.rPil],backgroundColor:['#CB984C','#7a6a48'],borderColor:'#14100a',borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:LEG,tooltip:TT}}}); }
+    // 3) Recebíveis × A pagar
+    var c3=document.getElementById('chFinObrig');
+    if(c3){ kmDestroy('chFinObrig'); KMCH['chFinObrig']=new Chart(c3.getContext('2d'),{type:'bar',
+      data:{labels:['A receber','Vencidos','A pagar'],datasets:[{data:[v.receb,v.vencidos,v.apagar],backgroundColor:['#4a8f5e','#c0603a','#9D7D31'],borderColor:'#14100a',borderWidth:1}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT},
+        scales:{x:{ticks:{color:'#C9B79A',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#C9B79A',font:{size:10},callback:function(x){ return 'R$ '+Number(x).toLocaleString('pt-BR'); }},grid:{color:'rgba(255,255,255,.06)'},beginAtZero:true}}}}); }
   }
   // ===== Fluxo de Caixa =====
   var FC_BUILT=false, FC_PERIODO=30, FC_CONTA='', FC_CONTAS=[], FC_CHART=null;
