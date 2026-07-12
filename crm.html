@@ -1605,7 +1605,8 @@
       cols:[{k:'nome'},{k:'tipo',badge:true},{k:'fornece'},{k:'prazo_medio_dias'},{k:'contato'}] },
     vendedores:{ table:'colaboradores', fields:[
       {k:'nome',l:'Nome',req:true,full:true},{k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},
-      {k:'regiao',l:'Região'},{k:'meta_mensal',l:'Meta mensal (R$)',type:'number'},{k:'realizado_mes',l:'Realizado no mês (R$)',type:'number'}],
+      {k:'regiao',l:'Região'},{k:'meta_mensal',l:'Meta mensal (R$)',type:'number'},{k:'realizado_mes',l:'Realizado no mês (R$)',type:'number'},
+      {k:'indicado_por',l:'Consultor(a) Indicado por:',type:'consultores',full:true}],
       cols:[{k:'nome'},{k:'regiao',badge:true},{k:'realizado_mes',money:true},{k:'meta_mensal',money:true},{k:'telefone'}] },
     parceiros:{ table:'parceiros', fields:[
       {k:'nome',l:'Nome',req:true,full:true},
@@ -1712,7 +1713,8 @@
     var ff=cfg.fields.map(function(f){
       if(f.type==='section') return '<div class="f full" data-sec="1"'+(f.grp?(' data-grp="'+f.grp+'"'):'')+' style="border-top:1px solid var(--line);margin:10px 0 2px;padding-top:12px"><label style="color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700">'+f.l+'</label></div>';
       var inp;
-      if(f.type==='select') inp='<select data-k="'+f.k+'">'+f.opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>';
+      if(f.type==='consultores') inp='<select data-k="'+f.k+'"><option value="">— selecione —</option></select>';
+      else if(f.type==='select') inp='<select data-k="'+f.k+'">'+f.opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>';
       else if(f.type==='textarea') inp='<textarea data-k="'+f.k+'" rows="2"></textarea>';
       else inp='<input data-k="'+f.k+'" type="'+(f.type||'text')+'">';
       return '<div class="f'+(f.full?' full':'')+'"'+(f.grp?(' data-grp="'+f.grp+'"'):'')+'><label>'+f.l+(f.req?' *':'')+'</label>'+inp+'</div>';
@@ -1730,7 +1732,18 @@
     var si=$('search-'+key), tmr; if(si) si.addEventListener('input', function(){ clearTimeout(tmr); var t=si.value; tmr=setTimeout(function(){ loadMod(key, t); }, 300); });
     var tpSel=$('form-'+key)?$('form-'+key).querySelector('[data-k="tipo_pessoa"]'):null;
     if(tpSel){ tpSel.addEventListener('change',function(){ toggleGrp(tpSel); }); toggleGrp(tpSel); }
+    if(cfg.fields.some(function(f){return f.type==='consultores';})){ ensureVendedores(function(){ fillConsultoresSelect(key); }); }
     loadMod(key);
+  }
+  function fillConsultoresSelect(key){
+    // Popula seletores dinâmicos (tipo 'consultores') com todos os consultores PIN cadastrados — ex.: "Indicado por".
+    var cfg=MODS[key], form=$('form-'+key); if(!cfg||!form) return;
+    cfg.fields.forEach(function(f){ if(f.type!=='consultores') return;
+      var sel=form.querySelector('select[data-k="'+f.k+'"]'); if(!sel) return;
+      var cur=sel.value;
+      sel.innerHTML='<option value="">— selecione —</option>'+(VEND_CACHE||[]).map(function(v){ return '<option value="'+esc(v.id)+'">'+esc(v.nome||'')+'</option>'; }).join('');
+      if(cur) sel.value=cur;
+    });
   }
   function loadMod(key, term){
     var cfg=MODS[key]; var tok=localStorage.getItem(TOKKEY); term=(term||'').trim();
@@ -1777,6 +1790,7 @@
       if(r.ok){ $('msg-'+key).textContent=editId?'Alterações salvas ✓':'Cadastro salvo ✓'; if(editId) cancelEdit(key);
         cfg.fields.forEach(function(f){ var el=form.querySelector('[data-k="'+f.k+'"]'); if(el && el.tagName!=='SELECT') el.value=''; });
         loadMod(key); setTimeout(function(){ $('msg-'+key).textContent=''; },2500);
+        if(cfg.fields.some(function(f){return f.type==='consultores';})){ VEND_CACHE=null; ensureVendedores(function(){ fillConsultoresSelect(key); }); }
       } else { r.text().then(function(t){ $('msg-'+key).textContent='Erro ao salvar: '+t.slice(0,90); }); } })
     .catch(function(e){ btn.disabled=false; btn.textContent=editId?'Salvar alterações':'Salvar cadastro'; $('msg-'+key).textContent='Erro de conexão.'; console.error(e); });
   }
