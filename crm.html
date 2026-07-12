@@ -1614,11 +1614,15 @@
       {k:'email',l:'E-mail'},{k:'telefone',l:'Telefone'},{k:'cidade',l:'Cidade / UF'},{k:'comissao_pct',l:'Comissão (%)',type:'number'}],
       cols:[{k:'nome'},{k:'tipo',badge:true},{k:'cidade'},{k:'comissao_pct'},{k:'telefone'}] },
     estoque:{ table:'estoque', fields:[
+      {k:'produto_id',l:'Produto — digite para escolher (preenche item, valor e fornecedor)',type:'lookup',src:'produtos',full:true,link:{nome:'nome',valor:'valor_unitario',fornecedor:'fornecedor_id'}},
       {k:'nome',l:'Nome / Item',req:true,full:true},{k:'documento',l:'Documento'},{k:'tipo',l:'Tipo'},
       {k:'status',l:'Status',type:'select',opts:['Disponível','Reservado','Em trânsito','Baixo','Esgotado']},
-      {k:'responsavel',l:'Responsável'},{k:'fornecedor',l:'Fornecedor'},
-      {k:'pecas_disponiveis',l:'Peças disponíveis',type:'number'},{k:'total_pecas',l:'Total de peças',type:'number'}],
-      cols:[{k:'nome'},{k:'tipo',badge:true},{k:'status',badge:true},{k:'pecas_disponiveis'},{k:'total_pecas'},{k:'responsavel'},{k:'fornecedor'},{k:'modificado',date:true}] }
+      {k:'responsavel',l:'Responsável'},{k:'fornecedor_id',l:'Fornecedor — digite para escolher',type:'lookup',src:'fornecedores'},
+      {k:'pecas_disponiveis',l:'Peças disponíveis',type:'number'},{k:'total_pecas',l:'Total de peças',type:'number'},
+      {k:'valor_unitario',l:'Valor unitário (R$)',type:'number'},
+      {k:'valor_total',l:'Valor total em estoque (R$)',type:'calc',mul:['total_pecas','valor_unitario']},
+      {k:'data_entrada',l:'Data de entrada',type:'date'}],
+      cols:[{k:'nome'},{k:'tipo',badge:true},{k:'status',badge:true},{k:'pecas_disponiveis'},{k:'total_pecas'},{k:'valor_total',money:true},{k:'responsavel'},{k:'modificado',date:true}] }
   };
   function labelFor(cfg,k){ for(var i=0;i<cfg.fields.length;i++){ if(cfg.fields[i].k===k) return cfg.fields[i].l; } return k; }
   function modMoney(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
@@ -1673,7 +1677,12 @@
   function modEditRow(key,id){
     var cfg=MODS[key]; var r=(MOD_ROWS[key]||{})[id]; if(!r) return;
     var form=$('form-'+key); if(!form) return;
-    cfg.fields.forEach(function(f){ var el=form.querySelector('[data-k="'+f.k+'"]'); if(el){ var v=r[f.k]; el.value=(v==null?'':v); } });
+    cfg.fields.forEach(function(f){ var el=form.querySelector('[data-k="'+f.k+'"]'); if(!el) return; var v=r[f.k];
+      if(f.type==='lookup'){ var L=LOOKUPS[f.src]; el.value=(v&&L&&L.byId[v])?L.byId[v]:''; return; }
+      if(f.type==='calc') return; // recalculado abaixo
+      el.value=(v==null?'':v);
+    });
+    recalcCalc(key);
     var tpE=form.querySelector('[data-k="tipo_pessoa"]'); if(tpE) toggleGrp(tpE);
     MOD_EDIT[key]=id; var sb=$('save-'+key); if(sb) sb.textContent='Salvar alterações';
     var hb=document.querySelector('#mod-'+key+' .modbar h3'); if(hb) hb.textContent='Editando cadastro';
@@ -1714,6 +1723,8 @@
       if(f.type==='section') return '<div class="f full" data-sec="1"'+(f.grp?(' data-grp="'+f.grp+'"'):'')+' style="border-top:1px solid var(--line);margin:10px 0 2px;padding-top:12px"><label style="color:var(--accent);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700">'+f.l+'</label></div>';
       var inp;
       if(f.type==='consultores') inp='<select data-k="'+f.k+'"><option value="">— selecione —</option></select>';
+      else if(f.type==='lookup') inp='<input data-k="'+f.k+'" list="lk-'+key+'-'+f.k+'" autocomplete="off" placeholder="Digite para escolher…"><datalist id="lk-'+key+'-'+f.k+'"></datalist>';
+      else if(f.type==='calc') inp='<input data-k="'+f.k+'" readonly tabindex="-1" style="background:#1f1810;color:var(--ouro);font-weight:600">';
       else if(f.type==='select') inp='<select data-k="'+f.k+'">'+f.opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>';
       else if(f.type==='textarea') inp='<textarea data-k="'+f.k+'" rows="2"></textarea>';
       else inp='<input data-k="'+f.k+'" type="'+(f.type||'text')+'">';
@@ -1733,7 +1744,59 @@
     var tpSel=$('form-'+key)?$('form-'+key).querySelector('[data-k="tipo_pessoa"]'):null;
     if(tpSel){ tpSel.addEventListener('change',function(){ toggleGrp(tpSel); }); toggleGrp(tpSel); }
     if(cfg.fields.some(function(f){return f.type==='consultores';})){ ensureVendedores(function(){ fillConsultoresSelect(key); }); }
+    // --- Campos lookup (seletor pesquisável -> id) e calc (calculado) ---
+    var formK=$('form-'+key);
+    cfg.fields.forEach(function(f){
+      if(f.type==='lookup'){
+        ensureLookup(f.src, function(){ var dl=document.getElementById('lk-'+key+'-'+f.k); if(dl) dl.innerHTML=((LOOKUPS[f.src]||{}).opts)||''; });
+        if(f.link && formK){ var inpL=formK.querySelector('[data-k="'+f.k+'"]'); if(inpL) inpL.addEventListener('change', function(){ lookupPrefill(key, f); }); }
+      }
+    });
+    // recálculo ao vivo dos campos calc
+    var calcRefs={}; cfg.fields.forEach(function(f){ if(f.type==='calc' && f.mul) f.mul.forEach(function(k){ calcRefs[k]=1; }); });
+    if(formK) Object.keys(calcRefs).forEach(function(k){ var e=formK.querySelector('[data-k="'+k+'"]'); if(e) e.addEventListener('input', function(){ recalcCalc(key); }); });
     loadMod(key);
+  }
+  // Registro de fontes para campos 'lookup' (seletor pesquisável que grava o id).
+  var LOOKUPS={
+    produtos:{ url:'produtos?select=id,nome,preco&order=nome.asc&limit=1000', loaded:false, find:{}, byId:{}, meta:{}, opts:'' },
+    fornecedores:{ url:'fornecedores?select=id,nome&ativo=eq.true&order=nome.asc&limit=1000', loaded:false, find:{}, byId:{}, meta:{}, opts:'' }
+  };
+  function ensureLookup(src, cb){
+    var L=LOOKUPS[src]; if(!L){ if(cb)cb(); return; }
+    if(L.loaded){ if(cb)cb(); return; }
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/'+L.url,{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; }).then(function(rows){
+      rows=Array.isArray(rows)?rows:[]; L.find={}; L.byId={}; L.meta={}; var seen={}, opts='';
+      rows.forEach(function(o){ var base=o.nome||'(sem nome)', k=csvNorm(base), val=base;
+        if(seen[k]) val=base+' · '+String(o.id).slice(0,4); seen[k]=true;
+        L.find[csvNorm(val)]=o.id; L.byId[o.id]=val; L.meta[o.id]=o; opts+='<option value="'+esc(val)+'">'; });
+      L.opts=opts; L.loaded=true; if(cb)cb();
+    }).catch(function(){ L.loaded=true; if(cb)cb(); });
+  }
+  function recalcCalc(key){
+    var cfg=MODS[key], form=$('form-'+key); if(!cfg||!form) return;
+    cfg.fields.forEach(function(f){ if(f.type!=='calc'||!f.mul) return;
+      var el=form.querySelector('[data-k="'+f.k+'"]'); if(!el) return;
+      var prod=1, any=false;
+      f.mul.forEach(function(k){ var e=form.querySelector('[data-k="'+k+'"]'); if(e && e.value!=='') any=true; var n=e?Number(e.value):0; prod*=(isNaN(n)?0:n); });
+      var val=Math.round(prod*100)/100;
+      el.value=any?('R$ '+val.toLocaleString('pt-BR')):''; el.dataset.num=any?String(val):'';
+    });
+  }
+  function lookupPrefill(key, f){
+    // Ao escolher um produto, preenche item/valor/fornecedor (só se estiverem vazios).
+    var form=$('form-'+key); if(!form) return; var inp=form.querySelector('[data-k="'+f.k+'"]'); if(!inp) return;
+    var L=LOOKUPS[f.src]; var id=L?L.find[csvNorm(inp.value)]:null; if(!id) return;
+    var meta=(L.meta&&L.meta[id])||{}; var link=f.link||{};
+    if(link.nome){ var nEl=form.querySelector('[data-k="'+link.nome+'"]'); if(nEl && !nEl.value) nEl.value=meta.nome||''; }
+    if(link.valor){ var vEl=form.querySelector('[data-k="'+link.valor+'"]'); if(vEl && !vEl.value && meta.preco!=null){ vEl.value=meta.preco; recalcCalc(key); } }
+    if(link.fornecedor){ var fEl=form.querySelector('[data-k="'+link.fornecedor+'"]'); if(fEl && !fEl.value){
+      fetch(SB+'/rest/v1/produtos?id=eq.'+id+'&select=fornecedor_id,fornecedores(nome)',{headers:authHeaders(localStorage.getItem(TOKKEY))})
+      .then(function(r){ return r.ok?r.json():[]; }).then(function(a){ var row=a&&a[0]; if(!row) return; var fid=row.fornecedor_id; var fnome=(row.fornecedores&&row.fornecedores.nome)||''; if(!fid) return;
+        var FL=LOOKUPS.fornecedores; if(FL){ if(fnome){ fEl.value=fnome; if(!FL.find[csvNorm(fnome)]) FL.find[csvNorm(fnome)]=fid; } else if(FL.byId[fid]){ fEl.value=FL.byId[fid]; } } }).catch(function(){});
+    } }
   }
   function fillConsultoresSelect(key){
     // Popula seletores dinâmicos (tipo 'consultores') com todos os consultores PIN cadastrados — ex.: "Indicado por".
@@ -1776,10 +1839,22 @@
   }
   function saveMod(key){
     var cfg=MODS[key]; var tok=localStorage.getItem(TOKKEY); var form=$('form-'+key);
-    var data={}, ok=true;
+    var data={}, ok=true; var editId0=MOD_EDIT[key]; var prevRow=(editId0&&MOD_ROWS[key])?MOD_ROWS[key][editId0]:null;
     cfg.fields.forEach(function(f){
       var el=form.querySelector('[data-k="'+f.k+'"]'); var v=el?el.value.trim():'';
       if(f.req && !v) ok=false;
+      if(f.type==='lookup'){
+        var L=LOOKUPS[f.src]; var id=(v&&L)?(L.find[csvNorm(v)]||null):null;
+        if(id) data[f.k]=id; else if(prevRow && prevRow[f.k]) data[f.k]=null; // limpou um vínculo existente
+        return;
+      }
+      if(f.type==='calc'){
+        // só envia a coluna calculada quando o campo-base (último de f.mul, ex.: valor_unitario) foi preenchido
+        var baseK=(f.mul&&f.mul.length)?f.mul[f.mul.length-1]:null;
+        var baseEl=baseK?form.querySelector('[data-k="'+baseK+'"]'):null;
+        if(baseEl && baseEl.value!=='') data[f.k]=Number(el.dataset.num||0);
+        return;
+      }
       if(v!=='') data[f.k]=(f.type==='number')?Number(v):v;
     });
     if(!ok){ $('msg-'+key).textContent='Preencha os campos obrigatórios (*).'; return; }
