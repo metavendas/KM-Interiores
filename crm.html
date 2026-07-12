@@ -1797,7 +1797,7 @@
   // ===== Admin de Produtos (imagem + vídeo + estoque + ranking) =====
   function brl(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
   function slugSku(nome){ return 'KM-'+(nome||'PROD').toUpperCase().normalize('NFD').replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,16)+'-'+Math.random().toString(36).slice(2,5).toUpperCase(); }
-  var prodEditId=null, prodById={}, prodEditItens=[], PROD_FIND={};
+  var prodEditId=null, prodById={}, prodEditItens=[], PROD_FIND={}, PROD_FORN_FIND={}, PROD_FORN_BYID={}, prodEditFornId=null;
   var KM_PALETA=[['branco','#ffffff'],['cinza','#9aa0a6'],['preto','#1a1a1a'],['verde','#2e7d32'],['azul','#1565c0'],['marrom','#6d4c41'],['vermelho','#c62828'],['dourado','#c9a227'],['bege','#d8c3a5'],['gelo','#eef2f3']];
   function itemFieldsHTML(i){
     return '<div class="f"><select data-k="item_tipo'+i+'"><option value="">Item '+i+' — tipo</option><option value="variacao">Variação (escolhe uma)</option><option value="adicional">Adicional (soma)</option></select></div>'
@@ -1826,6 +1826,7 @@
       +'<div class="modform" id="form-prod">'
       +'<div class="f full"><label>Nome *</label><input data-k="nome"></div>'
       +'<div class="f"><label>Categoria</label><input data-k="categoria"></div>'
+      +'<div class="f"><label>Fornecedor — digite para escolher</label><input data-k="fornecedor_nome" list="prodFornList" placeholder="Comece a digitar o nome do fornecedor…" autocomplete="off"><datalist id="prodFornList"></datalist></div>'
       +'<div class="f"><label>SKU (opcional)</label><input data-k="sku"></div>'
       +'<div class="f"><label>NCM (código fiscal — p/ nota fiscal)</label><input data-k="ncm" maxlength="10" placeholder="ex.: 9403.60.00"></div>'
       +'<div class="f"><label>Preço varejo (R$)</label><input data-k="preco" type="number"></div>'
@@ -1856,7 +1857,21 @@
     });
     $('msg-prod').addEventListener('click', function(e){ if(e.target && e.target.id==='prodCancelEdit') resetProdForm(); });
     var pf=$('prodFind'); if(pf) pf.addEventListener('change', function(){ var id=PROD_FIND[csvNorm(this.value)]; if(id){ editProduto(id); this.value=''; } });
+    loadFornecedoresProd();
     loadProdutos();
+  }
+  function loadFornecedoresProd(){
+    // Popula o seletor pesquisável "Fornecedor" do produto com todos os fornecedores ativos.
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/fornecedores?select=id,nome&ativo=eq.true&order=nome.asc&limit=500',{headers:authHeaders(tok)})
+    .then(function(r){ return r.ok?r.json():[]; }).then(function(rows){
+      rows=Array.isArray(rows)?rows:[]; PROD_FORN_FIND={}; PROD_FORN_BYID={};
+      var seen={}, opts='';
+      rows.forEach(function(f){ var base=f.nome||'(sem nome)', key=csvNorm(base), val=base;
+        if(seen[key]) val=base+' · '+String(f.id).slice(0,4); // desambigua nomes iguais
+        seen[key]=true; PROD_FORN_FIND[csvNorm(val)]=f.id; PROD_FORN_BYID[f.id]=val; opts+='<option value="'+esc(val)+'">'; });
+      var dl=$('prodFornList'); if(dl) dl.innerHTML=opts;
+    }).catch(function(){});
   }
   function loadProdutos(){
     var tok=localStorage.getItem(TOKKEY);
@@ -1902,6 +1917,11 @@
         ranking:get('ranking')?Number(get('ranking')):null, trilha:get('trilha')||'A', destaque:get('destaque')==='true',
         video_url:get('video_url')||null, descricao:get('descricao')||null, foto_url:fotoPrinc||get('foto_url')||null, ativo:true,
         itens:itens, cores_disponiveis:cores };
+      // Fornecedor do produto (pesquisável): só inclui a coluna quando há escolha,
+      // ou quando o gestor limpou um fornecedor que existia (evita quebrar cadastro antes do SQL).
+      var fornTxt=get('fornecedor_nome'); var fornId=fornTxt?(PROD_FORN_FIND[csvNorm(fornTxt)]||null):null;
+      if(fornId) data.fornecedor_id=fornId;
+      else if(prodEditId && prodEditFornId) data.fornecedor_id=null;
       var editing=prodEditId; var method=editing?'PATCH':'POST'; var url=SB+'/rest/v1/produtos'+(editing?'?id=eq.'+editing:'');
       return fetch(url,{method:method,headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(data)})
       .then(function(r){ btn.disabled=false; btn.textContent=editing?'Atualizar produto':'Salvar produto';
@@ -1911,7 +1931,7 @@
     .catch(function(){ btn.disabled=false; btn.textContent=prodEditId?'Atualizar produto':'Salvar produto'; $('msg-prod').textContent='Falha ao enviar imagem ou salvar.'; });
   }
   function resetProdForm(){
-    prodEditId=null; prodEditItens=[];
+    prodEditId=null; prodEditItens=[]; prodEditFornId=null;
     var f=$('form-prod'); if(f){ f.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; });
       f.querySelectorAll('select[data-k^="item_tipo"]').forEach(function(s){ s.value=''; }); }
     [1,2,3,4].forEach(function(i){ var fa=$('item_fotoatual'+i); if(fa) fa.textContent=''; });
@@ -1936,6 +1956,11 @@
     });
     renderCores(Array.isArray(p.cores_disponiveis)?p.cores_disponiveis:[]);
     var fi=$('prod_img'); if(fi) fi.value='';
+    // Fornecedor: busca tolerante (embed) — funciona só depois de rodar o SQL da coluna; se falhar, campo fica vazio.
+    prodEditFornId=null; var fk=form.querySelector('[data-k="fornecedor_nome"]'); if(fk) fk.value='';
+    fetch(SB+'/rest/v1/produtos?id=eq.'+id+'&select=fornecedor_id,fornecedores(nome)',{headers:authHeaders(localStorage.getItem(TOKKEY))})
+      .then(function(r){ return r.ok?r.json():[]; }).then(function(a){ var row=a&&a[0]; if(!row) return; var fid=row.fornecedor_id; var fnome=(row.fornecedores&&row.fornecedores.nome)||PROD_FORN_BYID[fid]||'';
+        if(fid){ prodEditFornId=fid; if(fk) fk.value=fnome; if(fnome && !PROD_FORN_FIND[csvNorm(fnome)]) PROD_FORN_FIND[csvNorm(fnome)]=fid; } }).catch(function(){});
     prodEditId=id;
     if($('prodFormTitle')) $('prodFormTitle').textContent='Editando: '+(p.nome||'');
     if($('save-prod')) $('save-prod').textContent='Atualizar produto';
