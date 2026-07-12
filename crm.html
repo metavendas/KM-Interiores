@@ -3307,7 +3307,7 @@
     .catch(function(e){ box.innerHTML=kpiCard('Erro ao carregar','—',''); console.error(e); });
   }
   // ===== Fluxo de Caixa =====
-  var FC_BUILT=false, FC_PERIODO=30, FC_GRAN=1, FC_CONTA='', FC_CONTAS=[], FC_CHART=null;
+  var FC_BUILT=false, FC_PERIODO=30, FC_CONTA='', FC_CONTAS=[], FC_CHART=null;
   var FC_BANCOS=[['001','Banco do Brasil'],['104','Caixa Econômica Federal'],['237','Bradesco'],['341','Itaú Unibanco'],['033','Santander'],['422','Safra'],['070','BRB'],['077','Banco Inter'],['260','Nubank'],['290','PagBank (PagSeguro)'],['323','Mercado Pago'],['336','Banco C6'],['756','Sicoob'],['748','Sicredi'],['212','Banco Original'],['380','PicPay'],['364','Efí (Gerencianet)'],['136','Unicred'],['041','Banrisul'],['004','Banco do Nordeste'],['021','Banestes'],['085','Ailos'],['655','Banco Votorantim'],['246','Banco ABC Brasil'],['025','Banco Alfa'],['208','BTG Pactual'],['218','Banco BS2'],['611','Banco Paulista'],['320','China Construction Bank'],['745','Citibank'],['399','HSBC'],['999','Outro / Dinheiro (caixa)']];
   var FC_CAT_DESP=['Aluguel','Fornecedor','Folha / Salários','Pró-labore','Impostos','Marketing','Logística / Frete','Utilidades (água/luz/internet)','Manutenção','Tarifas bancárias','Outros'];
   var FC_CAT_REC=['Venda','Locação','Impressão 3D','Serviço','Outros'];
@@ -3327,8 +3327,7 @@
     +'<div class="kpis" id="fcKpis"></div>'
     +'<div class="panel" style="margin-top:14px"><div style="padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)">'
       +'<b style="color:var(--text)">Projeção de saldo</b>'
-      +'<select id="fcPeriodo" style="margin-left:auto">'+['30 dias','60 dias','90 dias'].map(function(t,i){var v=[30,60,90][i];return '<option value="'+v+'"'+(v===FC_PERIODO?' selected':'')+'>'+t+'</option>';}).join('')+'</select>'
-      +'<select id="fcGran" title="Como agrupar o saldo projetado">'+[[1,'Projeção diária'],[7,'Semanal (7 dias)'],[15,'Quinzenal (15 dias)']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]===FC_GRAN?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'
+      +'<select id="fcPeriodo" style="margin-left:auto" title="Horizonte da projeção do fluxo de caixa">'+[[1,'Diário'],[7,'7 dias'],[15,'15 dias'],[30,'30 dias'],[60,'60 dias'],[90,'90 dias']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]===FC_PERIODO?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'
       +'<select id="fcConta"></select></div>'
       +'<div style="padding:14px 16px"><canvas id="fcChart" height="90"></canvas></div></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px" id="fcGrid">'
@@ -3373,7 +3372,6 @@
     fcSyncCats();
     // eventos
     $('fcPeriodo').addEventListener('change', function(){ FC_PERIODO=Number(this.value)||30; fcLoadFluxo(); });
-    $('fcGran').addEventListener('change', function(){ FC_GRAN=Number(this.value)||1; fcLoadFluxo(); });
     $('fcConta').addEventListener('change', function(){ FC_CONTA=this.value; fcLoadFluxo(); });
     $('fcNovaConta').addEventListener('click', function(){ var f=$('fcContaForm'); f.style.display=f.style.display==='none'?'block':'none'; var d=$('fcc_data'); if(d&&!d.value) d.value=new Date().toISOString().slice(0,10); });
     $('fcc_cancel').addEventListener('click', function(){ $('fcContaForm').style.display='none'; });
@@ -3428,8 +3426,7 @@
         if(dd>=hoje){ entP+=ep; saiP+=sap; }
         saldoFim=sp;
       });
-      var ag=fcAgrupar(labels, real, prev, FC_GRAN);
-      fcChart(ag.labels, ag.real, ag.prev);
+      fcChart(labels, real, prev);
       // KPIs
       var saldoHoje=FC_CONTAS.reduce(function(a,c){return a+(Number(c.saldo_atual)||0);},0);
       if(FC_CONTA){ var cc=FC_CONTAS.filter(function(c){return c.id===FC_CONTA;})[0]; if(cc) saldoHoje=Number(cc.saldo_atual)||0; }
@@ -3440,22 +3437,6 @@
         kpiCard('Saldo projetado', moneyBR(saldoFim), 'em '+FC_PERIODO+' dias')
       ].join(''); }
     }).catch(function(e){ console.error('fluxo:',e); });
-  }
-  function fcAgrupar(labels, real, prev, gran){
-    // Diária = sem agrupamento. Semanal (7) / Quinzenal (15) = blocos consecutivos.
-    // Saldo é acumulado: o valor do bloco é o saldo NO FIM do período (último dia do bloco).
-    gran=Number(gran)||1;
-    if(gran<=1 || labels.length<=gran) return {labels:labels, real:real, prev:prev};
-    var L=[], R=[], P=[];
-    for(var i=0;i<labels.length;i+=gran){
-      var end=Math.min(i+gran, labels.length)-1;
-      L.push(labels[i]+'–'+labels[end]);            // faixa do bloco (ex.: 05/07–11/07)
-      P.push(prev[end]);                             // saldo projetado no fim do bloco
-      var rv=null;                                   // saldo realizado: último dia com dado real no bloco
-      for(var j=end;j>=i;j--){ if(real[j]!=null){ rv=real[j]; break; } }
-      R.push(rv);
-    }
-    return {labels:L, real:R, prev:P};
   }
   function fcChart(labels, real, prev){
     if(typeof Chart==='undefined') return; var cv=$('fcChart'); if(!cv) return;
