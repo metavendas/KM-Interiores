@@ -6104,8 +6104,19 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   /* ===================== ROTA DE ENTREGA (OSM/OSRM/Overpass) ===================== */
   var KM_ORIGEM={lat:-21.12,lon:-42.9428,nome:'Ubá/MG'};   // showroom KM (origem das entregas)
   var __kmRotaCache={};
+  var KM_OVERPASS='https://overpass-api.de/api/interpreter';
   function kmHav(a,b,c,d){ var R=6371000,p=Math.PI/180; var dLat=(c-a)*p,dLon=(d-b)*p; var s=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a*p)*Math.cos(c*p)*Math.sin(dLon/2)*Math.sin(dLon/2); return 2*R*Math.asin(Math.sqrt(s)); }
-  function kmGeo(q){ return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(q)).then(function(r){return r.ok?r.json():[];}).then(function(j){ return (j&&j[0])?{lat:+j[0].lat,lon:+j[0].lon}:null; }).catch(function(){return null;}); }
+  function kmSleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function kmGeo(q){ return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(q),{signal:AbortSignal.timeout(9000)}).then(function(r){return r.ok?r.json():[];}).then(function(j){ return (j&&j[0])?{lat:+j[0].lat,lon:+j[0].lon}:null; }).catch(function(){return null;}); }
+  // Overpass resiliente: tenta cada espelho em sequencia (failover), 1 por vez, com AbortSignal. Nunca lanca excecao.
+  // Overpass resiliente: servidor confiavel + RETRY em 429/504 (backoff ~2.8s). Nunca lanca excecao.
+  function kmOverpass(sel,radius,around){
+    var body='[out:json][timeout:20];('+sel+'(around:'+radius+','+around+'););out center 60;';
+    function once(){ return fetch(KM_OVERPASS,{method:'POST',headers:{'Content-Type':'text/plain'},body:body,signal:AbortSignal.timeout(12000)})
+      .then(function(r){ if(r.status===200) return r.json().then(function(j){ return {ok:true,els:j.elements||[]}; }); return {ok:false}; })
+      .catch(function(){ return {ok:false}; }); }
+    return once().then(function(a){ if(a.ok) return a.els; return kmSleep(2800).then(function(){ return once().then(function(b){ return b.ok?b.els:[]; }); }); });
+  }
   function kmRotaEntrega(cidade, uf){
     var chave=(cidade||'').toLowerCase()+'|'+(uf||'');
     if(__kmRotaCache[chave]) return Promise.resolve(__kmRotaCache[chave]);
@@ -6113,29 +6124,34 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     return kmGeo(cidade+', '+(uf||'Minas Gerais')+', Brasil').then(function(dest){
       if(!dest) return null;
       var url='https://router.project-osrm.org/route/v1/driving/'+KM_ORIGEM.lon+','+KM_ORIGEM.lat+';'+dest.lon+','+dest.lat+'?overview=full&geometries=geojson';
-      return fetch(url).then(function(r){return r.ok?r.json():null;}).then(function(rj){
+      return fetch(url,{signal:AbortSignal.timeout(12000)}).then(function(r){return r.ok?r.json():null;}).then(function(rj){
         if(!rj||!rj.routes||!rj.routes[0]) return null;
         var coords=rj.routes[0].geometry.coordinates; var kmTotal=Math.round(rj.routes[0].distance/1000);
         var durMin=Math.round((rj.routes[0].duration||0)/60);
-        var stp=Math.max(1,Math.floor(coords.length/120)); var samp=[];
+        // amostra LEVE (~30 pts): a lista vira um corredor (linestring) no Overpass -> query rapida, sem 504
+        var alvo=30, stp=Math.max(1,Math.floor(coords.length/alvo)), samp=[];
         for(var i=0;i<coords.length;i+=stp){ samp.push([coords[i][1],coords[i][0]]); }
         var lastc=coords[coords.length-1]; samp.push([lastc[1],lastc[0]]);
         var cum=[0]; for(var k=1;k<samp.length;k++){ cum[k]=cum[k-1]+kmHav(samp[k-1][0],samp[k-1][1],samp[k][0],samp[k][1]); }
         var around=samp.map(function(p){return p[0].toFixed(5)+','+p[1].toFixed(5);}).join(',');
         function kmDe(lat,lon){ var best=1e18,bi=0; for(var j=0;j<samp.length;j++){ var dd=(samp[j][0]-lat)*(samp[j][0]-lat)+(samp[j][1]-lon)*(samp[j][1]-lon); if(dd<best){best=dd;bi=j;} } return Math.round(cum[bi]/1000); }
-        function overpass(sel,radius){ return fetch('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'Content-Type':'text/plain'},body:'[out:json][timeout:35];('+sel+'(around:'+radius+','+around+'););out center 80;'}).then(function(r){return r.ok?r.json():{elements:[]};}).then(function(j){return j.elements||[];}).catch(function(){return [];}); }
         function nomeDe(e,fb){ var t=e.tags||{}; return t.name||t.operator||t.brand||fb; }
         function posDe(e){ return e.type==='node'?[e.lat,e.lon]:(e.center?[e.center.lat,e.center.lon]:null); }
         function mapear(els,fb){ var arr=[]; (els||[]).forEach(function(e){ var p=posDe(e); if(!p)return; arr.push({nome:nomeDe(e,fb),km:kmDe(p[0],p[1])}); }); arr.sort(function(a,b){return a.km-b.km;}); return arr; }
         function dedup(arr){ var s={},o=[]; arr.forEach(function(x){ var kk=(x.nome||'')+'@'+x.km; if(!s[kk]){s[kk]=1;o.push(x);} }); return o; }
         function por30(arr,mx){ var b={},o=[]; dedup(arr).forEach(function(x){ var g=Math.floor(x.km/30); b[g]=b[g]||0; if(b[g]<mx){ b[g]++; o.push(x); } }); return o; }
-        return Promise.all([ overpass('node[barrier=toll_booth]',500), overpass('node[amenity=fuel]',600), overpass('node[amenity=restaurant];node[amenity=fast_food]',600) ])
-        .then(function(res){
-          var ped=dedup(mapear(res[0],'Pedágio')).filter(function(x){return x.km>=0 && x.km<=kmTotal;});
-          var pos=por30(mapear(res[1],'Posto').filter(function(x){return x.km>2 && x.km<kmTotal-2;}),2);
-          var rst=por30(mapear(res[2],'Restaurante').filter(function(x){return x.km>2 && x.km<kmTotal-2;}),2);
+        // SEQUENCIAL (evita 429) com pausa entre chamadas + acumulador + deadline (nunca descarta a rota)
+        var acc={ped:[],pos:[],rst:[]};
+        var chain=kmOverpass('node[barrier=toll_booth]',600,around).then(function(a){ acc.ped=mapear(a,'Pedágio'); return kmSleep(1500); })
+          .then(function(){ return kmOverpass('node[amenity=fuel]',700,around); }).then(function(b){ acc.pos=mapear(b,'Posto'); return kmSleep(1500); })
+          .then(function(){ return kmOverpass('node[amenity=restaurant]',500,around); }).then(function(c){ acc.rst=mapear(c,'Restaurante'); });
+        return Promise.race([ chain, kmSleep(18000) ]).then(function(){
+          var ped=dedup(acc.ped).filter(function(x){return x.km>=0 && x.km<=kmTotal;});
+          var pos=por30(acc.pos.filter(function(x){return x.km>2 && x.km<kmTotal-2;}),2);
+          var rst=por30(acc.rst.filter(function(x){return x.km>2 && x.km<kmTotal-2;}),2);
           var outObj={km:kmTotal, duracaoMin:durMin, origem:KM_ORIGEM.nome, destino:cidade+(uf?('/'+uf):''), pedagios:ped, postos:pos, restaurantes:rst};
-          __kmRotaCache[chave]=outObj; return outObj;
+          if(ped.length+pos.length+rst.length>0) __kmRotaCache[chave]=outObj;  // so cacheia se veio POI (permite retry se o mapa falhou)
+          return outObj;
         });
       });
     }).catch(function(){ return null; });
@@ -6181,7 +6197,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
         kmShowOsPdf(null, os.numero||'', 'Gerando a OS e calculando a rota de entrega (pedágios, postos e restaurantes)…');
         var cidade=os.cidade||(os.clientes&&os.clientes.cidade)||'';
         var uf=(os.clientes&&os.clientes.uf)||'';
-        var rotaP=cidade?Promise.race([ kmRotaEntrega(cidade, uf), new Promise(function(rs){ setTimeout(function(){ rs(null); }, 16000); }) ]):Promise.resolve(null);
+        var rotaP=cidade?Promise.race([ kmRotaEntrega(cidade, uf), new Promise(function(rs){ setTimeout(function(){ rs(null); }, 40000); }) ]):Promise.resolve(null);
         rotaP.then(function(rota){
           if(rota) d.rota=rota;
           var url;
