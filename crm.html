@@ -5631,6 +5631,17 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   if(typeof window.loadTarefas==='function'){ var _lt=window.loadTarefas; window.loadTarefas=function(){ var r=_lt.apply(this,arguments); setTimeout(boot,60); return r; }; }
   if(typeof window.showView==='function'){ var _sv=window.showView; window.showView=function(v){ var r=_sv.apply(this,arguments); if(v==='tarefas'){ setTimeout(boot,80); } return r; }; }
   setTimeout(function(){ var s=document.querySelector('.view[data-v="tarefas"]'); if(s && !s.hidden){ boot(); } },400);
+  /* FIX 13/07: o menu chama showView/loadTarefas LEXICAIS (nav ~L4098, showView ~L1559),
+     entao os wraps de window.* nunca disparavam e o toggle Abertas/Concluidas nao aparecia.
+     Observamos a propria secao Tarefas: quando fica visivel por QUALQUER caminho, roda boot(). */
+  (function(){
+    var sec=document.querySelector('.view[data-v="tarefas"]');
+    if(sec && 'MutationObserver' in window){
+      new MutationObserver(function(){ if(!sec.hidden) setTimeout(boot,60); })
+        .observe(sec,{attributes:true,attributeFilter:['hidden']});
+      if(!sec.hidden) setTimeout(boot,60);
+    }
+  })();
 })();
 </script>
 <!-- ===== FIM DO PATCH TAREFAS KM 2026-07-10 ===== -->
