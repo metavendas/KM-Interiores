@@ -235,6 +235,8 @@
   .agd-ev.t-reuniao{border-left-color:var(--accent);background:rgba(203,152,76,.12)}
   .agd-ev.t-followup{border-left-color:#a98be0;background:rgba(169,139,224,.10)}
   .agd-ev.done{border-left-color:#5fbf6a;background:rgba(95,191,106,.12);text-decoration:line-through;opacity:.85}
+  .agd-ev.t-tarefa{border-left-color:#5fbf6a;background:rgba(95,191,106,.12);cursor:pointer}
+  .agd-ev.t-tarefa.atr{border-left-color:#d84a3f;background:rgba(216,74,63,.12)}
   .agd-legenda{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:11px;color:var(--muted);padding:2px 18px 16px}
   .agd-legenda i{font-style:normal}
   @media(max-width:800px){ .agd-cell{min-height:66px} .agd-ev{font-size:9.5px;padding:2px 4px} .agd-nav b{min-width:110px;font-size:14px} }
@@ -2598,12 +2600,23 @@
     var url=SB+'/rest/v1/agendamentos?select=id,titulo,tipo,quando,status,local,observacao,responsavel_id,oportunidade_id,cliente_id&status=neq.cancelado'
       +'&quando=gte.'+gridStart.toISOString()+'&quando=lt.'+gridEnd.toISOString()+'&order=quando.asc&limit=500';
     if(AGD_CONS){ url+='&responsavel_id=eq.'+AGD_CONS; }
-    fetch(url,{headers:authHeaders(tok)})
-    .then(function(r){ return r.ok?r.json():[]; })
-    .then(function(rows){ rows=Array.isArray(rows)?rows:[];
+    // Tarefas com prazo entram na agenda (SOMENTE LEITURA — não duplica registro; a fonte da verdade continua sendo a tabela tarefas).
+    // Só no modo "Todos os consultores": tarefas não têm responsável atribuído no cadastro, então não poluem a agenda filtrada por consultor.
+    var turl=SB+'/rest/v1/tarefas?select=id,titulo,prazo,cliente_id,clientes(nome)&concluida=eq.false&prazo=not.is.null&order=prazo.asc&limit=500';
+    var tarPromise=AGD_CONS?Promise.resolve([]):fetch(turl,{headers:authHeaders(tok)}).then(function(r){ return r.ok?r.json():[]; }).catch(function(){ return []; });
+    Promise.all([
+      fetch(url,{headers:authHeaders(tok)}).then(function(r){ return r.ok?r.json():[]; }).catch(function(){ return []; }),
+      tarPromise
+    ])
+    .then(function(all){
+      var rows=Array.isArray(all[0])?all[0]:[]; var tars=Array.isArray(all[1])?all[1]:[];
       AGD_EV={}; rows.forEach(function(a){ AGD_EV[a.id]=a; });
-      var c=$('agdCount'); if(c) c.textContent=rows.length+' no período';
-      var byDay={}; rows.forEach(function(a){ var d=new Date(a.quando); if(isNaN(d)) return; var key=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); (byDay[key]=byDay[key]||[]).push(a); });
+      var byDay={};
+      rows.forEach(function(a){ var d=new Date(a.quando); if(isNaN(d)) return; var key=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); (byDay[key]=byDay[key]||[]).push({_ev:a, _q:d}); });
+      var tarCount=0;
+      tars.forEach(function(t){ var d=new Date(t.prazo); if(isNaN(d)) return; var key=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); (byDay[key]=byDay[key]||[]).push({_tar:t, _q:d}); tarCount++; });
+      Object.keys(byDay).forEach(function(k){ byDay[k].sort(function(x,y){ return x._q-y._q; }); });
+      var c=$('agdCount'); if(c) c.textContent=rows.length+' no período'+(tarCount?(' · '+tarCount+(tarCount>1?' tarefas':' tarefa')):'');
       var nn=new Date(); var todayK=nn.getFullYear()+'-'+nn.getMonth()+'-'+nn.getDate();
       var h='', cur=new Date(gridStart);
       for(var i=0;i<42;i++){
@@ -2612,7 +2625,12 @@
         var iso=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
         var evs=(byDay[kk]||[]);
         h+='<div class="agd-cell'+(fora?' fora':'')+(kk===todayK?' hoje':'')+'" data-day="'+iso+'"><div class="agd-daynum">'+cur.getDate()+'</div>'+
-          evs.map(function(a){ var d=new Date(a.quando); var hm=isNaN(d)?'':d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+          evs.map(function(it){
+            if(it._tar){ var t=it._tar; var td=it._q; var thm=td.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+              var atr=(td<new Date()); var tcli=(t.clientes&&t.clientes.nome)?(' · '+t.clientes.nome):'';
+              return '<div class="agd-ev t-tarefa'+(atr?' atr':'')+'" data-tar-id="'+t.id+'" title="'+esc('Tarefa: '+(t.titulo||'')+tcli+(atr?' (atrasada)':''))+'">✓ '+thm+' '+esc(t.titulo||'')+'</div>';
+            }
+            var a=it._ev; var d=it._q; var hm=isNaN(d)?'':d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
             var done=(a.status==='concluido'); var cls=done?'done':('t-'+(a.tipo||'contato'));
             return '<div class="agd-ev '+cls+'" draggable="true" data-id="'+a.id+'" title="'+esc((a.titulo||'')+' · '+(a.tipo||''))+'">'+(done?'✅':agdIcon(a.tipo))+' '+hm+' '+esc(a.titulo||'')+'</div>';
           }).join('')+'</div>';
@@ -2625,6 +2643,10 @@
   }
   function agdWireDnD(host){
     host.querySelectorAll('.agd-ev').forEach(function(ev){
+      if(ev.classList.contains('t-tarefa')){   // tarefa: read-only na agenda, não arrasta; clique leva à aba Tarefas
+        ev.addEventListener('click', function(){ var nav=document.querySelector('.nav a[data-view="tarefas"]'); if(nav){ nav.click(); } });
+        return;
+      }
       ev.addEventListener('dragstart', function(e){ e.dataTransfer.setData('text/plain', ev.getAttribute('data-id')); e.dataTransfer.effectAllowed='move'; ev.classList.add('dragging'); });
       ev.addEventListener('dragend', function(){ ev.classList.remove('dragging'); });
       ev.addEventListener('click', function(){ agdAbrirEvento(ev.getAttribute('data-id')); });
