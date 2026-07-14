@@ -865,7 +865,7 @@
             <div class="f"><label>Título *</label><input data-k="titulo" placeholder="Ex.: Técnica de fechamento de venda"></div>
             <div class="f"><label>Categoria</label><select data-k="categoria"><option value="">— selecione —</option><option>Primeiros Passos</option><option>Produtos</option><option>Serviços</option><option>Vendas</option><option>CRM</option><option>Motivacionais</option><option>Técnicos</option></select></div>
             <div class="f"><label>Link do vídeo (YouTube / Vimeo)</label><input data-k="url" placeholder="https://youtu.be/…  (ou envie um arquivo ao lado)"></div>
-            <div class="f"><label>Ou envie do computador</label><input type="file" id="vid_file" accept="video/*"><div style="font-size:11px;color:var(--muted);margin-top:4px">MP4 recomendado · até ~50MB · 720p — fica hospedado no próprio sistema, sem YouTube/Vimeo</div></div>
+            <div class="f"><label>Ou envie do computador</label><input type="file" id="vid_file" accept="video/*"><div style="font-size:11px;color:var(--muted);margin-top:4px">MP4 recomendado · 720p · hospedado no seu Cloudflare R2 (banda grátis, sem o limite de 50MB) — sem YouTube/Vimeo</div></div>
             <div class="f full"><label>Descrição</label><textarea data-k="descricao" rows="2"></textarea></div>
             <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="vid_salvar">Publicar vídeo</button></div>
           </div>
@@ -4470,14 +4470,24 @@
   function matTam(kb){ return kb?(kb>1024?(kb/1024).toFixed(1)+' MB':kb+' KB'):'—'; }
   var VID_CATS=['Primeiros Passos','Produtos','Serviços','Vendas','CRM','Motivacionais','Técnicos'];
   var VID_ROWS=[], VID_BY_ID={}, VID_FILTRO='', vidEditId=null, vidEditOrigUrl='';
-  function vidIsUpload(u){ return (u||'').indexOf('sbvid://')===0; }   // vídeo hospedado no próprio Supabase Storage
-  function vidPath(u){ return (u||'').slice(8); }                       // remove o prefixo "sbvid://"
-  // Para vídeos enviados (bucket privado), gera URL assinada e injeta no <video> após render.
+  var VIDEO_R2_FN=SB+'/functions/v1/video-r2';   // broker do Cloudflare R2 (gera presigned URLs; nunca expõe a chave)
+  function vidR2Call(action,body){ var tok=localStorage.getItem(TOKKEY);
+    return fetch(VIDEO_R2_FN,{method:'POST',headers:{Authorization:'Bearer '+tok,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action:action},body||{}))}).then(function(r){ return r.json(); });
+  }
+  function vidIsUpload(u){ return (u||'').indexOf('sbvid://')===0; }   // legado: Supabase Storage
+  function vidPath(u){ return (u||'').slice(8); }
+  function vidIsR2(u){ return (u||'').indexOf('r2vid://')===0; }        // atual: Cloudflare R2 (banda grátis, sem teto de 50MB)
+  function vidR2Key(u){ return (u||'').slice(8); }
+  function vidIsFile(u){ return vidIsUpload(u)||vidIsR2(u); }           // qualquer vídeo hospedado por nós (não link)
+  // Gera a URL de reprodução e injeta nos <video> após o render (R2 via broker; sbvid legado via Supabase sign).
   function hydrateVidUploads(scope){
-    var tok=localStorage.getItem(TOKKEY);
-    (scope||document).querySelectorAll('video[data-sbpath]').forEach(function(vid){
-      if(vid._hydrated) return; vid._hydrated=true;
-      var p=vid.getAttribute('data-sbpath'); if(!p) return;
+    var tok=localStorage.getItem(TOKKEY); var root=(scope||document);
+    root.querySelectorAll('video[data-r2key]').forEach(function(vid){
+      if(vid._hydrated) return; vid._hydrated=true; var k=vid.getAttribute('data-r2key'); if(!k) return;
+      vidR2Call('sign-play',{key:k}).then(function(j){ if(j&&j.url){ vid.src=j.url; } }).catch(function(){});
+    });
+    root.querySelectorAll('video[data-sbpath]').forEach(function(vid){
+      if(vid._hydrated) return; vid._hydrated=true; var p=vid.getAttribute('data-sbpath'); if(!p) return;
       fetch(SB+'/storage/v1/object/sign/'+TBUCKET+'/'+p,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:21600})})
       .then(function(r){ return r.ok?r.json():null; })
       .then(function(j){ if(j&&j.signedURL){ vid.src=SB+'/storage/v1'+j.signedURL; } })
@@ -4496,11 +4506,13 @@
     var rows=VID_ROWS.filter(function(v){ return !VID_FILTRO || (v.categoria||'')===VID_FILTRO; });
     if(!rows.length){ el.innerHTML='<div class="empty">'+(VID_FILTRO?('Nenhum vídeo na categoria “'+esc(VID_FILTRO)+'”.'):'Nenhum vídeo publicado ainda. Adicione acima.')+'</div>'; return; }
     el.innerHTML=rows.map(function(v){
-      var media=vidIsUpload(v.url)
-        ? '<video controls preload="metadata" data-sbpath="'+esc(vidPath(v.url))+'"></video>'
-        : '<iframe src="'+esc(ytEmbedCrm(v.url))+'" allowfullscreen loading="lazy"></iframe>';
+      var media=vidIsR2(v.url)
+        ? '<video controls preload="metadata" data-r2key="'+esc(vidR2Key(v.url))+'"></video>'
+        : (vidIsUpload(v.url)
+          ? '<video controls preload="metadata" data-sbpath="'+esc(vidPath(v.url))+'"></video>'
+          : '<iframe src="'+esc(ytEmbedCrm(v.url))+'" allowfullscreen loading="lazy"></iframe>');
       return '<div class="vidcard"><div class="frame">'+media+'</div>'
-        +'<div class="vinfo"><div class="vcat">'+esc(v.categoria||'—')+(vidIsUpload(v.url)?' · enviado':'')+(v.ativo===false?' · oculto':'')+'</div><h4>'+esc(v.titulo||'')+'</h4><p>'+esc(v.descricao||'')+'</p>'
+        +'<div class="vinfo"><div class="vcat">'+esc(v.categoria||'—')+(vidIsFile(v.url)?' · enviado':'')+(v.ativo===false?' · oculto':'')+'</div><h4>'+esc(v.titulo||'')+'</h4><p>'+esc(v.descricao||'')+'</p>'
         +'<div style="display:flex;gap:6px;margin-top:6px"><button class="ia-btn" data-act="editvid" data-id="'+v.id+'">Editar</button>'
         +'<button class="ia-btn" data-act="delvid" data-id="'+v.id+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button></div></div></div>';
     }).join('');
@@ -4509,7 +4521,7 @@
   function vidEditarAbrir(id){
     var v=VID_BY_ID[id]; if(!v) return; var form=$('form-vid'); if(!form) return;
     var set=function(k,val){ var el=form.querySelector('[data-k="'+k+'"]'); if(el) el.value=(val==null?'':val); };
-    var up=vidIsUpload(v.url);
+    var up=vidIsFile(v.url);
     set('titulo',v.titulo); set('categoria',v.categoria); set('url', up?'':v.url); set('descricao',v.descricao);
     vidEditOrigUrl=v.url||''; if($('vid_file')) $('vid_file').value='';
     vidEditId=id;
@@ -4602,12 +4614,15 @@
         return fetch(endp,{method:method,headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)});
       }
       if(file){
-        $('msg-vid').textContent=(file.size>52428800?'Enviando (arquivo grande — pode exceder o limite do plano)…':'Enviando vídeo…');
-        var path='videos/'+Date.now()+'_'+file.name.replace(/[^\w.\-]/g,'_');
-        fetch(SB+'/storage/v1/object/'+TBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':file.type||'video/mp4','x-upsert':'true'}),body:file})
-        .then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error('envio falhou ('+r.status+') '+t.slice(0,70)); }); return salvarRegistro('sbvid://'+path); })
+        $('msg-vid').textContent='Preparando envio…';
+        var r2key='videos/'+Date.now()+'_'+file.name.replace(/[^\w.\-]/g,'_'); var ctype=file.type||'video/mp4';
+        vidR2Call('sign-upload',{key:r2key,contentType:ctype})
+        .then(function(j){ if(!j||!j.url) throw new Error((j&&j.error)||'não foi possível preparar o envio (R2 configurado?)');
+          $('msg-vid').textContent='Enviando vídeo…';
+          return fetch(j.url,{method:'PUT',headers:{'Content-Type':ctype},body:file}); })
+        .then(function(r){ if(!r.ok) throw new Error('envio ao R2 falhou ('+r.status+')'); return salvarRegistro('r2vid://'+r2key); })
         .then(function(r){ if(r.ok) fim(true); else r.text().then(function(t){ fim(false,t.slice(0,90)); }); })
-        .catch(function(e){ fim(false,(e&&e.message)||'falha no envio (verifique seu acesso de equipe / tamanho do arquivo)'); });
+        .catch(function(e){ fim(false,(e&&e.message)||'falha no envio'); });
       } else {
         salvarRegistro(linkVal).then(function(r){ if(r.ok) fim(true); else r.text().then(function(t){ fim(false,t.slice(0,90)); }); })
         .catch(function(){ fim(false,'conexão'); });
@@ -4639,9 +4654,12 @@
       var act=b.getAttribute('data-act'), tok=localStorage.getItem(TOKKEY);
       if(act==='editvid'){ vidEditarAbrir(b.getAttribute('data-id')); return; }
       if(act==='delvid'){ if(!confirm('Excluir este vídeo do treinamento?')) return;
-        var _vr=VID_BY_ID[b.getAttribute('data-id')]; var _vp=(_vr&&vidIsUpload(_vr.url))?vidPath(_vr.url):null;
+        var _vr=VID_BY_ID[b.getAttribute('data-id')];
+        var _vsb=(_vr&&vidIsUpload(_vr.url))?vidPath(_vr.url):null;
+        var _vr2=(_vr&&vidIsR2(_vr.url))?vidR2Key(_vr.url):null;
         fetch(SB+'/rest/v1/portal_videos?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})})
-          .then(function(){ if(_vp){ fetch(SB+'/storage/v1/object/'+TBUCKET+'/'+_vp,{method:'DELETE',headers:authHeaders(tok)}).catch(function(){}); } loadTreinamentos(); });
+          .then(function(){ if(_vsb){ fetch(SB+'/storage/v1/object/'+TBUCKET+'/'+_vsb,{method:'DELETE',headers:authHeaders(tok)}).catch(function(){}); }
+            if(_vr2){ vidR2Call('delete',{key:_vr2}).catch(function(){}); } loadTreinamentos(); });
       } else if(act==='dlmat'){ var path=b.getAttribute('data-path'); b.disabled=true; var o=b.textContent; b.textContent='…';
         fetch(SB+'/storage/v1/object/sign/'+TBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:3600})})
         .then(function(r){ return r.json(); }).then(function(j){ b.disabled=false; b.textContent=o; if(j.signedURL) window.open(SB+'/storage/v1'+j.signedURL,'_blank'); else alert('Não foi possível gerar o link.'); })
