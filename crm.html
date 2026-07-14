@@ -106,6 +106,7 @@
   .vidcard{background:var(--bg2);border:1px solid var(--line);border-radius:4px;overflow:hidden}
   .vidcard .frame{position:relative;padding-top:56.25%;background:#000}
   .vidcard .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .vidcard .frame video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;object-fit:contain}
   .vidcard .vinfo{padding:12px 14px}
   .vidcard .vcat{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ouro)}
   .vidcard h4{font-family:var(--serif);font-size:15px;color:var(--text);margin:4px 0 6px}
@@ -838,7 +839,7 @@
       <!-- ===== TREINAMENTOS (equipe comercial) ===== -->
       <section class="view" data-v="treinamentos" hidden>
         <div class="h1">Treinamentos da Equipe</div>
-        <div class="sub">Vídeos (YouTube), apresentações e PDFs · publicados aqui aparecem no portal da equipe (Área Restrita)</div>
+        <div class="sub">Vídeos (link ou upload do seu computador), apresentações e PDFs · publicados aqui aparecem para a equipe</div>
 
         <div class="panel">
           <div class="modbar"><h3>📣 Quadro de Avisos — Lives, Treinamentos &amp; Reuniões</h3><span class="modmsg" id="msg-aviso"></span></div>
@@ -859,11 +860,12 @@
         </div>
 
         <div class="panel">
-          <div class="modbar"><h3>Adicionar vídeo (YouTube / Vimeo)</h3><span class="modmsg" id="msg-vid"></span></div>
+          <div class="modbar"><h3>Adicionar vídeo (link ou upload do computador)</h3><span class="modmsg" id="msg-vid"></span></div>
           <div class="modform" id="form-vid">
             <div class="f"><label>Título *</label><input data-k="titulo" placeholder="Ex.: Técnica de fechamento de venda"></div>
             <div class="f"><label>Categoria</label><select data-k="categoria"><option value="">— selecione —</option><option>Primeiros Passos</option><option>Produtos</option><option>Serviços</option><option>Vendas</option><option>CRM</option><option>Motivacionais</option><option>Técnicos</option></select></div>
-            <div class="f"><label>Link do vídeo *</label><input data-k="url" placeholder="https://youtu.be/..."></div>
+            <div class="f"><label>Link do vídeo (YouTube / Vimeo)</label><input data-k="url" placeholder="https://youtu.be/…  (ou envie um arquivo ao lado)"></div>
+            <div class="f"><label>Ou envie do computador</label><input type="file" id="vid_file" accept="video/*"><div style="font-size:11px;color:var(--muted);margin-top:4px">MP4 recomendado · até ~50MB · 720p — fica hospedado no próprio sistema, sem YouTube/Vimeo</div></div>
             <div class="f full"><label>Descrição</label><textarea data-k="descricao" rows="2"></textarea></div>
             <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="vid_salvar">Publicar vídeo</button></div>
           </div>
@@ -4467,7 +4469,21 @@
   }
   function matTam(kb){ return kb?(kb>1024?(kb/1024).toFixed(1)+' MB':kb+' KB'):'—'; }
   var VID_CATS=['Primeiros Passos','Produtos','Serviços','Vendas','CRM','Motivacionais','Técnicos'];
-  var VID_ROWS=[], VID_BY_ID={}, VID_FILTRO='', vidEditId=null;
+  var VID_ROWS=[], VID_BY_ID={}, VID_FILTRO='', vidEditId=null, vidEditOrigUrl='';
+  function vidIsUpload(u){ return (u||'').indexOf('sbvid://')===0; }   // vídeo hospedado no próprio Supabase Storage
+  function vidPath(u){ return (u||'').slice(8); }                       // remove o prefixo "sbvid://"
+  // Para vídeos enviados (bucket privado), gera URL assinada e injeta no <video> após render.
+  function hydrateVidUploads(scope){
+    var tok=localStorage.getItem(TOKKEY);
+    (scope||document).querySelectorAll('video[data-sbpath]').forEach(function(vid){
+      if(vid._hydrated) return; vid._hydrated=true;
+      var p=vid.getAttribute('data-sbpath'); if(!p) return;
+      fetch(SB+'/storage/v1/object/sign/'+TBUCKET+'/'+p,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:21600})})
+      .then(function(r){ return r.ok?r.json():null; })
+      .then(function(j){ if(j&&j.signedURL){ vid.src=SB+'/storage/v1'+j.signedURL; } })
+      .catch(function(){});
+    });
+  }
   function renderVidFiltros(){
     var box=$('vidFiltros'); if(!box) return;
     var cats=[''].concat(VID_CATS);
@@ -4480,24 +4496,31 @@
     var rows=VID_ROWS.filter(function(v){ return !VID_FILTRO || (v.categoria||'')===VID_FILTRO; });
     if(!rows.length){ el.innerHTML='<div class="empty">'+(VID_FILTRO?('Nenhum vídeo na categoria “'+esc(VID_FILTRO)+'”.'):'Nenhum vídeo publicado ainda. Adicione acima.')+'</div>'; return; }
     el.innerHTML=rows.map(function(v){
-      return '<div class="vidcard"><div class="frame"><iframe src="'+esc(ytEmbedCrm(v.url))+'" allowfullscreen loading="lazy"></iframe></div>'
-        +'<div class="vinfo"><div class="vcat">'+esc(v.categoria||'—')+(v.ativo===false?' · oculto':'')+'</div><h4>'+esc(v.titulo||'')+'</h4><p>'+esc(v.descricao||'')+'</p>'
+      var media=vidIsUpload(v.url)
+        ? '<video controls preload="metadata" data-sbpath="'+esc(vidPath(v.url))+'"></video>'
+        : '<iframe src="'+esc(ytEmbedCrm(v.url))+'" allowfullscreen loading="lazy"></iframe>';
+      return '<div class="vidcard"><div class="frame">'+media+'</div>'
+        +'<div class="vinfo"><div class="vcat">'+esc(v.categoria||'—')+(vidIsUpload(v.url)?' · enviado':'')+(v.ativo===false?' · oculto':'')+'</div><h4>'+esc(v.titulo||'')+'</h4><p>'+esc(v.descricao||'')+'</p>'
         +'<div style="display:flex;gap:6px;margin-top:6px"><button class="ia-btn" data-act="editvid" data-id="'+v.id+'">Editar</button>'
         +'<button class="ia-btn" data-act="delvid" data-id="'+v.id+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button></div></div></div>';
     }).join('');
+    hydrateVidUploads(el);
   }
   function vidEditarAbrir(id){
     var v=VID_BY_ID[id]; if(!v) return; var form=$('form-vid'); if(!form) return;
     var set=function(k,val){ var el=form.querySelector('[data-k="'+k+'"]'); if(el) el.value=(val==null?'':val); };
-    set('titulo',v.titulo); set('categoria',v.categoria); set('url',v.url); set('descricao',v.descricao);
+    var up=vidIsUpload(v.url);
+    set('titulo',v.titulo); set('categoria',v.categoria); set('url', up?'':v.url); set('descricao',v.descricao);
+    vidEditOrigUrl=v.url||''; if($('vid_file')) $('vid_file').value='';
     vidEditId=id;
     var vb=$('vid_salvar'); if(vb) vb.textContent='Salvar alterações';
-    var msg=$('msg-vid'); if(msg) msg.innerHTML='Editando “'+esc(v.titulo||'')+'” — <a id="vidCancelEdit" style="color:var(--ouro);cursor:pointer;text-decoration:underline">cancelar</a>';
+    var msg=$('msg-vid'); if(msg) msg.innerHTML='Editando “'+esc(v.titulo||'')+'”'+(up?' <span style="color:var(--muted)">(vídeo enviado — deixe em branco p/ manter, ou envie outro arquivo/link p/ substituir)</span>':'')+' — <a id="vidCancelEdit" style="color:var(--ouro);cursor:pointer;text-decoration:underline">cancelar</a>';
     try{ form.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
   }
   function vidResetForm(){
-    vidEditId=null; var form=$('form-vid');
+    vidEditId=null; vidEditOrigUrl=''; var form=$('form-vid');
     if(form){ form.querySelectorAll('input,textarea').forEach(function(el){ el.value=''; }); var s=form.querySelector('select[data-k="categoria"]'); if(s) s.value=''; }
+    if($('vid_file')) $('vid_file').value='';
     var vb=$('vid_salvar'); if(vb) vb.textContent='Publicar vídeo';
     var msg=$('msg-vid'); if(msg) msg.textContent='';
   }
@@ -4562,15 +4585,33 @@
     var vb=$('vid_salvar');
     if(vb) vb.addEventListener('click', function(){
       var form=$('form-vid'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
-      if(!g('titulo')||!g('url')){ $('msg-vid').textContent='Informe título e link do vídeo.'; return; }
-      var tok=localStorage.getItem(TOKKEY); var wasEdit=vidEditId; vb.disabled=true; vb.textContent='Salvando…';
-      var body={titulo:g('titulo'),url:g('url'),categoria:g('categoria'),descricao:g('descricao')}; if(!wasEdit) body.ativo=true;
-      var url=SB+'/rest/v1/portal_videos'+(wasEdit?('?id=eq.'+wasEdit):''); var method=wasEdit?'PATCH':'POST';
-      fetch(url,{method:method,headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)})
-      .then(function(r){ vb.disabled=false; vb.textContent=wasEdit?'Salvar alterações':'Publicar vídeo';
-        if(r.ok){ $('msg-vid').textContent=wasEdit?'Vídeo atualizado ✓':'Vídeo publicado ✓'; vidResetForm(); loadTreinamentos(); setTimeout(function(){ if($('msg-vid'))$('msg-vid').textContent=''; },2500); }
-        else r.text().then(function(t){ $('msg-vid').textContent='Erro: '+t.slice(0,90); }); })
-      .catch(function(){ vb.disabled=false; vb.textContent=wasEdit?'Salvar alterações':'Publicar vídeo'; $('msg-vid').textContent='Erro de conexão.'; });
+      var file=($('vid_file')&&$('vid_file').files)?$('vid_file').files[0]:null;
+      var tok=localStorage.getItem(TOKKEY); var wasEdit=vidEditId;
+      if(!g('titulo')){ $('msg-vid').textContent='Informe o título do vídeo.'; return; }
+      // fonte do vídeo: arquivo enviado tem prioridade; senão o link; ao editar sem trocar, mantém o original
+      var linkVal=g('url');
+      if(!file && !linkVal && wasEdit && vidEditOrigUrl){ linkVal=vidEditOrigUrl; }
+      if(!file && !linkVal){ $('msg-vid').textContent='Informe um link OU envie um arquivo de vídeo.'; return; }
+      vb.disabled=true; vb.textContent='Salvando…';
+      function fim(ok,txt){ vb.disabled=false; vb.textContent=wasEdit?'Salvar alterações':'Publicar vídeo';
+        if(ok){ $('msg-vid').textContent=wasEdit?'Vídeo atualizado ✓':'Vídeo publicado ✓'; vidResetForm(); loadTreinamentos(); setTimeout(function(){ if($('msg-vid'))$('msg-vid').textContent=''; },2500); }
+        else { $('msg-vid').textContent='Erro: '+(txt||'não foi possível'); } }
+      function salvarRegistro(urlVal){
+        var body={titulo:g('titulo'),url:urlVal,categoria:g('categoria'),descricao:g('descricao')}; if(!wasEdit) body.ativo=true;
+        var endp=SB+'/rest/v1/portal_videos'+(wasEdit?('?id=eq.'+wasEdit):''); var method=wasEdit?'PATCH':'POST';
+        return fetch(endp,{method:method,headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)});
+      }
+      if(file){
+        $('msg-vid').textContent=(file.size>52428800?'Enviando (arquivo grande — pode exceder o limite do plano)…':'Enviando vídeo…');
+        var path='videos/'+Date.now()+'_'+file.name.replace(/[^\w.\-]/g,'_');
+        fetch(SB+'/storage/v1/object/'+TBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':file.type||'video/mp4','x-upsert':'true'}),body:file})
+        .then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error('envio falhou ('+r.status+') '+t.slice(0,70)); }); return salvarRegistro('sbvid://'+path); })
+        .then(function(r){ if(r.ok) fim(true); else r.text().then(function(t){ fim(false,t.slice(0,90)); }); })
+        .catch(function(e){ fim(false,(e&&e.message)||'falha no envio (verifique seu acesso de equipe / tamanho do arquivo)'); });
+      } else {
+        salvarRegistro(linkVal).then(function(r){ if(r.ok) fim(true); else r.text().then(function(t){ fim(false,t.slice(0,90)); }); })
+        .catch(function(){ fim(false,'conexão'); });
+      }
     });
     var mb=$('mat_salvar');
     if(mb) mb.addEventListener('click', function(){
@@ -4598,7 +4639,9 @@
       var act=b.getAttribute('data-act'), tok=localStorage.getItem(TOKKEY);
       if(act==='editvid'){ vidEditarAbrir(b.getAttribute('data-id')); return; }
       if(act==='delvid'){ if(!confirm('Excluir este vídeo do treinamento?')) return;
-        fetch(SB+'/rest/v1/portal_videos?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})}).then(function(){ loadTreinamentos(); });
+        var _vr=VID_BY_ID[b.getAttribute('data-id')]; var _vp=(_vr&&vidIsUpload(_vr.url))?vidPath(_vr.url):null;
+        fetch(SB+'/rest/v1/portal_videos?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})})
+          .then(function(){ if(_vp){ fetch(SB+'/storage/v1/object/'+TBUCKET+'/'+_vp,{method:'DELETE',headers:authHeaders(tok)}).catch(function(){}); } loadTreinamentos(); });
       } else if(act==='dlmat'){ var path=b.getAttribute('data-path'); b.disabled=true; var o=b.textContent; b.textContent='…';
         fetch(SB+'/storage/v1/object/sign/'+TBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:3600})})
         .then(function(r){ return r.json(); }).then(function(j){ b.disabled=false; b.textContent=o; if(j.signedURL) window.open(SB+'/storage/v1'+j.signedURL,'_blank'); else alert('Não foi possível gerar o link.'); })
