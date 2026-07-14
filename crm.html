@@ -1888,6 +1888,22 @@
   }
   // ===== Admin de Produtos (imagem + vídeo + estoque + ranking) =====
   function brl(v){ if(v==null||v==='') return '—'; var n=Number(v); return isNaN(n)?String(v):'R$ '+n.toLocaleString('pt-BR'); }
+  // Parser robusto de número em formato brasileiro/internacional. Evita o bug "2.699" -> 2,699.
+  // "2.699"=2699 · "2.699,90"=2699.90 · "2699"=2699 · "2699.90"=2699.90 · "1.234.567,89"=1234567.89 · "R$ 1.500"=1500
+  function numBR(v){
+    if(v==null) return NaN;
+    var s=String(v).trim().replace(/[R$\s ]/g,'');
+    if(s==='') return NaN;
+    var hasC=s.indexOf(',')>-1, hasD=s.indexOf('.')>-1;
+    if(hasC && hasD){ s=s.replace(/\./g,'').replace(',', '.'); }          // 1.234,56 -> ponto=milhar, vírgula=decimal
+    else if(hasC){ s=s.replace(',', '.'); }                                // 1234,56 -> vírgula decimal
+    else if(hasD){ var p=s.split('.');
+      if(p.length>2){ s=p.join(''); }                                     // 1.234.567 -> milhares
+      else if((p[1]||'').length===3){ s=p.join(''); }                     // 2.699 -> 2699 (milhar, nunca 3 casas em R$)
+      /* senão mantém decimal: 2.5 / 2.50 / 2699.90 */
+    }
+    var n=Number(s); return isNaN(n)?NaN:n;
+  }
   function slugSku(nome){ return 'KM-'+(nome||'PROD').toUpperCase().normalize('NFD').replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,16)+'-'+Math.random().toString(36).slice(2,5).toUpperCase(); }
   var prodEditId=null, prodById={}, prodEditItens=[], PROD_FIND={}, PROD_FORN_FIND={}, PROD_FORN_BYID={}, prodEditFornId=null;
   var KM_PALETA=[['branco','#ffffff'],['cinza','#9aa0a6'],['preto','#1a1a1a'],['verde','#2e7d32'],['azul','#1565c0'],['marrom','#6d4c41'],['vermelho','#c62828'],['dourado','#c9a227'],['bege','#d8c3a5'],['gelo','#eef2f3']];
@@ -1921,7 +1937,7 @@
       +'<div class="f"><label>Fornecedor — digite para escolher</label><input data-k="fornecedor_nome" list="prodFornList" placeholder="Comece a digitar o nome do fornecedor…" autocomplete="off"><datalist id="prodFornList"></datalist></div>'
       +'<div class="f"><label>SKU (opcional)</label><input data-k="sku"></div>'
       +'<div class="f"><label>NCM (código fiscal — p/ nota fiscal)</label><input data-k="ncm" maxlength="10" placeholder="ex.: 9403.60.00"></div>'
-      +'<div class="f"><label>Preço varejo (R$)</label><input data-k="preco" type="number"></div>'
+      +'<div class="f"><label>Preço varejo (R$)</label><input data-k="preco" type="text" inputmode="decimal" placeholder="ex.: 2.699 ou 2699,90"></div>'
       +'<div class="f"><label>Estoque disponível</label><input data-k="estoque_disponivel" type="number"></div>'
       +'<div class="f"><label>Ranking (1 = topo)</label><input data-k="ranking" type="number"></div>'
       +'<div class="f"><label>Trilha</label><select data-k="trilha"><option value="A">A — pronta entrega (loja)</option><option value="B">B — sob consulta (curadoria)</option></select></div>'
@@ -1996,7 +2012,7 @@
       var tipo=get('item_tipo'+i), inome=get('item_nome'+i), ival=get('item_valor'+i);
       var fEl=$('item_img'+i); var file=fEl?fEl.files[0]:null;
       var fotoEx=(prodEditItens[i-1]&&prodEditItens[i-1].foto)||'';
-      if(tipo||inome||ival||file||fotoEx) itensMeta.push({tipo:tipo||'adicional', nome:inome, valor:ival?Number(ival):0, file:file, foto:fotoEx});
+      if(tipo||inome||ival||file||fotoEx) itensMeta.push({tipo:tipo||'adicional', nome:inome, valor:ival?(isNaN(numBR(ival))?0:numBR(ival)):0, file:file, foto:fotoEx});
     });
     var cores=[]; Array.prototype.forEach.call(form.querySelectorAll('.prod-cor:checked'),function(c){ cores.push(c.value); });
     var mainFile=$('prod_img').files[0];
@@ -2005,7 +2021,7 @@
       var fotoPrinc=urls[0];
       var itens=itensMeta.map(function(it,idx){ return {tipo:it.tipo, nome:it.nome, valor:it.valor, foto:(urls[idx+1]||it.foto||'')}; });
       var data={ nome:nome, categoria:get('categoria')||null, sku:get('sku')||slugSku(nome), ncm:get('ncm')||null,
-        preco:get('preco')?Number(get('preco')):null, estoque_disponivel:get('estoque_disponivel')?Number(get('estoque_disponivel')):0,
+        preco:get('preco')?(isNaN(numBR(get('preco')))?null:numBR(get('preco'))):null, estoque_disponivel:get('estoque_disponivel')?Number(get('estoque_disponivel')):0,
         ranking:get('ranking')?Number(get('ranking')):null, trilha:get('trilha')||'A', destaque:get('destaque')==='true',
         video_url:get('video_url')||null, descricao:get('descricao')||null, foto_url:fotoPrinc||get('foto_url')||null, ativo:true,
         itens:itens, cores_disponiveis:cores };
@@ -2906,7 +2922,7 @@
     for(var i=0;i<5;i++){
       h+='<div class="vi-row" data-i="'+i+'">'+
         '<select class="vi-prod">'+opts+'</select>'+
-        '<input class="vi-valor" type="number" min="0" step="0.01" placeholder="0,00">'+
+        '<input class="vi-valor" type="text" inputmode="decimal" placeholder="0,00">'+
         '<input class="vi-qtd" type="number" min="1" step="1" value="1">'+
         '<span class="vi-sub">R$ 0,00</span></div>';
     }
@@ -2915,7 +2931,7 @@
       var prod=row.querySelector('.vi-prod'), val=row.querySelector('.vi-valor'), qtd=row.querySelector('.vi-qtd');
       prod.addEventListener('change', function(){
         var op=prod.options[prod.selectedIndex]; var preco=op?(Number(op.getAttribute('data-preco'))||0):0;
-        if(preco>0 && (!val.value || Number(val.value)===0)){ val.value=preco.toFixed(2); } // Valor (R$) = valor UNITÁRIO
+        if(preco>0 && (!val.value || numBR(val.value)===0 || isNaN(numBR(val.value)))){ val.value=preco.toFixed(2); } // Valor (R$) = valor UNITÁRIO
         vendaRecalcTotal();
       });
       val.addEventListener('input', vendaRecalcTotal);
@@ -2934,7 +2950,7 @@
   function vendaRecalcTotal(){
     var host=$('venda_itens'); if(!host) return; var bruto=0;
     host.querySelectorAll('.vi-row').forEach(function(row){
-      var unit=Number(row.querySelector('.vi-valor').value)||0;
+      var unit=numBR(row.querySelector('.vi-valor').value)||0;
       var q=Number(row.querySelector('.vi-qtd').value)||1; if(q<1) q=1;
       var linha=unit*q; bruto+=linha;                       // subtotal da linha = valor × qtd
       var sub=row.querySelector('.vi-sub'); if(sub) sub.textContent=vendaMoney(linha);
@@ -2950,7 +2966,7 @@
     var host=$('venda_itens'); var out=[]; if(!host) return out;
     host.querySelectorAll('.vi-row').forEach(function(row){
       var sel=row.querySelector('.vi-prod'); var pid=sel.value||null;
-      var unit=Number(row.querySelector('.vi-valor').value)||0;
+      var unit=numBR(row.querySelector('.vi-valor').value)||0;
       var q=Number(row.querySelector('.vi-qtd').value)||1; if(q<1) q=1;
       if(!pid && unit<=0) return; // linha vazia — ignora
       var nome=(pid && sel.options[sel.selectedIndex])?sel.options[sel.selectedIndex].text:'';
@@ -3516,7 +3532,7 @@
   // ===== Fluxo de Caixa =====
   var FC_BUILT=false, FC_PERIODO=30, FC_CONTA='', FC_CONTAS=[], FC_CHART=null;
   var FC_BANCOS=[['001','Banco do Brasil'],['104','Caixa Econômica Federal'],['237','Bradesco'],['341','Itaú Unibanco'],['033','Santander'],['422','Safra'],['070','BRB'],['077','Banco Inter'],['260','Nubank'],['290','PagBank (PagSeguro)'],['323','Mercado Pago'],['336','Banco C6'],['756','Sicoob'],['748','Sicredi'],['212','Banco Original'],['380','PicPay'],['364','Efí (Gerencianet)'],['136','Unicred'],['041','Banrisul'],['004','Banco do Nordeste'],['021','Banestes'],['085','Ailos'],['655','Banco Votorantim'],['246','Banco ABC Brasil'],['025','Banco Alfa'],['208','BTG Pactual'],['218','Banco BS2'],['611','Banco Paulista'],['320','China Construction Bank'],['745','Citibank'],['399','HSBC'],['999','Outro / Dinheiro (caixa)']];
-  var FC_CAT_DESP=['Aluguel','Fornecedor','Folha / Salários','Pró-labore','Impostos','Marketing','Logística / Frete','Utilidades (água/luz/internet)','Manutenção','Tarifas bancárias','Outros'];
+  var FC_CAT_DESP=['Aluguel','Fornecedor','Folha / Salários','Pró-labore','Impostos','Marketing','Logística / Frete','Utilidades (água/luz/internet)','Manutenção','Tarifas bancárias','Alimentação','Diária de entrega','Despesas escritório','Material de limpeza','Matéria para produzir','Pedágio','Outros'];
   var FC_CAT_REC=['Venda','Locação','Impressão 3D','Serviço','Outros'];
   function fcContaOpts(sel, incTodas){
     var h=incTodas?'<option value="">Todas as contas (consolidado)</option>':'<option value="">— selecione —</option>';
@@ -5007,6 +5023,9 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
         --line:rgba(8,8,7,.16); }
   html,body{background:var(--bg) !important;color:var(--text) !important;}
   .gatecard button,.topbar .ai,.ia-btn.sug,#iaModal .iaok,#leadModal .lmok,#opModal .lmok,.eq-acessos{color:#F1E9D2 !important;}
+  /* Auditoria de contraste (tema claro): todo botão de fundo dourado (que aqui vira escuro) recebe texto claro; pills/links de texto dourado sobre fundo claro recebem texto escuro legível. */
+  .btn,.km-vfiltro[style*="--accent"],.modbar .btn,button.btn{color:#F1E9D2 !important;}
+  .km-ped-edit{color:#080807 !important;}
   .panel h3 .tagreal{color:#080807 !important;}
   .kpi .d,.ia-tag.ok,.agtag.ok{color:#2F6B2E !important;}
   .cmsg{background:#EFE7CE !important;}
@@ -5988,6 +6007,51 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     var t=e.target; if(!t||!t.closest) return; var b=t.closest('.km-ped-edit'); if(b){ e.preventDefault(); abrirPedEdit(b.getAttribute('data-id')); }
   }, true);
 
+  /* parser BR local (mesma regra do numBR do core) + cache de produtos p/ o editor de itens */
+  function pedNumBR(v){ if(v==null) return NaN; var s=String(v).trim().replace(/[R$\s ]/g,''); if(s==='') return NaN;
+    var hasC=s.indexOf(',')>-1, hasD=s.indexOf('.')>-1;
+    if(hasC&&hasD){ s=s.replace(/\./g,'').replace(',', '.'); } else if(hasC){ s=s.replace(',', '.'); }
+    else if(hasD){ var pp=s.split('.'); if(pp.length>2){ s=pp.join(''); } else if((pp[1]||'').length===3){ s=pp.join(''); } }
+    var n=Number(s); return isNaN(n)?NaN:n; }
+  var PED_PRODS=null, PED_EDIT_DESC={pct:0, reais:0};
+  function pedProdOpts(cb){
+    if(PED_PRODS){ cb(); return; }
+    restGet('produtos?select=id,nome,preco&order=nome.asc&limit=500').then(function(rows){ PED_PRODS=Array.isArray(rows)?rows:[]; cb(); }).catch(function(){ PED_PRODS=[]; cb(); });
+  }
+  function pedOptsHtml(){ return '<option value="">— produto (opcional) —</option>'+(PED_PRODS||[]).map(function(p){ return '<option value="'+p.id+'" data-preco="'+(Number(p.preco)||0)+'">'+esc(p.nome||'(sem nome)')+'</option>'; }).join(''); }
+  function pedRenderItens(existing){
+    var host=el('km-ped-itens'); if(!host) return; var opts=pedOptsHtml(); var ex=existing||[]; var h='';
+    for(var i=0;i<5;i++){ var it=ex[i]||null;
+      var pid=it?(it.produto_id||''):''; var unit=it?(it.preco_unit!=null?it.preco_unit:''):''; var q=it?(it.qtd||1):'';
+      h+='<div class="km-vi-row" data-i="'+i+'" style="display:grid;grid-template-columns:1fr 90px 60px 78px;gap:6px;margin-bottom:5px;align-items:center">'+
+        '<select class="km-vi-prod" style="min-width:0">'+opts+'</select>'+
+        '<input class="km-vi-valor" type="text" inputmode="decimal" placeholder="unit." value="'+esc(unit===''?'':String(unit))+'">'+
+        '<input class="km-vi-qtd" type="number" min="1" step="1" value="'+(q||1)+'">'+
+        '<span class="km-vi-sub" style="font-size:11px;color:var(--muted);text-align:right">R$ 0,00</span></div>';
+    }
+    host.innerHTML=h;
+    // pré-seleciona os produtos e liga os eventos
+    host.querySelectorAll('.km-vi-row').forEach(function(row,idx){
+      var it=ex[idx]||null; var sel=row.querySelector('.km-vi-prod'); if(it&&it.produto_id) sel.value=it.produto_id;
+      var val=row.querySelector('.km-vi-valor'), qtd=row.querySelector('.km-vi-qtd');
+      sel.addEventListener('change', function(){ var op=sel.options[sel.selectedIndex]; var pr=op?(Number(op.getAttribute('data-preco'))||0):0;
+        if(pr>0 && (!val.value || pedNumBR(val.value)===0 || isNaN(pedNumBR(val.value)))){ val.value=pr.toFixed(2); } pedRecalc(); });
+      val.addEventListener('input', pedRecalc); qtd.addEventListener('input', pedRecalc);
+    });
+    pedRecalc();
+  }
+  function pedColeta(){ var host=el('km-ped-itens'); var out=[]; if(!host) return out;
+    host.querySelectorAll('.km-vi-row').forEach(function(row){ var sel=row.querySelector('.km-vi-prod'); var pid=sel.value||null;
+      var unit=pedNumBR(row.querySelector('.km-vi-valor').value)||0; var q=parseInt(row.querySelector('.km-vi-qtd').value,10)||1; if(q<1)q=1;
+      if(!pid && unit<=0) return; var nome=(pid&&sel.options[sel.selectedIndex])?sel.options[sel.selectedIndex].text:'';
+      out.push({ produto_id:pid, descricao:nome, qtd:q, valor:unit*q }); });
+    return out;
+  }
+  function pedRecalc(){ var host=el('km-ped-itens'); if(!host) return; var bruto=0;
+    host.querySelectorAll('.km-vi-row').forEach(function(row){ var unit=pedNumBR(row.querySelector('.km-vi-valor').value)||0; var q=parseInt(row.querySelector('.km-vi-qtd').value,10)||1; if(q<1)q=1;
+      var linha=unit*q; bruto+=linha; var sub=row.querySelector('.km-vi-sub'); if(sub) sub.textContent=money(linha); });
+    var tt=el('km-ped-total'); if(tt) tt.textContent=money(bruto);
+  }
   function ensurePedModal(){
     if(el('kmPedModal')) return;
     var m=document.createElement('div'); m.id='kmPedModal'; m.className='km-modal';
@@ -5996,13 +6060,15 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
       '<div><label class="km-lab">Canal</label><select id="km-ped-canal"></select></div></div>'+
       '<div class="km-grid"><div><label class="km-lab">Forma de pagamento</label><select id="km-ped-forma"></select></div>'+
       '<div><label class="km-lab">Data da venda</label><input id="km-ped-data" type="date"></div></div>'+
-      '<div class="km-grid"><div><label class="km-lab">Frete (R$)</label><input id="km-ped-frete" type="number" step="0.01" min="0"></div><div></div></div>'+
-      '<label class="km-lab">Observação</label><textarea id="km-ped-obs"></textarea>'+
-      '<div class="km-hint" style="font-size:11px;color:var(--muted);margin-top:6px">Valor e comissão não são editados aqui (integridade). Para mudar o valor, cancele e relance a venda.</div>'+
+      '<div class="km-grid"><div><label class="km-lab">Frete (R$)</label><input id="km-ped-frete" type="text" inputmode="decimal"></div><div></div></div>'+
+      '<label class="km-lab" style="margin-top:6px">Produtos do pedido (produto · valor unitário · qtd)</label>'+
+      '<div id="km-ped-itens"></div>'+
+      '<div style="text-align:right;font-size:12px;margin-top:2px">Subtotal itens: <b id="km-ped-total" style="color:var(--accent)">R$ 0,00</b></div>'+
+      '<label class="km-lab" style="margin-top:6px">Observação</label><textarea id="km-ped-obs"></textarea>'+
+      '<div class="km-hint" style="font-size:11px;color:var(--muted);margin-top:6px">Alterar itens/valor reprocessa <b>estoque e comissão</b> automaticamente (estorna e reaplica). Vendas já <b>recebidas</b> ficam protegidas — ajuste o financeiro antes. Desconto atual é preservado.</div>'+
       '<div class="km-ft"><button class="km-ok" id="km-ped-save">Salvar</button><button class="km-cancel" id="km-ped-cancel">Fechar</button><span class="km-msg" id="km-ped-msg"></span></div>'+
       '<input type="hidden" id="km-ped-id"></div></div>';
     document.body.appendChild(m);
-    // clona opções de canal/forma do formulário; status do PED_STATUS
     var PS=window.PED_STATUS||{novo:'Novo',aguardando_pagamento:'Aguardando pagamento',pago:'Pago',producao:'Em produção',expedido:'Expedido',entregue:'Entregue',cancelado:'Cancelado'};
     el('km-ped-status').innerHTML=Object.keys(PS).map(function(k){return '<option value="'+k+'">'+esc(PS[k])+'</option>';}).join('');
     el('km-ped-canal').innerHTML=(el('venda_canal')?el('venda_canal').innerHTML:'<option value="">—</option>');
@@ -6014,33 +6080,50 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   function fecharPed(){ var m=el('kmPedModal'); if(m) m.style.display='none'; }
   function abrirPedEdit(id){
     ensurePedModal(); el('kmPedModal').style.display='flex'; el('km-ped-msg').textContent='Carregando…';
-    restGet('pedidos?id=eq.'+id+'&select=numero,status,canal,forma_pagamento,data_venda,observacao,valor_frete&limit=1').then(function(rows){
-      var p=(rows&&rows[0])||null; if(!p){ el('km-ped-msg').textContent='Não encontrado.'; return; }
-      el('km-ped-id').value=id; el('km-ped-num').textContent=p.numero?('· '+p.numero):'';
-      if(el('km-ped-status')) el('km-ped-status').value=p.status||'';
-      if(el('km-ped-canal')) el('km-ped-canal').value=p.canal||'';
-      if(el('km-ped-forma')) el('km-ped-forma').value=p.forma_pagamento||'';
-      el('km-ped-data').value=p.data_venda?String(p.data_venda).slice(0,10):'';
-      el('km-ped-frete').value=(p.valor_frete!=null?p.valor_frete:'');
-      el('km-ped-obs').value=p.observacao||''; el('km-ped-msg').textContent='';
-    }).catch(function(){ el('km-ped-msg').textContent='Erro ao carregar.'; });
+    pedProdOpts(function(){
+      Promise.all([
+        restGet('pedidos?id=eq.'+id+'&select=numero,status,canal,forma_pagamento,data_venda,observacao,valor_frete,desconto_pct,desconto_valor&limit=1'),
+        restGet('pedido_itens?pedido_id=eq.'+id+'&select=produto_id,qtd,preco_unit,acabamento&order=id.asc')
+      ]).then(function(res){
+        var p=(res[0]&&res[0][0])||null; var itens=Array.isArray(res[1])?res[1]:[];
+        if(!p){ el('km-ped-msg').textContent='Não encontrado.'; return; }
+        el('km-ped-id').value=id; el('km-ped-num').textContent=p.numero?('· '+p.numero):'';
+        if(el('km-ped-status')) el('km-ped-status').value=p.status||'';
+        if(el('km-ped-canal')) el('km-ped-canal').value=p.canal||'';
+        if(el('km-ped-forma')) el('km-ped-forma').value=p.forma_pagamento||'';
+        el('km-ped-data').value=p.data_venda?String(p.data_venda).slice(0,10):'';
+        el('km-ped-frete').value=(p.valor_frete!=null?p.valor_frete:'');
+        el('km-ped-obs').value=p.observacao||'';
+        PED_EDIT_DESC={ pct:Number(p.desconto_pct)||0, reais:Number(p.desconto_valor)||0 };
+        pedRenderItens(itens);
+        el('km-ped-msg').textContent='';
+      }).catch(function(){ el('km-ped-msg').textContent='Erro ao carregar.'; });
+    });
   }
   function salvarPed(){
     var id=el('km-ped-id').value, btn=el('km-ped-save'); btn.disabled=true; el('km-ped-msg').textContent='Salvando…';
-    var freteVal=(el('km-ped-frete').value!==''?Number(el('km-ped-frete').value):null);
-    // grava o FRETE direto (pedido + OS) — funciona sem a RPC e reflete em Ordens de Serviço (campo frete)
+    var freteVal=(el('km-ped-frete').value!==''?pedNumBR(el('km-ped-frete').value):null);
     if(freteVal!=null && !isNaN(freteVal)){
       var HH={apikey:KEY,Authorization:'Bearer '+tok(),'Content-Type':'application/json',Prefer:'return=minimal'};
       fetch(SB+'/rest/v1/pedidos?id=eq.'+id,{method:'PATCH',headers:HH,body:JSON.stringify({valor_frete:freteVal})}).catch(function(){});
       fetch(SB+'/rest/v1/ordens_servico?pedido_id=eq.'+id,{method:'PATCH',headers:HH,body:JSON.stringify({frete:freteVal})}).catch(function(){});
     }
-    window.rpc('editar_venda',{ p_pedido_id:id, p_status:el('km-ped-status').value||null, p_canal:el('km-ped-canal').value||null,
-      p_forma_pagamento:el('km-ped-forma').value||null, p_data_venda:el('km-ped-data').value||null,
-      p_observacao:(el('km-ped-obs').value||'').trim()||null, p_valor_frete:freteVal })
+    var itens=pedColeta();
+    if(!itens.length){ btn.disabled=false; el('km-ped-msg').textContent='Adicione ao menos um produto/valor.'; return; }
+    // preserva o desconto atual: % tem prioridade
+    var payload={ pedido_id:id, itens:itens,
+      desconto_reais:(PED_EDIT_DESC.pct>0?0:PED_EDIT_DESC.reais), desconto_pct:PED_EDIT_DESC.pct,
+      status:el('km-ped-status').value||null, canal:el('km-ped-canal').value||null,
+      forma_pagamento:el('km-ped-forma').value||null, data_venda:el('km-ped-data').value||null,
+      observacao:(el('km-ped-obs').value||'').trim()||null };
+    window.rpc('editar_venda_completa',{ p:payload })
     .then(function(j){ btn.disabled=false;
-      if(j&&j.ok){ el('km-ped-msg').textContent='✓ Salvo'; setTimeout(function(){ fecharPed(); if(window.loadPedidos) window.loadPedidos(); if(window.loadFechamento)try{window.loadFechamento();}catch(e){} },600); }
-      else { el('km-ped-msg').textContent='✓ Frete salvo (e espelhado na OS). Demais campos exigem o SQL editar_venda.'; setTimeout(function(){ fecharPed(); if(window.loadPedidos) window.loadPedidos(); },1100); } })
-    .catch(function(){ btn.disabled=false; el('km-ped-msg').textContent='✓ Frete salvo (e espelhado na OS). Demais campos exigem o SQL editar_venda.'; setTimeout(function(){ fecharPed(); if(window.loadPedidos) window.loadPedidos(); },1100); });
+      if(j&&j.ok){ el('km-ped-msg').textContent='✓ Venda atualizada · total '+money(j.valor)+' · comissão '+money(j.comissao_consultor||0);
+        setTimeout(function(){ fecharPed(); if(window.loadPedidos) window.loadPedidos(); if(window.loadFechamento)try{window.loadFechamento();}catch(e){} },900); }
+      else if(j&&j.erro==='venda_recebida'){ el('km-ped-msg').textContent='Esta venda já foi RECEBIDA no financeiro — altere/estorne o recebimento antes de editar o valor.'; }
+      else if(j&&j.erro){ el('km-ped-msg').textContent='Não foi possível: '+j.erro; }
+      else { el('km-ped-msg').textContent='Falha ao salvar (a função editar_venda_completa está publicada no Supabase?).'; } })
+    .catch(function(){ btn.disabled=false; el('km-ped-msg').textContent='Erro de conexão.'; });
   }
 
   /* ===================== gatilhos ===================== */
