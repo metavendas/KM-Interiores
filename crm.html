@@ -1613,7 +1613,7 @@
       cols:[{k:'nome'},{k:'classificacao',badge:true},{k:'cidade'},{k:'telefone'},{k:'email'}] },
     empresas:{ table:'empresas', fields:[
       {k:'nome',l:'Nome / Razão social',req:true,full:true},
-      {k:'tipo',l:'Tipo',type:'select',opts:['','Hotel','Incorporadora','Imobiliária','Produtora de eventos','Escritório de Arquitetura','Construtora','Outro']},
+      {k:'tipo',l:'Tipo',type:'select',opts:['','Hotel','Incorporadora','Imobiliária','Produtora de eventos','Escritório de Arquitetura','Construtora','Lojista','Outro']},
       {k:'cnpj',l:'CNPJ'},{k:'cidade',l:'Cidade / UF'},{k:'contato_nome',l:'Contato'},{k:'contato_email',l:'E-mail do contato'},{k:'telefone',l:'Telefone'}],
       cols:[{k:'nome'},{k:'tipo',badge:true},{k:'cidade'},{k:'contato_nome'},{k:'telefone'}] },
     fornecedores:{ table:'fornecedores', fields:[
@@ -3007,7 +3007,7 @@
         vendedor:(function(){ var s=$('venda_vendedor'); return (s&&s.selectedIndex>0)?s.options[s.selectedIndex].text:''; })(),
         pilar:(PILAR_LABEL[vendaG('pilar')]||vendaG('pilar')), canal:vendaG('canal'), forma:vendaG('forma_pagamento'),
         data:vendaG('data_venda')||new Date().toISOString().slice(0,10),
-        obs:vendaG('observacao'),
+        obs:vendaG('observacao'), frete:(Number(window.__kmVendaFrete)||0),
         itens:itens.map(function(it){ return {desc:it.descricao||'Item', qtd:it.qtd, sub:Number(it.valor)||0}; })
       };
       rpc('registrar_venda',{ cliente_id:vendaG('cliente_id')||null, vendedor_id:vendedor, parceiro_id:vendaG('parceiro_id')||null,
@@ -3028,7 +3028,7 @@
     });
   })();
   // ===== PDF do pedido (jsPDF) =====
-  function gerarPdfPedido(j, d){
+  function gerarPdfPedido(j, d, mode){
     if(!(window.jspdf && window.jspdf.jsPDF)){ console.warn('jsPDF indisponível'); return; }
     var doc=new window.jspdf.jsPDF({unit:'pt', format:'a4'}); var W=595, x=40, y=54;
     doc.setFillColor(20,16,10); doc.rect(0,0,W,90,'F');
@@ -3051,15 +3051,36 @@
     });
     y+=6; doc.line(x,y,W-x,y); y+=20;
     function tot(l,v,bold){ doc.setFont('helvetica',bold?'bold':'normal'); doc.text(l, 360, y, {align:'right'}); doc.text('R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2}), W-x, y, {align:'right'}); y+=17; }
+    var _frete=Number((d&&d.frete)||(j&&(j.frete!=null?j.frete:j.valor_frete))||0);
     tot('Subtotal:', (j.valor_bruto!=null?j.valor_bruto:j.valor));
     if(Number(j.desconto||0)>0) tot('Desconto:', -Number(j.desconto));
-    tot('TOTAL A PAGAR:', j.valor, true);
+    if(_frete>0) tot('Frete:', _frete);
+    tot('TOTAL A PAGAR:', Number(j.valor||0)+_frete, true);
     y+=6; doc.setFontSize(9); doc.setTextColor(90,90,90);
     /* Comissão do consultor NÃO sai no PDF do pedido — documento do cliente/pedido, sem dado interno de comissão (2026-07-11) */
     if(d.obs){ var ob=''+d.obs; if(ob.length>90) ob=ob.slice(0,90)+'…'; doc.text('Obs.: '+ob, x, y); y+=14; }
     doc.setFontSize(8); doc.setTextColor(150,150,150); doc.text('Documento gerado automaticamente pelo KM CRM.', x, 812);
-    doc.save('Pedido_'+(j.numero||'KM')+'.pdf');
+    if(mode==='open'){ try{ window.open(doc.output('bloburl'),'_blank'); }catch(e){ try{ doc.save('Pedido_'+(j.numero||'KM')+'.pdf'); }catch(_){} } }
+    else { doc.save('Pedido_'+(j.numero||'KM')+'.pdf'); }
   }
+  // ===== Abrir pedido na TELA (visualização, sem download) =====
+  window.abrirPedidoView=function(id){
+    var tok=localStorage.getItem(TOKKEY);
+    var selP='numero,valor,valor_bruto,desconto_valor,valor_frete,canal,pilar,forma_pagamento,data_venda,observacao,vendedor_id,clientes(nome)';
+    Promise.all([
+      fetch(SB+'/rest/v1/pedidos?id=eq.'+id+'&select='+encodeURIComponent(selP)+'&limit=1',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}),
+      fetch(SB+'/rest/v1/pedido_itens?pedido_id=eq.'+id+'&select=qtd,preco_unit,acabamento,produtos(nome)&order=id.asc',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];})
+    ]).then(function(res){
+      var p=(res[0]&&res[0][0])||null; var its=Array.isArray(res[1])?res[1]:[];
+      if(!p){ alert('Pedido não encontrado.'); return; }
+      var j={ numero:p.numero, valor:Number(p.valor||0), valor_bruto:(p.valor_bruto!=null?Number(p.valor_bruto):null), desconto:Number(p.desconto_valor||0), frete:Number(p.valor_frete||0), pedido_id:id };
+      var d={ cliente:(p.clientes&&p.clientes.nome)||'—', vendedor:vendNome(p.vendedor_id)||'—',
+        pilar:(PILAR_LABEL[p.pilar]||p.pilar||'—'), canal:p.canal||'—', forma:p.forma_pagamento||'—',
+        data:p.data_venda||'', obs:p.observacao||'', frete:Number(p.valor_frete||0),
+        itens:its.map(function(it){ var q=Number(it.qtd||1); return { desc:(it.produtos&&it.produtos.nome)||it.acabamento||'Item', qtd:q, sub:Number(it.preco_unit||0)*q }; }) };
+      try{ gerarPdfPedido(j, d, 'open'); }catch(e){ console.error('Abrir pedido:', e); alert('Não foi possível abrir o pedido.'); }
+    }).catch(function(e){ console.error(e); alert('Erro ao carregar o pedido.'); });
+  };
   // ===== PDF da Ordem de Serviço (roteiro de entrega, 2 vias) =====
   function emitirOS(j, dados){
     if(!j || !j.pedido_id) return;
@@ -6000,11 +6021,15 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
       var cell=tr.querySelector('td:last-child'); if(!cell||cell.querySelector('.km-ped-edit')) return;
       var m=cell.innerHTML.match(/(?:acaoVenda|reimprimirDanfe)\('([^']+)'/); var id=m?m[1]:null; if(!id) return;
       var b=document.createElement('button'); b.className='badge km-ped-edit'; b.textContent='Editar'; b.setAttribute('data-id',id);
+      var ab=document.createElement('button'); ab.className='badge km-ped-open'; ab.textContent='Abrir'; ab.setAttribute('data-id',id); ab.title='Abrir o pedido na tela (visualizar, sem baixar)'; ab.style.cssText='cursor:pointer;margin-right:4px;border-color:#9D7D31;color:#CB984C';
       cell.insertBefore(b, cell.firstChild); cell.insertBefore(document.createTextNode(' '), b.nextSibling);
+      cell.insertBefore(ab, cell.firstChild); cell.insertBefore(document.createTextNode(' '), ab.nextSibling);
     });
   }
   document.addEventListener('click', function(e){
-    var t=e.target; if(!t||!t.closest) return; var b=t.closest('.km-ped-edit'); if(b){ e.preventDefault(); abrirPedEdit(b.getAttribute('data-id')); }
+    var t=e.target; if(!t||!t.closest) return;
+    var op=t.closest('.km-ped-open'); if(op){ e.preventDefault(); if(window.abrirPedidoView) window.abrirPedidoView(op.getAttribute('data-id')); return; }
+    var b=t.closest('.km-ped-edit'); if(b){ e.preventDefault(); abrirPedEdit(b.getAttribute('data-id')); }
   }, true);
 
   /* parser BR local (mesma regra do numBR do core) + cache de produtos p/ o editor de itens */
@@ -6060,12 +6085,13 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
       '<div><label class="km-lab">Canal</label><select id="km-ped-canal"></select></div></div>'+
       '<div class="km-grid"><div><label class="km-lab">Forma de pagamento</label><select id="km-ped-forma"></select></div>'+
       '<div><label class="km-lab">Data da venda</label><input id="km-ped-data" type="date"></div></div>'+
-      '<div class="km-grid"><div><label class="km-lab">Frete (R$)</label><input id="km-ped-frete" type="text" inputmode="decimal"></div><div></div></div>'+
+      '<div class="km-grid"><div><label class="km-lab">Frete (R$)</label><input id="km-ped-frete" type="text" inputmode="decimal"></div>'+
+      '<div><label class="km-lab">Desconto (R$)</label><input id="km-ped-desc" type="text" inputmode="decimal" placeholder="0,00"></div></div>'+
       '<label class="km-lab" style="margin-top:6px">Produtos do pedido (produto · valor unitário · qtd)</label>'+
       '<div id="km-ped-itens"></div>'+
       '<div style="text-align:right;font-size:12px;margin-top:2px">Subtotal itens: <b id="km-ped-total" style="color:var(--accent)">R$ 0,00</b></div>'+
       '<label class="km-lab" style="margin-top:6px">Observação</label><textarea id="km-ped-obs"></textarea>'+
-      '<div class="km-hint" style="font-size:11px;color:var(--muted);margin-top:6px">Alterar itens/valor reprocessa <b>estoque e comissão</b> automaticamente (estorna e reaplica). Vendas já <b>recebidas</b> ficam protegidas — ajuste o financeiro antes. Desconto atual é preservado.</div>'+
+      '<div class="km-hint" style="font-size:11px;color:var(--muted);margin-top:6px">Alterar itens/valor/desconto/frete reprocessa <b>estoque, comissão e a OS</b> automaticamente (estorna e reaplica). Informe o <b>Desconto (R$)</b> para alterá-lo; em branco, mantém o atual. Vendas já <b>recebidas</b> ficam protegidas — ajuste o financeiro antes.</div>'+
       '<div class="km-ft"><button class="km-ok" id="km-ped-save">Salvar</button><button class="km-cancel" id="km-ped-cancel">Fechar</button><span class="km-msg" id="km-ped-msg"></span></div>'+
       '<input type="hidden" id="km-ped-id"></div></div>';
     document.body.appendChild(m);
@@ -6093,6 +6119,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
         if(el('km-ped-forma')) el('km-ped-forma').value=p.forma_pagamento||'';
         el('km-ped-data').value=p.data_venda?String(p.data_venda).slice(0,10):'';
         el('km-ped-frete').value=(p.valor_frete!=null?p.valor_frete:'');
+        var _dsc=el('km-ped-desc'); if(_dsc) _dsc.value=(Number(p.desconto_valor)>0?p.desconto_valor:'');
         el('km-ped-obs').value=p.observacao||'';
         PED_EDIT_DESC={ pct:Number(p.desconto_pct)||0, reais:Number(p.desconto_valor)||0 };
         pedRenderItens(itens);
@@ -6110,9 +6137,14 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     }
     var itens=pedColeta();
     if(!itens.length){ btn.disabled=false; el('km-ped-msg').textContent='Adicione ao menos um produto/valor.'; return; }
-    // preserva o desconto atual: % tem prioridade
+    // Desconto em R$ digitado pelo gestor (tem prioridade). Vazio → mantém o desconto atual do pedido.
+    var _descIn=el('km-ped-desc'); var _descTxt=_descIn?(_descIn.value||'').trim():'';
+    var _descR, _descP;
+    if(_descTxt!==''){ _descR=pedNumBR(_descTxt); if(isNaN(_descR)||_descR<0) _descR=0; _descP=0; }
+    else { _descR=(PED_EDIT_DESC.pct>0?0:PED_EDIT_DESC.reais); _descP=PED_EDIT_DESC.pct; }
     var payload={ pedido_id:id, itens:itens,
-      desconto_reais:(PED_EDIT_DESC.pct>0?0:PED_EDIT_DESC.reais), desconto_pct:PED_EDIT_DESC.pct,
+      desconto_reais:_descR, desconto_pct:_descP,
+      valor_frete:(freteVal!=null && !isNaN(freteVal)?freteVal:null),
       status:el('km-ped-status').value||null, canal:el('km-ped-canal').value||null,
       forma_pagamento:el('km-ped-forma').value||null, data_venda:el('km-ped-data').value||null,
       observacao:(el('km-ped-obs').value||'').trim()||null };
