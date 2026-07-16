@@ -643,9 +643,20 @@
           <div id="fechDetalhe" style="padding:0 14px 14px;font-size:13px;color:var(--muted)"></div>
         </div>
 
-        <div class="panel"><h3>Pedidos &amp; vendas recentes</h3><table>
-          <thead><tr><th>Nº</th><th>Data</th><th>Cliente</th><th>Pilar</th><th>Canal</th><th>Vendedor</th><th>Valor</th><th>Frete</th><th>Comissão</th><th>Status</th><th>Ações</th></tr></thead>
-          <tbody id="pedidosBody"><tr><td colspan="11" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
+        <div class="panel"><div class="modbar"><h3>Pedidos &amp; vendas recentes</h3>
+          <span style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label for="ped_filtro_data" style="color:var(--muted);font-size:12px">Filtrar por data</label>
+            <select id="ped_filtro_data" title="Mostra apenas os pedidos do período escolhido" style="background:#221b10;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:7px 10px;font-size:13px">
+              <option value="0">Todos</option>
+              <option value="7">Últimos 7 dias</option>
+              <option value="15">Últimos 15 dias</option>
+              <option value="30">Últimos 30 dias</option>
+            </select>
+            <span id="ped_count" style="color:var(--ouro);font-size:12px;white-space:nowrap"></span>
+          </span></div>
+          <table>
+          <thead><tr><th>Nº</th><th>Data</th><th>Cliente</th><th>Pilar</th><th>Canal</th><th>Vendedor</th><th>Valor</th><th>Frete</th><th>Comissão</th><th>Entrega</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="pedidosBody"><tr><td colspan="12" style="color:var(--muted);padding:18px">Carregando…</td></tr></tbody>
         </table></div>
       </section>
 
@@ -1008,9 +1019,9 @@
     ['estoque','Estoque'],['pedidos','Pedidos'],['os','Ordens de Serviço'],['locacao','Locação (Pilar 2)'],['pedidos3d','Impressão 3D (Pilar 3)'],['programas','Programas KM'],['treinamentos','Treinamentos'],['tarefas','Tarefas'],['ficha360','Ficha 360'],['financeiro','Financeiro'],['cobranca','Cobrança (IA)'],['chat','Bate-papo'],
     ['agentes','Agentes de IA'],['relatorios','Relatórios'],['saude','Saúde do Funil'],['agenda','Agenda']];
   var ACCESS_DEFAULT={
-    vendas:        ['funil','carteira','pedidos','os','leads','produtos','estoque','programas','treinamentos','tarefas','agenda','chat','agentes'],
-    representante: ['funil','carteira','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','locacao','pedidos3d','treinamentos','tarefas','agenda','chat'],
-    curadoria:     ['funil','carteira','engajamento','clientes','ficha360','produtos','estoque','pedidos','os','leads','locacao','pedidos3d','programas','treinamentos','tarefas','agenda','chat']
+    vendas:        ['funil','carteira','clientes','parceiros','pedidos','os','leads','produtos','estoque','programas','treinamentos','tarefas','agenda','chat','agentes'],
+    representante: ['funil','carteira','engajamento','clientes','parceiros','ficha360','produtos','estoque','pedidos','os','locacao','pedidos3d','treinamentos','tarefas','agenda','chat'],
+    curadoria:     ['funil','carteira','engajamento','clientes','parceiros','ficha360','produtos','estoque','pedidos','os','leads','locacao','pedidos3d','programas','treinamentos','tarefas','agenda','chat']
   };
   var ME_ROLE='', ME_ACESSOS=null;
   function allowedViews(){
@@ -1772,7 +1783,30 @@
     // recálculo ao vivo dos campos calc
     var calcRefs={}; cfg.fields.forEach(function(f){ if(f.type==='calc' && f.mul) f.mul.forEach(function(k){ calcRefs[k]=1; }); });
     if(formK) Object.keys(calcRefs).forEach(function(k){ var e=formK.querySelector('[data-k="'+k+'"]'); if(e) e.addEventListener('input', function(){ recalcCalc(key); }); });
+    // Item 9: CEP -> autopreenche o endereço completo (ViaCEP) em qualquer cadastro que tenha campo "cep"
+    if(formK){ var cepEl=formK.querySelector('[data-k="cep"]');
+      if(cepEl && !cepEl.__cepHook){ cepEl.__cepHook=1;
+        cepEl.addEventListener('blur', function(){ kmPreencheCep(formK, cepEl.value); });
+        cepEl.addEventListener('input', function(){ if(cepEl.value.replace(/\D/g,'').length===8) kmPreencheCep(formK, cepEl.value); });
+      } }
     loadMod(key);
+  }
+  // Item 9: consulta ViaCEP e preenche logradouro/bairro/cidade/UF (mantém número e complemento do usuário)
+  function kmPreencheCep(form, cepRaw){
+    var cep=(cepRaw||'').replace(/\D/g,''); if(cep.length!==8 || !form) return;
+    if(form.__cepBuscando===cep) return; form.__cepBuscando=cep;
+    fetch('https://viacep.com.br/ws/'+cep+'/json/')
+      .then(function(r){ return r.ok?r.json():null; })
+      .then(function(d){ form.__cepBuscando='';
+        if(!d || d.erro) return;
+        var setF=function(k,v){ var e=form.querySelector('[data-k="'+k+'"]'); if(!e||v==null||v==='') return; e.value=v; try{ e.dispatchEvent(new Event('change')); }catch(_){} };
+        setF('logradouro', d.logradouro);
+        setF('bairro', d.bairro);
+        setF('cidade', d.localidade);
+        var ufe=form.querySelector('[data-k="uf"]'); if(ufe && d.uf){ ufe.value=d.uf; }
+        var nEl=form.querySelector('[data-k="numero"]'); if(nEl){ try{ nEl.focus(); }catch(_){} }
+      })
+      .catch(function(){ form.__cepBuscando=''; });
   }
   // Registro de fontes para campos 'lookup' (seletor pesquisável que grava o id).
   var LOOKUPS={
@@ -2745,35 +2779,60 @@
     ensureProdutos(function(){ if(typeof renderVendaItens==='function') renderVendaItens(); });
     var di=$('venda_data'); if(di&&!di.value){ di.value=new Date().toISOString().slice(0,10); }
     loadFechamento();
-    tb.innerHTML='<tr><td colspan="10" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
+    var fsel=$('ped_filtro_data'); if(fsel && !fsel.__hook){ fsel.__hook=1; fsel.addEventListener('change', function(){ PED_FILTRO_DIAS=Number(this.value)||0; renderPedidos(); }); }
+    tb.innerHTML='<tr><td colspan="12" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
     fetch(SB+'/rest/v1/pedidos?select=id,numero,valor,valor_frete,status,canal,pilar,vendedor_id,comissao_valor,data_venda,created_at,clientes(nome)&order=created_at.desc&limit=100',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){
-      rows=(Array.isArray(rows)?rows:[]).filter(function(p){ return p.status!=='excluido'; });
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="11" style="color:var(--muted);padding:18px">Nenhuma venda ainda. Lance a primeira no formulário acima.</td></tr>'; return; }
-      tb.innerHTML=rows.map(function(p){
-        var dt=p.data_venda?new Date(p.data_venda+'T00:00:00').toLocaleDateString('pt-BR'):(p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'');
-        var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
-        var val='R$ '+Number(p.valor||0).toLocaleString('pt-BR');
-        var frt=Number(p.valor_frete||0)>0?('R$ '+Number(p.valor_frete).toLocaleString('pt-BR')):'—';
-        var com=Number(p.comissao_valor||0)>0?('R$ '+Number(p.comissao_valor).toLocaleString('pt-BR')):'—';
-        var canc=(p.status==='cancelado');
-        // Status: para pedidos NÃO pagos, mostra QUANTO FALTA RECEBER (valor + frete) no lugar de "aguardando pagamento".
-        var pend=(p.status==='novo'||p.status==='aguardando_pagamento'||p.status==='pagamento_recusado');
-        var faltaReceber=Number(p.valor||0)+Number(p.valor_frete||0);
-        var stHtml;
-        if(canc){ stHtml='<span class="badge">CANCELADO</span>'; }
-        else if(pend){ var pre=(p.status==='pagamento_recusado')?'Pgto recusado · falta ':'Falta receber '; stHtml='<span class="badge" style="color:#c9862f;white-space:nowrap" title="'+esc(PED_STATUS[p.status]||'')+'">'+esc(pre)+'R$ '+faltaReceber.toLocaleString('pt-BR')+'</span>'; }
-        else { var cls=(p.status==='pago')?'ia-tag ok':'badge'; stHtml='<span class="'+cls+'">'+esc(PED_STATUS[p.status]||p.status||'—')+'</span>'; }
-        var pil=PILAR_LABEL[p.pilar]||p.pilar||'—';
-        var btnNF='<button class="badge" style="cursor:pointer;margin-right:4px;border-color:#9D7D31;color:#CB984C" onclick="reimprimirDanfe(\''+p.id+'\')">NF</button>';
-        var acoes=canc
-          ? '<button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>'
-          : btnNF+'<button class="badge" style="cursor:pointer;margin-right:4px" onclick="acaoVenda(\''+p.id+'\',\'cancelado\')">Cancelar</button><button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>';
-        return '<tr'+(canc?' style="opacity:.55"':'')+'><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+esc(cli)+'</td><td>'+esc(pil)+'</td><td>'+esc(p.canal||'')+'</td><td>'+esc(vendNome(p.vendedor_id))+'</td><td style="color:var(--accent)">'+val+'</td><td style="color:var(--muted)">'+frt+'</td><td style="color:var(--ouro)">'+com+'</td><td>'+stHtml+'</td><td>'+acoes+'</td></tr>';
-      }).join('');
+      PED_CACHE=(Array.isArray(rows)?rows:[]).filter(function(p){ return p.status!=='excluido'; });
+      // Item 5: o status de entrega (Entregue / Em aberto) vem da OS ligada a cada pedido
+      var ids=PED_CACHE.map(function(p){ return p.id; });
+      if(!ids.length){ PED_OSMAP={}; renderPedidos(); return; }
+      fetch(SB+'/rest/v1/ordens_servico?select=pedido_id,status&pedido_id=in.('+ids.join(',')+')',{headers:authHeaders(tok)})
+        .then(function(r){ return r.ok?r.json():[]; })
+        .then(function(oss){ PED_OSMAP={}; (Array.isArray(oss)?oss:[]).forEach(function(o){ if(o.pedido_id) PED_OSMAP[o.pedido_id]=o.status; }); renderPedidos(); })
+        .catch(function(){ PED_OSMAP={}; renderPedidos(); });
     })
-    .catch(function(e){ tb.innerHTML='<tr><td colspan="11" style="color:var(--muted);padding:18px">Não foi possível carregar (entre como equipe).</td></tr>'; console.error(e); });
+    .catch(function(e){ tb.innerHTML='<tr><td colspan="12" style="color:var(--muted);padding:18px">Não foi possível carregar (entre como equipe).</td></tr>'; console.error(e); });
+  }
+  // Item 5/6: cache + render com status de entrega e filtro por data
+  var PED_CACHE=[], PED_OSMAP={}, PED_FILTRO_DIAS=0;
+  function pedEntregaCell(p){
+    var st=PED_OSMAP[p.id];
+    if(p.status==='cancelado') return '<span class="badge" style="opacity:.6">—</span>';
+    if(!st) return '<span class="badge" title="Este pedido não tem OS de entrega física">—</span>';
+    if(st==='concluida') return '<span class="ia-tag ok" title="Entrega concluída">✅ Entregue</span>';
+    if(st==='cancelada') return '<span class="badge" title="OS cancelada">OS cancelada</span>';
+    if(st==='em_rota') return '<span class="badge" style="color:#2f7d4f;border-color:#2f7d4f" title="Saiu para entrega">🚚 Em rota</span>';
+    return '<span class="badge" style="color:#c9862f" title="Entrega em aberto (a agendar / agendada)">🕒 Em aberto</span>';
+  }
+  function renderPedidos(){
+    var tb=$('pedidosBody'); if(!tb) return;
+    var dias=PED_FILTRO_DIAS, rows=PED_CACHE;
+    if(dias>0){ var lim=new Date(); lim.setHours(0,0,0,0); lim.setDate(lim.getDate()-(dias-1));
+      rows=rows.filter(function(p){ var ds=p.data_venda||(p.created_at?String(p.created_at).slice(0,10):''); if(!ds) return false; return new Date(ds+'T00:00:00')>=lim; }); }
+    var cnt=$('ped_count'); if(cnt) cnt.textContent=rows.length+' pedido'+(rows.length===1?'':'s')+(dias>0?(' · '+dias+'d'):'');
+    if(!rows.length){ tb.innerHTML='<tr><td colspan="12" style="color:var(--muted);padding:18px">'+(PED_CACHE.length?'Nenhum pedido no período selecionado.':'Nenhuma venda ainda. Lance a primeira no formulário acima.')+'</td></tr>'; return; }
+    tb.innerHTML=rows.map(function(p){
+      var dt=p.data_venda?new Date(p.data_venda+'T00:00:00').toLocaleDateString('pt-BR'):(p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'');
+      var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
+      var val='R$ '+Number(p.valor||0).toLocaleString('pt-BR');
+      var frt=Number(p.valor_frete||0)>0?('R$ '+Number(p.valor_frete).toLocaleString('pt-BR')):'—';
+      var com=Number(p.comissao_valor||0)>0?('R$ '+Number(p.comissao_valor).toLocaleString('pt-BR')):'—';
+      var canc=(p.status==='cancelado');
+      var pend=(p.status==='novo'||p.status==='aguardando_pagamento'||p.status==='pagamento_recusado');
+      var faltaReceber=Number(p.valor||0)+Number(p.valor_frete||0);
+      var stHtml;
+      if(canc){ stHtml='<span class="badge">CANCELADO</span>'; }
+      else if(pend){ var pre=(p.status==='pagamento_recusado')?'Pgto recusado · falta ':'Falta receber '; stHtml='<span class="badge" style="color:#c9862f;white-space:nowrap" title="'+esc(PED_STATUS[p.status]||'')+'">'+esc(pre)+'R$ '+faltaReceber.toLocaleString('pt-BR')+'</span>'; }
+      else { var cls=(p.status==='pago')?'ia-tag ok':'badge'; stHtml='<span class="'+cls+'">'+esc(PED_STATUS[p.status]||p.status||'—')+'</span>'; }
+      var pil=PILAR_LABEL[p.pilar]||p.pilar||'—';
+      var btnNF='<button class="badge" style="cursor:pointer;margin-right:4px;border-color:#9D7D31;color:#CB984C" onclick="reimprimirDanfe(\''+p.id+'\')">NF</button>';
+      var acoes=canc
+        ? '<button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>'
+        : btnNF+'<button class="badge" style="cursor:pointer;margin-right:4px" onclick="acaoVenda(\''+p.id+'\',\'cancelado\')">Cancelar</button><button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>';
+      return '<tr'+(canc?' style="opacity:.55"':'')+'><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+esc(cli)+'</td><td>'+esc(pil)+'</td><td>'+esc(p.canal||'')+'</td><td>'+esc(vendNome(p.vendedor_id))+'</td><td style="color:var(--accent)">'+val+'</td><td style="color:var(--muted)">'+frt+'</td><td style="color:var(--ouro)">'+com+'</td><td>'+pedEntregaCell(p)+'</td><td>'+stHtml+'</td><td>'+acoes+'</td></tr>';
+    }).join('');
   }
   function loadFechamento(){
     var box=$('fechKpis'); if(!box) return;
@@ -2799,7 +2858,7 @@
     var tok=localStorage.getItem(TOKKEY);
     ensureVendedores(function(){});
     tb.innerHTML='<tr><td colspan="10" style="color:var(--muted);padding:18px">Carregando…</td></tr>';
-    fetch(SB+'/rest/v1/ordens_servico?select=id,numero,pilar,status,cidade,frete,distancia_km,data_agendada,periodo,responsavel_id,pedido_id,clientes(nome,telefone)&order=data_agendada.asc.nullsfirst,created_at.desc&limit=300',{headers:authHeaders(tok)})
+    fetch(SB+'/rest/v1/ordens_servico?select=id,numero,pilar,status,cidade,endereco,frete,distancia_km,data_agendada,periodo,responsavel_id,pedido_id,clientes(nome,telefone,cep,uf)&order=data_agendada.asc.nullsfirst,created_at.desc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(rows){ OS_CACHE=Array.isArray(rows)?rows:[]; osReconcileFrete(function(){ renderOSKpis(); renderOS(); }); })
     .catch(function(e){ tb.innerHTML='<tr><td colspan="10" style="color:var(--muted);padding:18px">Não foi possível carregar (entre como equipe).</td></tr>'; console.error(e); });
@@ -2844,6 +2903,9 @@
     return 0;
   }
   window.osFreteFor=osFreteFor;
+  // Item 8/9: formata CEP como 00000-000 (aceita com ou sem máscara)
+  function kmFmtCep(v){ var c=String(v==null?'':v).replace(/\D/g,''); return c.length===8?(c.slice(0,5)+'-'+c.slice(5)):(v||''); }
+  window.kmFmtCep=kmFmtCep;
   function renderOSKpis(){
     var box=$('osKpis'); if(!box) return;
     var ab=0,ag=0,er=0;
@@ -2869,10 +2931,11 @@
       var cli=(o.clientes&&o.clientes.nome)?o.clientes.nome:'—';
       var _fv=osFreteFor(o); var frt=_fv>0?('R$ '+Number(_fv).toLocaleString('pt-BR')):'—';
       var pil=PILAR_LABEL[o.pilar]||o.pilar||'—';
+      var _cep=kmFmtCep((o.clientes&&o.clientes.cep)||'');   // Item 8: CEP conforme o endereço do cliente
       return '<tr>'
         +'<td style="color:var(--text)">'+esc(o.numero||'')+'</td>'
         +'<td>'+esc(cli)+'</td>'
-        +'<td>'+esc(o.cidade||'—')+(o.distancia_km?(' <span style="color:var(--muted)">· '+o.distancia_km+'km</span>'):'')+'</td>'
+        +'<td>'+esc(o.cidade||'—')+(o.distancia_km?(' <span style="color:var(--muted)">· '+o.distancia_km+'km</span>'):'')+(_cep?('<div style="font-size:11px;color:var(--muted)">CEP '+esc(_cep)+'</div>'):'')+'</td>'
         +'<td>'+esc(pil)+'</td>'
         +'<td style="color:var(--muted)">'+frt+'</td>'
         +'<td><input type="date" data-os="'+o.id+'" data-f="data_agendada" value="'+(o.data_agendada||'')+'" style="'+inp+'"></td>'
@@ -3016,7 +3079,7 @@
         desconto_reais:_descR, desconto_pct:_descP })
       .then(function(j){ btn.disabled=false; btn.textContent=old;
         if(j&&j.ok){ $('msg-venda').innerHTML='Venda '+esc(j.numero)+' registrada ✓ · '+(j.itens||0)+' item(ns) · total '+vendaMoney(j.valor)+' · comissão R$ '+Number(j.comissao_consultor||0).toLocaleString('pt-BR');
-          try{ gerarPdfPedido(j, _pdf); }catch(e){ console.error('PDF pedido:', e); }
+          try{ kmPdfPedidoComEndereco(vendaG('cliente_id')||null, _pdf, j); }catch(e){ console.error('PDF pedido:', e); }
           try{ emitirOS(j, _pdf); }catch(e){ console.error('OS pedido:', e); }
           try{ emitirDanfe(j); }catch(e){ console.error('DANFE:', e); }
           var ob=$('venda_obs'); if(ob) ob.value=''; renderVendaItens();
@@ -3028,6 +3091,27 @@
     });
   })();
   // ===== PDF do pedido (jsPDF) =====
+  // Item 7: monta o endereço de entrega a partir do cadastro do cliente
+  function kmEndCliente(cli){
+    if(!cli) return '';
+    var l1=[cli.logradouro||cli.endereco||'', cli.numero||''].filter(Boolean).join(', ');
+    if(cli.complemento) l1+=(l1?' - ':'')+cli.complemento;
+    var l2=[cli.bairro||'', [cli.cidade||'', cli.uf||''].filter(Boolean).join('/')].filter(Boolean).join(' — ');
+    var cep=(typeof kmFmtCep==='function')?kmFmtCep(cli.cep||''):(cli.cep||'');
+    var out=[l1,l2].filter(Boolean).join('  ·  '); if(cep) out+=(out?'  ·  CEP ':'CEP ')+cep;
+    return out.trim();
+  }
+  window.kmEndCliente=kmEndCliente;
+  // Item 7: busca o endereço do cliente e então gera o PDF do pedido (fluxo da venda)
+  function kmPdfPedidoComEndereco(cliente_id, _pdf, j){
+    function go(){ try{ gerarPdfPedido(j, _pdf); }catch(e){ console.error('PDF pedido:', e); } }
+    if(!cliente_id){ go(); return; }
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/clientes?id=eq.'+cliente_id+'&select=logradouro,numero,complemento,bairro,cidade,uf,cep&limit=1',{headers:authHeaders(tok)})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(rows){ var c=(rows&&rows[0])||null; if(c){ var e=kmEndCliente(c); if(e) _pdf.endereco=e; } go(); })
+      .catch(go);
+  }
   function gerarPdfPedido(j, d, mode){
     if(!(window.jspdf && window.jspdf.jsPDF)){ console.warn('jsPDF indisponível'); return; }
     var doc=new window.jspdf.jsPDF({unit:'pt', format:'a4'}); var W=595, x=40, y=54;
@@ -3036,11 +3120,15 @@
     doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(230,217,188); doc.text('Design que inspira. Sofisticação que permanece.', x, 64);
     doc.setFontSize(11); doc.text('PEDIDO '+(j.numero||''), W-x, 46, {align:'right'});
     y=120; doc.setTextColor(30,30,30); doc.setFontSize(10);
-    function linha(l,r){ doc.setFont('helvetica','bold'); doc.text(l, x, y); doc.setFont('helvetica','normal'); doc.text(''+r, x+120, y); y+=18; }
+    function linha(l,r){ doc.setFont('helvetica','bold'); doc.text(l, x, y); doc.setFont('helvetica','normal');
+      var vlines=doc.splitTextToSize(''+r, W-x-(x+120)); // respiro: quebra o texto na largura útil, nunca corta
+      vlines.forEach(function(ln,i){ if(y>792){ doc.addPage(); y=54; } doc.text(ln, x+120, y); if(i<vlines.length-1) y+=15; }); y+=18; }
     var dt; try{ dt=new Date(d.data+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ dt=d.data; }
     linha('Data:', dt); linha('Cliente:', d.cliente||'—'); linha('Vendedor:', d.vendedor||'—');
     linha('Pilar / Linha:', d.pilar||'—'); linha('Canal:', d.canal||'—'); linha('Pagamento:', d.forma||'—');
-    y+=8; doc.setDrawColor(203,152,76); doc.line(x,y,W-x,y); y+=20;
+    // Item 7: Endereço de entrega no PDF do pedido
+    if(d.endereco){ linha('Entrega:', d.endereco); }
+    y+=8; if(y>792){ doc.addPage(); y=54; } doc.setDrawColor(203,152,76); doc.line(x,y,W-x,y); y+=20;
     doc.setFont('helvetica','bold'); doc.text('Item', x, y); doc.text('Qtd', 380, y, {align:'right'}); doc.text('Subtotal', W-x, y, {align:'right'}); y+=6;
     doc.line(x,y,W-x,y); y+=16; doc.setFont('helvetica','normal');
     (d.itens||[]).forEach(function(it){
@@ -3049,6 +3137,7 @@
       doc.text('R$ '+Number(it.sub||0).toLocaleString('pt-BR',{minimumFractionDigits:2}), W-x, y, {align:'right'}); y+=16;
       if(y>760){ doc.addPage(); y=54; }
     });
+    if(y>690){ doc.addPage(); y=54; }   // respiro: totais nunca entram cortados no rodapé
     y+=6; doc.line(x,y,W-x,y); y+=20;
     function tot(l,v,bold){ doc.setFont('helvetica',bold?'bold':'normal'); doc.text(l, 360, y, {align:'right'}); doc.text('R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2}), W-x, y, {align:'right'}); y+=17; }
     var _frete=Number((d&&d.frete)||(j&&(j.frete!=null?j.frete:j.valor_frete))||0);
@@ -3058,7 +3147,8 @@
     tot('TOTAL A PAGAR:', Number(j.valor||0)+_frete, true);
     y+=6; doc.setFontSize(9); doc.setTextColor(90,90,90);
     /* Comissão do consultor NÃO sai no PDF do pedido — documento do cliente/pedido, sem dado interno de comissão (2026-07-11) */
-    if(d.obs){ var ob=''+d.obs; if(ob.length>90) ob=ob.slice(0,90)+'…'; doc.text('Obs.: '+ob, x, y); y+=14; }
+    if(d.obs){ if(y>770){ doc.addPage(); y=54; } var obLines=doc.splitTextToSize('Obs.: '+d.obs, W-x-x);
+      obLines.forEach(function(ln){ if(y>792){ doc.addPage(); y=54; } doc.text(ln, x, y); y+=14; }); }
     doc.setFontSize(8); doc.setTextColor(150,150,150); doc.text('Documento gerado automaticamente pelo KM CRM.', x, 812);
     if(mode==='open'){ try{ window.open(doc.output('bloburl'),'_blank'); }catch(e){ try{ doc.save('Pedido_'+(j.numero||'KM')+'.pdf'); }catch(_){} } }
     else { doc.save('Pedido_'+(j.numero||'KM')+'.pdf'); }
@@ -3066,7 +3156,7 @@
   // ===== Abrir pedido na TELA (visualização, sem download) =====
   window.abrirPedidoView=function(id){
     var tok=localStorage.getItem(TOKKEY);
-    var selP='numero,valor,valor_bruto,desconto_valor,valor_frete,canal,pilar,forma_pagamento,data_venda,observacao,vendedor_id,clientes(nome)';
+    var selP='numero,valor,valor_bruto,desconto_valor,valor_frete,canal,pilar,forma_pagamento,data_venda,observacao,vendedor_id,clientes(nome,logradouro,numero,complemento,bairro,cidade,uf,cep)';
     Promise.all([
       fetch(SB+'/rest/v1/pedidos?id=eq.'+id+'&select='+encodeURIComponent(selP)+'&limit=1',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}),
       fetch(SB+'/rest/v1/pedido_itens?pedido_id=eq.'+id+'&select=qtd,preco_unit,acabamento,produtos(nome)&order=id.asc',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];})
@@ -3076,7 +3166,7 @@
       var j={ numero:p.numero, valor:Number(p.valor||0), valor_bruto:(p.valor_bruto!=null?Number(p.valor_bruto):null), desconto:Number(p.desconto_valor||0), frete:Number(p.valor_frete||0), pedido_id:id };
       var d={ cliente:(p.clientes&&p.clientes.nome)||'—', vendedor:vendNome(p.vendedor_id)||'—',
         pilar:(PILAR_LABEL[p.pilar]||p.pilar||'—'), canal:p.canal||'—', forma:p.forma_pagamento||'—',
-        data:p.data_venda||'', obs:p.observacao||'', frete:Number(p.valor_frete||0),
+        data:p.data_venda||'', obs:p.observacao||'', frete:Number(p.valor_frete||0), endereco:kmEndCliente(p.clientes),
         itens:its.map(function(it){ var q=Number(it.qtd||1); return { desc:(it.produtos&&it.produtos.nome)||it.acabamento||'Item', qtd:q, sub:Number(it.preco_unit||0)*q }; }) };
       try{ gerarPdfPedido(j, d, 'open'); }catch(e){ console.error('Abrir pedido:', e); alert('Não foi possível abrir o pedido.'); }
     }).catch(function(e){ console.error(e); alert('Erro ao carregar o pedido.'); });
@@ -3116,7 +3206,7 @@
       campo('Endereço:', [end, numero, compl].filter(Boolean).join(', '));
       campo('Bairro:', bairro);
       campo('Cidade/UF:', (cidade?cidade:'')+(uf?(' / '+uf):''));
-      campo('CEP:', cep);
+      campo('CEP:', (typeof kmFmtCep==='function'?kmFmtCep(cep):cep));
       if(Number(os.distancia_km||0)>0 || Number(os.frete||0)>0){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.text('Distância: '+(os.distancia_km||'—')+' km   ·   Frete: R$ '+Number(os.frete||0).toLocaleString('pt-BR',{minimumFractionDigits:2}), x, y); y+=16; }
       y+=4; doc.setDrawColor(203,152,76); doc.line(x,y,W-x,y); y+=16;
       doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('Peças a entregar', x, y); y+=16; doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
@@ -3603,6 +3693,12 @@
         +'<div class="f full" style="text-align:right"><button class="btn" id="fcl_save">Lançar</button></div>'
         +'</div></div>'
     +'</div>'
+    +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>💰 Recebimentos do dia</h3>'
+      +'<span style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label for="fcRecData" style="color:var(--muted);font-size:12px">Dia</label>'
+      +'<input type="date" id="fcRecData" style="background:#221b10;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:6px 8px;font-size:12.5px">'
+      +'<b id="fcRecTotal" style="color:var(--ouro);font-size:13px"></b></span></div>'
+      +'<div style="padding:4px 16px 2px;color:var(--muted);font-size:12px">Baixas de clientes + vendas quitadas que entraram no caixa neste dia.</div>'
+      +'<div id="fcRecLista" style="padding:6px 4px"></div></div>'
     +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Em aberto (a pagar / a receber)</h3></div><div id="fcAbertos" style="padding:6px 4px"></div></div>'
     +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Importar extrato (OFX / CSV)</h3><span class="modmsg" id="fcImpMsg"></span></div>'
       +'<div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
@@ -3625,9 +3721,30 @@
     $('fcImpFile').addEventListener('change', fcPreviewImport);
     $('fcImpBtn').addEventListener('click', fcDoImport);
     var vv=$('fcl_venc'); if(vv) vv.value=new Date().toISOString().slice(0,10);
+    var rd=$('fcRecData'); if(rd){ rd.value=new Date().toISOString().slice(0,10); rd.addEventListener('change', fcLoadRecebimentos); }
+  }
+  // Itens 2/3: lista os recebimentos (dinheiro que entrou) do dia escolhido
+  function fcLoadRecebimentos(){
+    var di=$('fcRecData'); var dia=(di&&di.value)||new Date().toISOString().slice(0,10);
+    rpc('recebimentos_dia',{p_data:dia}).then(function(d){
+      var wrap=$('fcRecLista'), tt=$('fcRecTotal'); if(!wrap) return;
+      if(!d||!d.ok){ wrap.innerHTML='<div class="empty" style="padding:14px">Acesso restrito à administração/gestão.</div>'; if(tt) tt.textContent=''; return; }
+      var itens=d.itens||[];
+      if(tt) tt.textContent=moneyBR(d.total)+' · '+(d.qtd||0)+' recebimento(s)';
+      if(!itens.length){ wrap.innerHTML='<div class="empty" style="padding:14px">Nenhum recebimento neste dia.</div>'; return; }
+      var METLBL={pix:'PIX',dinheiro:'Dinheiro',cartao:'Cartão',transferencia:'Transferência',boleto:'Boleto',cheque:'Cheque',outro:'Outro'};
+      wrap.innerHTML=itens.map(function(it){
+        var met=METLBL[it.metodo]||it.metodo||'—';
+        var org=(it.origem==='quitacao_direta')?'venda quitada':'baixa de recebível';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--line)">'
+          +'<div><b style="color:var(--text)">'+esc(it.descricao||'Recebimento')+'</b>'
+          +'<div style="font-size:11px;color:var(--muted)">'+esc(met)+' · '+esc(it.conta||'sem conta')+' · '+esc(org)+'</div></div>'
+          +'<b style="color:var(--accent)">'+moneyBR(it.valor)+'</b></div>';
+      }).join('');
+    }).catch(function(){ var w=$('fcRecLista'); if(w) w.innerHTML='<div class="empty" style="padding:14px">Não foi possível carregar.</div>'; });
   }
   function fcSyncCats(){ var t=($('fcl_tipo')||{}).value; var arr=(t==='receita')?FC_CAT_REC:FC_CAT_DESP; var s=$('fcl_cat'); if(s) s.innerHTML=arr.map(function(c){return '<option>'+c+'</option>';}).join(''); }
-  function fcReload(){ fcLoadContas(function(){ fcLoadFluxo(); fcLoadAbertos(); }); }
+  function fcReload(){ fcLoadContas(function(){ fcLoadFluxo(); fcLoadAbertos(); fcLoadRecebimentos(); }); }
   function fcLoadContas(cb){
     rpc('contas_saldo',{}).then(function(d){
       FC_CONTAS=(d&&d.ok&&Array.isArray(d.contas))?d.contas:[];
@@ -6232,6 +6349,21 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   .view[data-v="os"] #osBody select{ max-width:148px; padding:5px 6px; font-size:12px; }
   .view[data-v="os"] #osBody input[type="date"]{ max-width:138px; }
   @media(max-width:560px){ .view[data-v="os"] table{ min-width:680px; } }
+  /* (8) Ordem de Serviço — contraste garantido nos DOIS temas: texto preto em fundo claro, marfim em fundo escuro */
+  .view[data-v="os"] th{ color:var(--text) !important; }
+  .view[data-v="os"] #osBody td{ color:var(--text); }
+  .view[data-v="os"] .modbar h3{ color:var(--text); }
+  html.km-light .view[data-v="os"] #osBody td{ color:#241a09; }
+  html.km-light .view[data-v="os"] th,
+  html.km-light .view[data-v="os"] .modbar h3,
+  html.km-light .view[data-v="os"] .sub{ color:#241a09 !important; }
+  /* campos escuros (agenda) mantêm texto marfim para não ficar preto-no-preto */
+  .view[data-v="os"] #osBody input,
+  .view[data-v="os"] #osBody select,
+  .view[data-v="os"] #os_busca,
+  .view[data-v="os"] #os_filtro_status{ color:#F1E9D2 !important; }
+  .view[data-v="os"] #osBody select option,
+  .view[data-v="os"] #os_filtro_status option{ color:#241a09 !important; background:#F1E9D2; }
 </style>
 <script id="km-fix-ui-2026-07-11-js">
 (function(){
