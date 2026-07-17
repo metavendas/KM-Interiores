@@ -3846,16 +3846,105 @@
     if(exb) exb.addEventListener('click', fcLoadExtrato);
     fcExSetDefault();
   }
+  var FC_FAV_CACHE={fornecedores:[],consultores:[]};
+  function fcFavOptions(sel){
+    var h='<option value="">— nenhum —</option>';
+    if(FC_FAV_CACHE.consultores.length){ h+='<optgroup label="Consultores">'+FC_FAV_CACHE.consultores.map(function(c){ return '<option value="C:'+c.id+'"'+(sel==='C:'+c.id?' selected':'')+'>'+esc(c.nome)+'</option>'; }).join('')+'</optgroup>'; }
+    if(FC_FAV_CACHE.fornecedores.length){ h+='<optgroup label="Fornecedores">'+FC_FAV_CACHE.fornecedores.map(function(c){ return '<option value="F:'+c.id+'"'+(sel==='F:'+c.id?' selected':'')+'>'+esc(c.nome)+'</option>'; }).join('')+'</optgroup>'; }
+    return h;
+  }
   function fcLoadFavorecidos(){
-    var s=$('fcl_fav'); if(!s) return;
     rpc('fin_favorecidos',{}).then(function(d){
       if(!d||!d.ok) return;
-      var forn=d.fornecedores||[], colab=d.consultores||[];
-      var h='<option value="">— nenhum —</option>';
-      if(colab.length){ h+='<optgroup label="Consultores">'+colab.map(function(c){ return '<option value="C:'+c.id+'">'+esc(c.nome)+'</option>'; }).join('')+'</optgroup>'; }
-      if(forn.length){ h+='<optgroup label="Fornecedores">'+forn.map(function(c){ return '<option value="F:'+c.id+'">'+esc(c.nome)+'</option>'; }).join('')+'</optgroup>'; }
-      s.innerHTML=h;
+      FC_FAV_CACHE.fornecedores=d.fornecedores||[]; FC_FAV_CACHE.consultores=d.consultores||[];
+      var s=$('fcl_fav'); if(s) s.innerHTML=fcFavOptions('');
     }).catch(function(){});
+  }
+  // ===== Edição de lançamentos/baixas (botão "editar" nos painéis) =====
+  var FC_REC_ITENS=[], FC_PAG_ITENS=[], FC_EXT_ITENS=[], FC_ED=null;
+  var FC_ED_METODOS=[['','—'],['pix','PIX'],['dinheiro','Dinheiro'],['cartao','Cartão'],['transferencia','Transferência'],['boleto','Boleto'],['cheque','Cheque'],['outro','Outro']];
+  function fcEnsureEdModal(){
+    if($('fcEdModal')) return;
+    var m=document.createElement('div'); m.id='fcEdModal'; m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center';
+    m.innerHTML='<div class="lmbox" style="max-width:460px"><div class="lmhead"><div><b id="fced_tit">Editar lançamento</b><div class="lm-meta" id="fced_meta"></div></div><span class="lmx" id="fced_x">✕</span></div>'
+      +'<div class="lmbody"><div class="modform">'
+      +'<div class="f full"><label>Descrição</label><input id="fced_desc"></div>'
+      +'<div class="f"><label id="fced_lbl_valor">Valor (R$)</label><input id="fced_valor" type="number" step="0.01"></div>'
+      +'<div class="f"><label id="fced_lbl_data">Data</label><input id="fced_data" type="date"></div>'
+      +'<div class="f"><label>Conta</label><select id="fced_conta"></select></div>'
+      +'<div class="f"><label>Método</label><select id="fced_metodo">'+FC_ED_METODOS.map(function(x){return '<option value="'+x[0]+'">'+x[1]+'</option>';}).join('')+'</select></div>'
+      +'<div class="f" id="fced_wrap_cat"><label>Categoria</label><select id="fced_cat"></select></div>'
+      +'<div class="f full" id="fced_wrap_fav"><label>Favorecido (fornecedor / consultor)</label><select id="fced_fav"></select></div>'
+      +'<div class="f full" id="fced_aviso" style="display:none;color:#c9862f;font-size:12px"></div>'
+      +'<div class="f full" style="display:flex;gap:8px;align-items:center"><button class="btn" id="fced_ok">Salvar alterações</button><button class="btn" id="fced_cancel" style="background:transparent;color:var(--muted);border:1px solid var(--line)">Cancelar</button><span class="lm-msg" id="fced_msg"></span></div>'
+      +'</div></div></div>';
+    document.body.appendChild(m);
+    $('fced_x').addEventListener('click', fcEdFechar);
+    $('fced_cancel').addEventListener('click', fcEdFechar);
+    m.addEventListener('click', function(e){ if(e.target===m) fcEdFechar(); });
+    $('fced_ok').addEventListener('click', fcSalvarEd);
+  }
+  function fcEdFechar(){ var m=$('fcEdModal'); if(m) m.style.display='none'; }
+  // kind: 'aberto' | 'rec' | 'pag' | 'ext'
+  window.fcAbrirEd=function(kind, it){
+    if(!it){ return; } fcEnsureEdModal();
+    var mode, id, manual, valor, data, dateField, dataLabel, conta_id, metodo, categoria, descricao, fav, tipoLabel;
+    metodo=it.metodo||''; conta_id=it.conta_id||''; descricao=it.descricao||'';
+    if(kind==='aberto'){
+      mode='financeiro'; id=it.id; manual=!!it.manual; valor=it.valor; data=it.vencimento||''; dateField='vencimento'; dataLabel='Vencimento';
+      categoria=it.categoria||''; tipoLabel=it.rotulo||'Lançamento';
+      fav=it.colaborador_id?('C:'+it.colaborador_id):(it.fornecedor_id?('F:'+it.fornecedor_id):'');
+    } else {
+      // painéis de movimento efetivado
+      if(it.baixa_id){ mode='baixa'; id=it.baixa_id; manual=true; /* baixa: valor/data/conta/metodo sempre editáveis */ dateField='data'; dataLabel='Data do movimento'; }
+      else { mode='financeiro'; id=it.financeiro_id; manual=!!it.manual; dateField='pago_em'; dataLabel='Data (pago em)'; }
+      valor=it.valor; data=it.data||''; categoria=it.categoria||'';
+      tipoLabel=(it.direcao==='saida'||kind==='pag')?'Pagamento':'Recebimento';
+      fav=it.colaborador_id?('C:'+it.colaborador_id):(it.fornecedor_id?('F:'+it.fornecedor_id):'');
+    }
+    FC_ED={mode:mode,id:id,kind:kind,manual:manual,dateField:dateField};
+    $('fced_tit').textContent='Editar '+(mode==='baixa'?'movimento':'lançamento');
+    $('fced_meta').textContent=tipoLabel+(manual?' · manual (edita tudo)':' · de venda/comissão (valor travado)');
+    $('fced_desc').value=descricao; $('fced_valor').value=(valor!=null?valor:'');
+    $('fced_lbl_data').textContent=dataLabel; $('fced_data').value=data?String(data).slice(0,10):'';
+    $('fced_conta').innerHTML=fcContaOpts(conta_id,false);
+    $('fced_metodo').value=metodo||'';
+    // categoria (só manuais)
+    var cats=FC_CAT_DESP.concat(FC_CAT_REC).filter(function(v,i,a){return a.indexOf(v)===i;});
+    $('fced_cat').innerHTML='<option value="">—</option>'+cats.map(function(c){return '<option'+(categoria===c?' selected':'')+'>'+esc(c)+'</option>';}).join('');
+    $('fced_fav').innerHTML=fcFavOptions(fav);
+    // trava campos conforme regra
+    var travaValor=(mode==='financeiro' && !manual);
+    $('fced_valor').disabled=travaValor;
+    $('fced_wrap_cat').style.display=(mode==='baixa'||!manual)?'none':'';
+    $('fced_wrap_fav').style.display=(mode==='baixa'||!manual)?'none':'';
+    $('fced_desc').parentNode.style.display=(mode==='baixa')?'none':'';
+    var aviso=$('fced_aviso');
+    if(travaValor){ aviso.style.display=''; aviso.textContent='Lançamento vindo de venda/comissão: valor travado (espelha o pedido). Edite data, conta, método e descrição.'; }
+    else { aviso.style.display='none'; }
+    $('fced_msg').textContent='';
+    $('fcEdModal').style.display='flex';
+  };
+  function fcSalvarEd(){
+    if(!FC_ED) return; var msg=$('fced_msg'); msg.textContent='Salvando…'; $('fced_ok').disabled=true;
+    var p={ id:FC_ED.id };
+    if(FC_ED.mode==='baixa'){
+      p.valor=Number($('fced_valor').value)||0; p.data=$('fced_data').value||null;
+      p.conta_id=$('fced_conta').value||null; p.metodo=$('fced_metodo').value||null;
+    } else {
+      p.descricao=$('fced_desc').value; p.conta_id=$('fced_conta').value||null; p.metodo=$('fced_metodo').value||null;
+      p[FC_ED.dateField]=$('fced_data').value||null;
+      if(FC_ED.manual){
+        p.categoria=$('fced_cat').value||null;
+        if(!$('fced_valor').disabled) p.valor=Number($('fced_valor').value)||0;
+        var fav=$('fced_fav').value||''; p.fornecedor_id=(fav.indexOf('F:')===0?fav.slice(2):null); p.colaborador_id=(fav.indexOf('C:')===0?fav.slice(2):null);
+      }
+    }
+    var fn=(FC_ED.mode==='baixa')?'editar_baixa':'editar_financeiro';
+    rpc(fn,p).then(function(r){ $('fced_ok').disabled=false;
+      if(r&&r.ok){ msg.textContent='✓ salvo'; setTimeout(function(){ fcEdFechar(); fcReload(); },600); }
+      else msg.textContent='Erro: '+((r&&(r.erro||r.message))||'falha');
+    }).catch(function(){ $('fced_ok').disabled=false; msg.textContent='Erro de conexão.'; });
   }
   function fcExSetDefault(){
     var hoje=new Date(); var de=new Date(hoje.getFullYear(),hoje.getMonth(),1); var ate=new Date(hoje.getFullYear(),hoje.getMonth()+1,0);
@@ -3883,13 +3972,15 @@
       if(tt) tt.textContent=moneyBR(d.total)+' · '+(d.qtd||0)+' recebimento(s)';
       if(!itens.length){ wrap.innerHTML='<div class="empty" style="padding:14px">Nenhum recebimento neste dia.</div>'; return; }
       var METLBL={pix:'PIX',dinheiro:'Dinheiro',cartao:'Cartão',transferencia:'Transferência',boleto:'Boleto',cheque:'Cheque',outro:'Outro'};
-      wrap.innerHTML=itens.map(function(it){
+      FC_REC_ITENS=itens;
+      wrap.innerHTML=itens.map(function(it,i){
         var met=METLBL[it.metodo]||it.metodo||'—';
         var org=(it.origem==='quitacao_direta')?'venda quitada':'baixa de recebível';
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--line)">'
           +'<div><b style="color:var(--text)">'+esc(it.cliente||it.descricao||'Recebimento')+'</b>'
           +'<div style="font-size:11px;color:var(--muted)">'+esc(met)+' · '+esc(it.conta||'sem conta')+' · '+esc(org)+'</div></div>'
-          +'<b style="color:var(--accent)">'+moneyBR(it.valor)+'</b></div>';
+          +'<div style="display:flex;align-items:center;gap:10px"><b style="color:var(--accent)">'+moneyBR(it.valor)+'</b>'
+          +'<span class="badge" style="cursor:pointer;color:#c9862f" onclick="fcAbrirEd(\'rec\',FC_REC_ITENS['+i+'])">editar</span></div></div>';
       }).join('');
     }).catch(function(){ var w=$('fcRecLista'); if(w) w.innerHTML='<div class="empty" style="padding:14px">Não foi possível carregar.</div>'; });
   }
@@ -3903,14 +3994,16 @@
       if(tt) tt.textContent=moneyBR(d.total)+' · '+(d.qtd||0)+' pagamento(s)';
       if(!itens.length){ wrap.innerHTML='<div class="empty" style="padding:14px">Nenhum pagamento neste dia.</div>'; return; }
       var METLBL={pix:'PIX',dinheiro:'Dinheiro',cartao:'Cartão',transferencia:'Transferência',boleto:'Boleto',cheque:'Cheque',outro:'Outro'};
-      wrap.innerHTML=itens.map(function(it){
+      FC_PAG_ITENS=itens;
+      wrap.innerHTML=itens.map(function(it,i){
         var met=METLBL[it.metodo]||it.metodo||'—';
         var quem=it.favorecido||it.descricao||'Pagamento';
         var cat=it.categoria?(' · '+esc(it.categoria)):'';
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--line)">'
           +'<div><b style="color:var(--text)">'+esc(quem)+'</b>'
           +'<div style="font-size:11px;color:var(--muted)">'+esc(met)+' · '+esc(it.conta||'sem conta')+cat+'</div></div>'
-          +'<b style="color:#e5893b">'+moneyBR(it.valor)+'</b></div>';
+          +'<div style="display:flex;align-items:center;gap:10px"><b style="color:#e5893b">'+moneyBR(it.valor)+'</b>'
+          +'<span class="badge" style="cursor:pointer;color:#c9862f" onclick="fcAbrirEd(\'pag\',FC_PAG_ITENS['+i+'])">editar</span></div></div>';
       }).join('');
     }).catch(function(){ var w=$('fcPagLista'); if(w) w.innerHTML='<div class="empty" style="padding:14px">Não foi possível carregar.</div>'; });
   }
@@ -3930,8 +4023,9 @@
         +'<span style="color:var(--muted)">'+(d.qtd||0)+' movimento(s)</span></div>';
       if(!itens.length){ if(wrap) wrap.innerHTML='<div class="empty" style="padding:14px">Nenhum movimento efetivado no período.</div>'; return; }
       var METLBL={pix:'PIX',dinheiro:'Dinheiro',cartao:'Cartão',transferencia:'Transferência',boleto:'Boleto',cheque:'Cheque',outro:'Outro'};
-      if(wrap) wrap.innerHTML='<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição / quem</th><th>Categoria</th><th>Destino (conta)</th><th>Método</th><th style="text-align:right">Valor</th></tr></thead><tbody>'
-        +itens.map(function(it){
+      FC_EXT_ITENS=itens;
+      if(wrap) wrap.innerHTML='<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição / quem</th><th>Categoria</th><th>Destino (conta)</th><th>Método</th><th style="text-align:right">Valor</th><th>Ação</th></tr></thead><tbody>'
+        +itens.map(function(it,i){
           var isEnt=(it.direcao==='entrada');
           var quem=isEnt?(it.cliente||it.descricao||'—'):(it.favorecido||it.descricao||'—');
           var dd=(it.data||'').split('-').reverse().join('/');
@@ -3941,7 +4035,8 @@
             +'<td>'+esc(it.categoria||'—')+'</td>'
             +'<td>'+esc(it.conta||'—')+'</td>'
             +'<td>'+esc(METLBL[it.metodo]||it.metodo||'—')+'</td>'
-            +'<td style="text-align:right;color:'+(isEnt?'var(--accent)':'#e5893b')+'"><b>'+(isEnt?'+':'−')+moneyBR(it.valor)+'</b></td></tr>';
+            +'<td style="text-align:right;color:'+(isEnt?'var(--accent)':'#e5893b')+'"><b>'+(isEnt?'+':'−')+moneyBR(it.valor)+'</b></td>'
+            +'<td><span class="badge" style="cursor:pointer;color:#c9862f" onclick="fcAbrirEd(\'ext\',FC_EXT_ITENS['+i+'])">editar</span></td></tr>';
         }).join('')
         +'</tbody></table></div>';
     }).catch(function(){ if(wrap) wrap.innerHTML='<div class="empty" style="padding:14px">Não foi possível carregar.</div>'; });
@@ -4052,6 +4147,7 @@
           +'<td style="text-align:right;color:var(--muted)">'+moneyBR(f.valor_pago)+'</td>'
           +'<td style="text-align:right;color:var(--accent)"><b>'+moneyBR(f.saldo)+'</b></td>'
           +'<td><button class="badge" style="cursor:pointer;color:#3ea55e" onclick="crAbrirBaixa(\''+f.id+'\')">'+lbl+'</button>'
+          +' <span class="badge" style="cursor:pointer;color:#c9862f" onclick="crEditar(\''+f.id+'\')">editar</span>'
           +((f.origem==='manual'||f.origem==='importado')?' <span class="badge" style="cursor:pointer;color:#e5534b" onclick="crDel(\''+f.id+'\')">✕</span>':'')+'</td></tr>';
       }).join('')
       +'</tbody><tfoot><tr><td colspan="6" style="text-align:right"><b>Saldo em aberto</b></td><td style="text-align:right"><b style="color:var(--ouro)">'+moneyBR(totSaldo)+'</b></td><td></td></tr></tfoot></table></div></div>';
@@ -4101,6 +4197,7 @@
   }
   window.crDel=function(id){ if(!confirm('Excluir este lançamento?')) return;
     rpc('excluir_financeiro',{p_id:id}).then(function(r){ if(r&&r.ok) crRefresh(); else alert('Só lançamentos manuais/importados podem ser excluídos.'); }); };
+  window.crEditar=function(id){ var f=CR_ITENS[id]; if(f && typeof window.fcAbrirEd==='function') window.fcAbrirEd('aberto', f); };
   function fcSalvarConta(){
     var nome=($('fcc_nome')||{}).value||''; if(!nome.trim()){ $('fcContaMsg').textContent='Informe o apelido.'; return; }
     var bsel=$('fcc_banco'); var bnome=bsel&&bsel.selectedIndex>=0?bsel.options[bsel.selectedIndex].text.replace(/\s*\(\d+\)$/,''):'';
