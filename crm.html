@@ -313,6 +313,7 @@
       <a href="#" data-view="carteira"><span class="dot"></span> Carteira de Leads</a>
       <a href="#" data-view="arqpropostas"><span class="dot"></span> Propostas de Parceiros</a>
       <a href="#" data-view="forecast"><span class="dot"></span> Forecast (CEO)</a>
+      <a href="#" data-view="radar"><span class="dot"></span> Radar do Gestor</a>
       <a href="#" data-view="arquivo"><span class="dot"></span> Arquivo</a>
       <div class="sec">Cadastros</div>
       <a href="#" data-view="clientes"><span class="dot"></span> Clientes</a>
@@ -707,6 +708,11 @@
             <b style="color:var(--text)">Patrimônio de curto prazo</b> = caixa + recebíveis + estoque.<br>
             Os números atualizam sozinhos conforme o Mercado Pago confirma cada pagamento e conforme o estoque é lançado.
           </div></div>
+      </section>
+      <section class="view" data-v="radar" hidden>
+        <div class="h1">Radar do Gestor</div>
+        <div class="sub">Leitura executiva ao vivo · caixa, recebíveis × a pagar, comissões, vendas do mês e entregas · <b style="color:var(--accent)">só admin/gestão</b></div>
+        <div id="mod-radar"><div class="empty" style="padding:20px">Carregando…</div></div>
       </section>
       <section class="view" data-v="fluxocaixa" hidden>
         <div class="h1">Fluxo de Caixa</div>
@@ -1576,6 +1582,7 @@
     if(v==='ficha360') initFicha360();
     if(v==='financeiro') loadFinanceiro();
     if(v==='fluxocaixa') initFluxoCaixa();
+    if(v==='radar') initRadar();
     if(v==='creceber') initContasReceber();
     if(v==='cpagar') initContasPagar();
     if(v==='compras') initCompras();
@@ -3640,10 +3647,95 @@
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT},
         scales:{x:{ticks:{color:TXT,font:{size:10}},grid:{display:false}},y:{ticks:{color:TXT,font:{size:10},callback:function(x){ return 'R$ '+Number(x).toLocaleString('pt-BR'); }},grid:{color:GRID},beginAtZero:true}}}}); }
   }
+  // ===== Radar do Gestor (painel executivo ao vivo) =====
+  function initRadar(){
+    var host=$('mod-radar'); if(!host) return;
+    if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ host.innerHTML='<div class="empty" style="padding:22px">Acesso restrito à administração/gestão.</div>'; return; }
+    host.innerHTML='<div class="empty" style="padding:20px">Carregando o radar…</div>';
+    var tok=localStorage.getItem(TOKKEY);
+    var H=Object.assign(authHeaders(tok),{'Content-Type':'application/json'});
+    var hoje=new Date(); var iso=function(x){ return x.toISOString().slice(0,10); };
+    var mIni=new Date(hoje.getFullYear(),hoje.getMonth(),1), mFim=new Date(hoje.getFullYear(),hoje.getMonth()+1,0);
+    var sHoje=iso(hoje), sMIni=iso(mIni), sMFim=iso(mFim);
+    var d7=iso(new Date(hoje.getTime()+7*864e5)), d15=iso(new Date(hoje.getTime()+15*864e5)), d30=iso(new Date(hoje.getTime()+30*864e5));
+    var pResumo=fetch(SB+'/rest/v1/rpc/get_financeiro_resumo',{method:'POST',headers:H,body:'{}'}).then(function(r){return r.json();}).catch(function(){return null;});
+    var pCaixa=rpc('contas_saldo',{}).then(function(d){return (d&&d.ok&&d.contas)?d.contas:[];}).catch(function(){return [];});
+    var pAbertos=rpc('contas_abertas',{p_filtro:'todos'}).then(function(d){return (d&&d.ok&&d.itens)?d.itens:[];}).catch(function(){return [];});
+    var pMov=rpc('movimentos_periodo',{p_de:sMIni,p_ate:sMFim}).then(function(d){return (d&&d.ok)?d:null;}).catch(function(){return null;});
+    var pPed=fetch(SB+'/rest/v1/pedidos?select=id,valor,vendedor_id,status,data_venda&data_venda=gte.'+sMIni+'&limit=1000',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
+    var pOS=fetch(SB+'/rest/v1/ordens_servico?select=status&limit=2000',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
+    var pColab=fetch(SB+'/rest/v1/colaboradores?select=id,nome,meta_mensal,realizado_mes&ativo=eq.true&limit=500',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
+    Promise.all([pResumo,pCaixa,pAbertos,pMov,pPed,pOS,pColab]).then(function(res){
+      var fin=res[0]||{}, contas=res[1]||[], abertos=res[2]||[], mov=res[3]||{}, peds=res[4]||[], oss=res[5]||[], colabs=res[6]||[];
+      if(fin&&fin.erro){ host.innerHTML='<div class="empty" style="padding:22px">Sem permissão para ler os indicadores (entre como admin/gestão).</div>'; return; }
+      var saldoCaixa=contas.reduce(function(a,c){return a+(Number(c.saldo_atual)||0);},0);
+      var aReceber=0,aPagar=0,recVenc=0, r7=0,r15=0,r30=0, p7=0,p15=0,p30=0, comiTot=0; var comiPor={};
+      abertos.forEach(function(f){
+        var s=Number(f.saldo)||0, venc=f.vencimento||'', ent=(f.direcao==='entrada');
+        if(ent){ aReceber+=s; if(venc&&venc<sHoje)recVenc+=s; if(venc&&venc>=sHoje&&venc<=d7)r7+=s; if(venc&&venc>=sHoje&&venc<=d15)r15+=s; if(venc&&venc>=sHoje&&venc<=d30)r30+=s; }
+        else { aPagar+=s; if(venc&&venc>=sHoje&&venc<=d7)p7+=s; if(venc&&venc>=sHoje&&venc<=d15)p15+=s; if(venc&&venc>=sHoje&&venc<=d30)p30+=s; }
+        if(f.tipo==='comissao'){ comiTot+=s; var nm=f.nome||f.favorecido||'—'; comiPor[nm]=(comiPor[nm]||0)+s; }
+      });
+      var recMes=Number(mov&&mov.entradas)||0, pagMes=Number(mov&&mov.saidas)||0;
+      var vendasTot=0, vendasQtd=0, vPor={};
+      peds.forEach(function(p){ var st=(p.status||'').toLowerCase(); if(st==='cancelado'||st==='excluido')return; var v=Number(p.valor)||0; vendasTot+=v; vendasQtd++; var k=p.vendedor_id||'—'; if(!vPor[k])vPor[k]={total:0,qtd:0}; vPor[k].total+=v; vPor[k].qtd++; });
+      var colabById={}; colabs.forEach(function(c){ colabById[c.id]=c; });
+      var osAb=0,osAg=0,osRota=0,osEnt=0; oss.forEach(function(o){ var s=(o.status||''); if(s==='aberta')osAb++; else if(s==='agendada')osAg++; else if(s==='em_rota')osRota++; else if(s==='entregue')osEnt++; });
+      var cobertura = aPagar>0? (saldoCaixa/aPagar) : null;
+      // KPIs
+      var kpis=[
+        kpiCard('Saldo em caixa',moneyBR(saldoCaixa),(contas.length||0)+' conta(s) · agora'),
+        kpiCard('A receber (aberto)',moneyBR(aReceber),(recVenc>0?('inclui '+moneyBR(recVenc)+' vencido'):'em dia')),
+        kpiCard('A pagar (aberto)',moneyBR(aPagar),'inclui comissões'),
+        kpiCard('Comissões a pagar',moneyBR(comiTot),'a consultores'),
+        kpiCard('Faturamento (mês)',moneyBR(fin.faturamento_mes),'loja + pilares'),
+        kpiCard('Recebido no mês',moneyBR(recMes),'entrou no caixa'),
+        kpiCard('Pago no mês',moneyBR(pagMes),'saiu do caixa'),
+        kpiCard('Saldo do mês',moneyBR(recMes-pagMes),'recebido − pago')
+      ].join('');
+      // leitura de CEO
+      var lin=[];
+      if(saldoCaixa<0) lin.push('⚠️ Caixa consolidado negativo ('+moneyBR(saldoCaixa)+') — priorize recebimentos e segure pagamentos não essenciais.');
+      else if(cobertura!=null) lin.push('O caixa atual cobre '+(cobertura>=1?'100%':Math.round(cobertura*100)+'%')+' das contas a pagar em aberto ('+moneyBR(aPagar)+').');
+      if(recVenc>0) lin.push('Há '+moneyBR(recVenc)+' em recebíveis vencidos — acionar a Cobrança (IA).');
+      if(comiTot>0) lin.push('Comissões a pagar acumulam '+moneyBR(comiTot)+' (vencem no início do mês seguinte).');
+      lin.push('Resultado de caixa do mês: '+moneyBR(recMes-pagMes)+' ('+moneyBR(recMes)+' recebidos − '+moneyBR(pagMes)+' pagos).');
+      var rec = (recVenc>0)? 'Recomendação: rodar a Cobrança (IA) hoje e confirmar as baixas — recuperar os '+moneyBR(recVenc)+' vencidos melhora o caixa imediatamente.'
+             : (cobertura!=null&&cobertura<1)? 'Recomendação: o caixa não cobre tudo que está a pagar — escalonar vencimentos e acelerar os recebíveis dos próximos 7 dias ('+moneyBR(r7)+').'
+             : 'Recomendação: caixa saudável — avaliar antecipar compras estratégicas ou distribuição de lucros com base na DRE do mês.';
+      var leituraHTML='<div class="panel" style="margin-top:14px;border-left:3px solid var(--ouro)"><div class="modbar"><h3>📊 Leitura do gestor</h3></div>'
+        +'<div style="padding:10px 16px;color:var(--text);font-size:13.5px;line-height:1.75">'+lin.map(function(t){return '• '+esc(t);}).join('<br>')
+        +'<div style="margin-top:10px;padding:10px 12px;background:rgba(203,152,76,.10);border-radius:6px;color:var(--ouro);font-weight:600">'+esc(rec)+'</div></div></div>';
+      // buckets a receber / a pagar
+      function bucketRows(a,b,c){ return '<div style="display:flex;justify-content:space-between;padding:7px 16px;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">Até 7 dias</span><b>'+moneyBR(a)+'</b></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:7px 16px;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">Até 15 dias</span><b>'+moneyBR(b)+'</b></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:7px 16px"><span style="color:var(--muted)">Até 30 dias</span><b>'+moneyBR(c)+'</b></div>'; }
+      var bucketsHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">'
+        +'<div class="panel"><div class="modbar"><h3>A receber (próximos)</h3></div>'+bucketRows(r7,r15,r30)+(recVenc>0?('<div style="display:flex;justify-content:space-between;padding:7px 16px;border-top:2px solid #e5534b"><span style="color:#e5534b">Vencidos</span><b style="color:#e5534b">'+moneyBR(recVenc)+'</b></div>'):'')+'</div>'
+        +'<div class="panel"><div class="modbar"><h3>A pagar (próximos)</h3></div>'+bucketRows(p7,p15,p30)+'</div></div>';
+      // comissões por consultor
+      var comiRows=Object.keys(comiPor).map(function(k){return {nome:k,val:comiPor[k]};}).sort(function(a,b){return b.val-a.val;});
+      var comiHTML='<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Comissões a pagar por consultor</h3><b style="margin-left:auto;color:var(--ouro)">'+moneyBR(comiTot)+'</b></div>'
+        +(comiRows.length? comiRows.map(function(c){return '<div style="display:flex;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--line)"><span style="color:var(--text)">'+esc(c.nome)+'</span><b style="color:#c9862f">'+moneyBR(c.val)+'</b></div>';}).join('') : '<div class="empty" style="padding:14px">Nenhuma comissão em aberto.</div>')
+        +'</div>';
+      // vendas do mês por consultor
+      var vendRows=Object.keys(vPor).map(function(k){ var c=colabById[k]; return {nome:(c?c.nome:(k==='—'?'Sem consultor':'—')),total:vPor[k].total,qtd:vPor[k].qtd,meta:Number(c&&c.meta_mensal)||0}; }).sort(function(a,b){return b.total-a.total;});
+      var vendHTML='<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Vendas do mês por consultor</h3><b style="margin-left:auto;color:var(--accent)">'+moneyBR(vendasTot)+' · '+vendasQtd+' venda(s)</b></div>'
+        +'<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Consultor</th><th style="text-align:right">Vendas</th><th style="text-align:right">Qtd</th><th style="text-align:right">Meta</th><th style="text-align:right">Atingido</th></tr></thead><tbody>'
+        +(vendRows.length? vendRows.map(function(v){ var pct=v.meta>0?Math.round(v.total/v.meta*100):null; var pcolor=(pct==null)?'var(--muted)':(pct>=100?'#3ea55e':(pct>=60?'#c9862f':'#e5893b')); return '<tr><td style="color:var(--text)">'+esc(v.nome)+'</td><td style="text-align:right">'+moneyBR(v.total)+'</td><td style="text-align:right;color:var(--muted)">'+v.qtd+'</td><td style="text-align:right;color:var(--muted)">'+(v.meta>0?moneyBR(v.meta):'—')+'</td><td style="text-align:right;color:'+pcolor+'"><b>'+(pct==null?'—':pct+'%')+'</b></td></tr>'; }).join('') : '<tr><td colspan="5"><div class="empty" style="padding:12px">Nenhuma venda registrada no mês.</div></td></tr>')
+        +'</tbody></table></div></div>';
+      // entregas
+      var entHTML='<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Entregas (operacional)</h3></div><div class="kpis" style="padding:12px 16px">'
+        +kpiCard('A agendar',osAb,'OS abertas')+kpiCard('Agendadas',osAg,'com data')+kpiCard('Em rota',osRota,'saíram p/ entrega')+kpiCard('Entregues',osEnt,'concluídas')+'</div></div>';
+      host.innerHTML='<div class="kpis">'+kpis+'</div>'+leituraHTML+bucketsHTML
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+comiHTML+vendHTML+'</div>'+entHTML
+        +'<div style="padding:10px 4px;color:var(--muted);font-size:11.5px">Atualizado ao vivo em '+sHoje.split('-').reverse().join('/')+' · lê os dados reais com o seu login (admin/gestão).</div>';
+    }).catch(function(e){ host.innerHTML='<div class="empty" style="padding:20px">Não foi possível carregar o radar. Tente novamente.</div>'; console.error('radar:',e); });
+  }
   // ===== Fluxo de Caixa =====
   var FC_BUILT=false, FC_PERIODO=30, FC_CONTA='', FC_CONTAS=[], FC_CHART=null;
   var FC_BANCOS=[['001','Banco do Brasil'],['104','Caixa Econômica Federal'],['237','Bradesco'],['341','Itaú Unibanco'],['033','Santander'],['422','Safra'],['070','BRB'],['077','Banco Inter'],['260','Nubank'],['290','PagBank (PagSeguro)'],['323','Mercado Pago'],['336','Banco C6'],['756','Sicoob'],['748','Sicredi'],['212','Banco Original'],['380','PicPay'],['364','Efí (Gerencianet)'],['136','Unicred'],['041','Banrisul'],['004','Banco do Nordeste'],['021','Banestes'],['085','Ailos'],['655','Banco Votorantim'],['246','Banco ABC Brasil'],['025','Banco Alfa'],['208','BTG Pactual'],['218','Banco BS2'],['611','Banco Paulista'],['320','China Construction Bank'],['745','Citibank'],['399','HSBC'],['999','Outro / Dinheiro (caixa)']];
-  var FC_CAT_DESP=['Aluguel','Fornecedor','Folha / Salários','Pró-labore','Impostos','Marketing','Logística / Frete','Utilidades (água/luz/internet)','Manutenção','Tarifas bancárias','Alimentação','Diária de entrega','Despesas escritório','Material de limpeza','Matéria para produzir','Pedágio','Outros'];
+  var FC_CAT_DESP=['Aluguel','Fornecedor','Folha / Salários','Pró-labore','Comissões','Distribuição de lucros','Impostos','Marketing','Logística / Frete','Combustível','Utilidades (água/luz/internet)','Manutenção','Tarifas bancárias','Alimentação','Diária de entrega','Despesas escritório','Material de limpeza','Matéria para produzir','Pedágio','Outros'];
   var FC_CAT_REC=['Venda','Locação','Impressão 3D','Serviço','Outros'];
   function fcContaOpts(sel, incTodas){
     var h=incTodas?'<option value="">Todas as contas (consolidado)</option>':'<option value="">— selecione —</option>';
@@ -3684,6 +3776,7 @@
         +'<div class="modform" style="padding-top:8px">'
         +'<div class="f"><label>Tipo</label><select id="fcl_tipo"><option value="despesa">Saída (despesa)</option><option value="receita">Entrada (receita)</option></select></div>'
         +'<div class="f"><label>Categoria</label><select id="fcl_cat"></select></div>'
+        +'<div class="f full"><label>Favorecido (fornecedor / consultor) — opcional</label><select id="fcl_fav"><option value="">— nenhum —</option></select></div>'
         +'<div class="f full"><label>Descrição</label><input id="fcl_desc" placeholder="ex.: Aluguel showroom"></div>'
         +'<div class="f"><label>Valor (R$)</label><input id="fcl_valor" type="number" step="0.01"></div>'
         +'<div class="f"><label>Vencimento</label><input id="fcl_venc" type="date"></div>'
@@ -3695,11 +3788,30 @@
     +'</div>'
     +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>💰 Recebimentos do dia</h3>'
       +'<span style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label for="fcRecData" style="color:var(--muted);font-size:12px">Dia</label>'
-      +'<input type="date" id="fcRecData" style="background:#221b10;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:6px 8px;font-size:12.5px">'
+      +'<input type="date" id="fcRecData" style="background:#221b10;border:1px solid var(--line);border-radius:4px;color:#fff;padding:6px 8px;font-size:12.5px">'
       +'<b id="fcRecTotal" style="color:var(--ouro);font-size:13px"></b></span></div>'
       +'<div style="padding:4px 16px 2px;color:var(--muted);font-size:12px">Baixas de clientes + vendas quitadas que entraram no caixa neste dia.</div>'
       +'<div id="fcRecLista" style="padding:6px 4px"></div></div>'
-    +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Em aberto (a pagar / a receber)</h3></div><div id="fcAbertos" style="padding:6px 4px"></div></div>'
+    +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>💸 Pagamentos do dia</h3>'
+      +'<span style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label for="fcPagData" style="color:var(--muted);font-size:12px">Dia</label>'
+      +'<input type="date" id="fcPagData" style="background:#221b10;border:1px solid var(--line);border-radius:4px;color:#fff;padding:6px 8px;font-size:12.5px">'
+      +'<b id="fcPagTotal" style="color:#e5893b;font-size:13px"></b></span></div>'
+      +'<div style="padding:4px 16px 2px;color:var(--muted);font-size:12px">Baixas a fornecedores/consultores + despesas quitadas que saíram do caixa neste dia.</div>'
+      +'<div id="fcPagLista" style="padding:6px 4px"></div></div>'
+    +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>🔎 Consulta de movimentos (extrato)</h3>'
+      +'<span style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      +'<button class="badge" id="fcExDia" style="cursor:pointer">Dia</button>'
+      +'<button class="badge" id="fcExSem" style="cursor:pointer">Semana</button>'
+      +'<button class="badge" id="fcExMes" style="cursor:pointer">Mês</button>'
+      +'<label style="color:var(--muted);font-size:12px">De</label><input type="date" id="fcExDe" style="background:#221b10;border:1px solid var(--line);border-radius:4px;color:#fff;padding:6px 8px;font-size:12.5px">'
+      +'<label style="color:var(--muted);font-size:12px">até</label><input type="date" id="fcExAte" style="background:#221b10;border:1px solid var(--line);border-radius:4px;color:#fff;padding:6px 8px;font-size:12.5px">'
+      +'<button class="ia-btn" id="fcExBtn">Consultar</button></span></div>'
+      +'<div style="padding:4px 16px 2px;color:var(--muted);font-size:12px">Todos os pagamentos e recebimentos já efetivados no período escolhido, com o destino (conta). Use Dia, Semana ou Mês, ou escolha o intervalo.</div>'
+      +'<div id="fcExResumo" style="padding:4px 16px"></div>'
+      +'<div id="fcExLista" style="padding:6px 4px"></div></div>'
+    +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Em aberto (a pagar / a receber)</h3></div>'
+      +'<div style="padding:4px 16px 2px;color:var(--muted);font-size:12px">Inclui recebíveis de vendas (a receber), comissões de consultores e contas a pagar ainda não quitadas.</div>'
+      +'<div id="fcAbertos" style="padding:6px 4px"></div></div>'
     +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Importar extrato (OFX / CSV)</h3><span class="modmsg" id="fcImpMsg"></span></div>'
       +'<div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
       +'<select id="fcImpConta"></select>'
@@ -3722,6 +3834,44 @@
     $('fcImpBtn').addEventListener('click', fcDoImport);
     var vv=$('fcl_venc'); if(vv) vv.value=new Date().toISOString().slice(0,10);
     var rd=$('fcRecData'); if(rd){ rd.value=new Date().toISOString().slice(0,10); rd.addEventListener('change', fcLoadRecebimentos); }
+    var pd=$('fcPagData'); if(pd){ pd.value=new Date().toISOString().slice(0,10); pd.addEventListener('change', fcLoadPagamentos); }
+    // seletor de favorecidos (fornecedores + consultores)
+    fcLoadFavorecidos();
+    var fav=$('fcl_fav'); if(fav){ fav.addEventListener('change', function(){ var d=$('fcl_desc'); if(d && !d.value && this.value){ var t=this.options[this.selectedIndex]; d.value=(t?t.text:''); } }); }
+    // extrato: presets Dia/Semana/Mês + intervalo (default: mês atual)
+    var ex1=$('fcExDia'), ex7=$('fcExSem'), ex30=$('fcExMes'), exb=$('fcExBtn');
+    if(ex1) ex1.addEventListener('click', function(){ fcExPreset('dia'); });
+    if(ex7) ex7.addEventListener('click', function(){ fcExPreset('semana'); });
+    if(ex30) ex30.addEventListener('click', function(){ fcExPreset('mes'); });
+    if(exb) exb.addEventListener('click', fcLoadExtrato);
+    fcExSetDefault();
+  }
+  function fcLoadFavorecidos(){
+    var s=$('fcl_fav'); if(!s) return;
+    rpc('fin_favorecidos',{}).then(function(d){
+      if(!d||!d.ok) return;
+      var forn=d.fornecedores||[], colab=d.consultores||[];
+      var h='<option value="">— nenhum —</option>';
+      if(colab.length){ h+='<optgroup label="Consultores">'+colab.map(function(c){ return '<option value="C:'+c.id+'">'+esc(c.nome)+'</option>'; }).join('')+'</optgroup>'; }
+      if(forn.length){ h+='<optgroup label="Fornecedores">'+forn.map(function(c){ return '<option value="F:'+c.id+'">'+esc(c.nome)+'</option>'; }).join('')+'</optgroup>'; }
+      s.innerHTML=h;
+    }).catch(function(){});
+  }
+  function fcExSetDefault(){
+    var hoje=new Date(); var de=new Date(hoje.getFullYear(),hoje.getMonth(),1); var ate=new Date(hoje.getFullYear(),hoje.getMonth()+1,0);
+    var f=function(x){ return x.toISOString().slice(0,10); };
+    if($('fcExDe')&&!$('fcExDe').value) $('fcExDe').value=f(de);
+    if($('fcExAte')&&!$('fcExAte').value) $('fcExAte').value=f(ate);
+  }
+  function fcExPreset(kind){
+    var hoje=new Date(); var de=new Date(), ate=new Date();
+    if(kind==='dia'){ de=hoje; ate=hoje; }
+    else if(kind==='semana'){ de=new Date(); de.setDate(de.getDate()-6); ate=hoje; }
+    else { de=new Date(hoje.getFullYear(),hoje.getMonth(),1); ate=new Date(hoje.getFullYear(),hoje.getMonth()+1,0); }
+    var f=function(x){ return x.toISOString().slice(0,10); };
+    if($('fcExDe')) $('fcExDe').value=f(de);
+    if($('fcExAte')) $('fcExAte').value=f(ate);
+    fcLoadExtrato();
   }
   // Itens 2/3: lista os recebimentos (dinheiro que entrou) do dia escolhido
   function fcLoadRecebimentos(){
@@ -3737,14 +3887,67 @@
         var met=METLBL[it.metodo]||it.metodo||'—';
         var org=(it.origem==='quitacao_direta')?'venda quitada':'baixa de recebível';
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--line)">'
-          +'<div><b style="color:var(--text)">'+esc(it.descricao||'Recebimento')+'</b>'
+          +'<div><b style="color:var(--text)">'+esc(it.cliente||it.descricao||'Recebimento')+'</b>'
           +'<div style="font-size:11px;color:var(--muted)">'+esc(met)+' · '+esc(it.conta||'sem conta')+' · '+esc(org)+'</div></div>'
           +'<b style="color:var(--accent)">'+moneyBR(it.valor)+'</b></div>';
       }).join('');
     }).catch(function(){ var w=$('fcRecLista'); if(w) w.innerHTML='<div class="empty" style="padding:14px">Não foi possível carregar.</div>'; });
   }
+  // Item 5: pagamentos (dinheiro que saiu) do dia escolhido — espelho de Recebimentos
+  function fcLoadPagamentos(){
+    var di=$('fcPagData'); var dia=(di&&di.value)||new Date().toISOString().slice(0,10);
+    rpc('pagamentos_dia',{p_data:dia}).then(function(d){
+      var wrap=$('fcPagLista'), tt=$('fcPagTotal'); if(!wrap) return;
+      if(!d||!d.ok){ wrap.innerHTML='<div class="empty" style="padding:14px">Acesso restrito à administração/gestão.</div>'; if(tt) tt.textContent=''; return; }
+      var itens=d.itens||[];
+      if(tt) tt.textContent=moneyBR(d.total)+' · '+(d.qtd||0)+' pagamento(s)';
+      if(!itens.length){ wrap.innerHTML='<div class="empty" style="padding:14px">Nenhum pagamento neste dia.</div>'; return; }
+      var METLBL={pix:'PIX',dinheiro:'Dinheiro',cartao:'Cartão',transferencia:'Transferência',boleto:'Boleto',cheque:'Cheque',outro:'Outro'};
+      wrap.innerHTML=itens.map(function(it){
+        var met=METLBL[it.metodo]||it.metodo||'—';
+        var quem=it.favorecido||it.descricao||'Pagamento';
+        var cat=it.categoria?(' · '+esc(it.categoria)):'';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--line)">'
+          +'<div><b style="color:var(--text)">'+esc(quem)+'</b>'
+          +'<div style="font-size:11px;color:var(--muted)">'+esc(met)+' · '+esc(it.conta||'sem conta')+cat+'</div></div>'
+          +'<b style="color:#e5893b">'+moneyBR(it.valor)+'</b></div>';
+      }).join('');
+    }).catch(function(){ var w=$('fcPagLista'); if(w) w.innerHTML='<div class="empty" style="padding:14px">Não foi possível carregar.</div>'; });
+  }
+  // Itens 5/6: extrato — pagamentos e recebimentos efetivados no período, com destino
+  function fcLoadExtrato(){
+    var de=($('fcExDe')||{}).value, ate=($('fcExAte')||{}).value;
+    var resumo=$('fcExResumo'), wrap=$('fcExLista');
+    if(!de||!ate){ if(wrap) wrap.innerHTML='<div class="empty" style="padding:12px;color:var(--muted)">Escolha o intervalo (De / até).</div>'; return; }
+    if(wrap) wrap.innerHTML='<div class="empty" style="padding:12px;color:var(--muted)">Consultando…</div>';
+    rpc('movimentos_periodo',{p_de:de,p_ate:ate}).then(function(d){
+      if(!d||!d.ok){ if(resumo)resumo.innerHTML=''; if(wrap)wrap.innerHTML='<div class="empty" style="padding:14px">Acesso restrito à administração/gestão.</div>'; return; }
+      var itens=d.itens||[];
+      if(resumo) resumo.innerHTML='<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px">'
+        +'<span>Entradas: <b style="color:var(--accent)">'+moneyBR(d.entradas)+'</b></span>'
+        +'<span>Saídas: <b style="color:#e5893b">'+moneyBR(d.saidas)+'</b></span>'
+        +'<span>Saldo do período: <b style="color:var(--ouro)">'+moneyBR(d.saldo)+'</b></span>'
+        +'<span style="color:var(--muted)">'+(d.qtd||0)+' movimento(s)</span></div>';
+      if(!itens.length){ if(wrap) wrap.innerHTML='<div class="empty" style="padding:14px">Nenhum movimento efetivado no período.</div>'; return; }
+      var METLBL={pix:'PIX',dinheiro:'Dinheiro',cartao:'Cartão',transferencia:'Transferência',boleto:'Boleto',cheque:'Cheque',outro:'Outro'};
+      if(wrap) wrap.innerHTML='<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição / quem</th><th>Categoria</th><th>Destino (conta)</th><th>Método</th><th style="text-align:right">Valor</th></tr></thead><tbody>'
+        +itens.map(function(it){
+          var isEnt=(it.direcao==='entrada');
+          var quem=isEnt?(it.cliente||it.descricao||'—'):(it.favorecido||it.descricao||'—');
+          var dd=(it.data||'').split('-').reverse().join('/');
+          return '<tr><td style="color:var(--muted)">'+esc(dd)+'</td>'
+            +'<td>'+(isEnt?'<span class="badge" style="color:#3ea55e">Entrada</span>':'<span class="badge" style="color:#e5893b">Saída</span>')+'</td>'
+            +'<td style="color:var(--text)">'+esc(quem)+'</td>'
+            +'<td>'+esc(it.categoria||'—')+'</td>'
+            +'<td>'+esc(it.conta||'—')+'</td>'
+            +'<td>'+esc(METLBL[it.metodo]||it.metodo||'—')+'</td>'
+            +'<td style="text-align:right;color:'+(isEnt?'var(--accent)':'#e5893b')+'"><b>'+(isEnt?'+':'−')+moneyBR(it.valor)+'</b></td></tr>';
+        }).join('')
+        +'</tbody></table></div>';
+    }).catch(function(){ if(wrap) wrap.innerHTML='<div class="empty" style="padding:14px">Não foi possível carregar.</div>'; });
+  }
   function fcSyncCats(){ var t=($('fcl_tipo')||{}).value; var arr=(t==='receita')?FC_CAT_REC:FC_CAT_DESP; var s=$('fcl_cat'); if(s) s.innerHTML=arr.map(function(c){return '<option>'+c+'</option>';}).join(''); }
-  function fcReload(){ fcLoadContas(function(){ fcLoadFluxo(); fcLoadAbertos(); fcLoadRecebimentos(); }); }
+  function fcReload(){ fcLoadContas(function(){ fcLoadFluxo(); fcLoadAbertos(); fcLoadRecebimentos(); fcLoadPagamentos(); fcLoadExtrato(); }); }
   function fcLoadContas(cb){
     rpc('contas_saldo',{}).then(function(d){
       FC_CONTAS=(d&&d.ok&&Array.isArray(d.contas))?d.contas:[];
@@ -3831,14 +4034,19 @@
       if(!itens.length){ w.innerHTML='<div class="empty" style="padding:16px">Nada em aberto.</div>'; return; }
       var hoje=new Date().toISOString().slice(0,10); var totSaldo=0;
       var isRec=(filtro==='receber');
-      w.innerHTML='<div class="panel"><table style="width:100%"><thead><tr><th>Vencimento</th><th>'+(filtro==='pagar'?'Fornecedor / descrição':(isRec?'Cliente':'Cliente / Fornecedor'))+'</th><th>Categoria</th>'
+      var colNome=(filtro==='pagar'?'Favorecido / descrição':(isRec?'Cliente':'Favorecido / Cliente'));
+      w.innerHTML='<div style="overflow-x:auto"><div class="panel"><table style="width:100%"><thead><tr><th>Vencimento</th><th>Tipo</th><th>'+colNome+'</th><th>Categoria</th>'
         +'<th style="text-align:right">Total</th><th style="text-align:right">'+(isRec?'Recebido':(filtro==='pagar'?'Pago':'Baixado'))+'</th><th style="text-align:right">Saldo</th><th>Ação</th></tr></thead><tbody>'
       +itens.map(function(f){
         totSaldo+=Number(f.saldo)||0; var venc=f.vencimento||''; var atras=(venc&&venc<hoje&&Number(f.saldo)>0);
         var dir=f.direcao; var lbl=(dir==='entrada')?'Receber':'Pagar';
         var parc=(Number(f.valor_pago)>0);
+        var rot=f.rotulo||(dir==='entrada'?'A receber':'A pagar');
+        var rotColor=(f.tipo==='comissao')?'#c9862f':(dir==='entrada'?'#3ea55e':'#e5893b');
+        var sub=(f.tipo==='comissao'&&f.cliente)?('<div style="font-size:11px;color:var(--muted)">venda de '+esc(f.cliente)+'</div>'):'';
         return '<tr><td style="color:'+(atras?'#e5534b':'var(--muted)')+'">'+esc(venc?venc.split('-').reverse().join('/'):'—')+(atras?' ⚠':'')+'</td>'
-          +'<td style="color:var(--text)">'+esc(f.nome||f.descricao||'—')+(parc?' <span class="badge" style="color:#c9862f">parcial</span>':'')+'</td>'
+          +'<td><span class="badge" style="color:'+rotColor+'">'+esc(rot)+'</span></td>'
+          +'<td style="color:var(--text)">'+esc(f.nome||f.descricao||'—')+(parc?' <span class="badge" style="color:#c9862f">parcial</span>':'')+sub+'</td>'
           +'<td>'+esc(f.categoria||'—')+'</td>'
           +'<td style="text-align:right">'+moneyBR(f.valor)+'</td>'
           +'<td style="text-align:right;color:var(--muted)">'+moneyBR(f.valor_pago)+'</td>'
@@ -3846,7 +4054,7 @@
           +'<td><button class="badge" style="cursor:pointer;color:#3ea55e" onclick="crAbrirBaixa(\''+f.id+'\')">'+lbl+'</button>'
           +((f.origem==='manual'||f.origem==='importado')?' <span class="badge" style="cursor:pointer;color:#e5534b" onclick="crDel(\''+f.id+'\')">✕</span>':'')+'</td></tr>';
       }).join('')
-      +'</tbody><tfoot><tr><td colspan="5" style="text-align:right"><b>Saldo em aberto</b></td><td style="text-align:right"><b style="color:var(--ouro)">'+moneyBR(totSaldo)+'</b></td><td></td></tr></tfoot></table></div>';
+      +'</tbody><tfoot><tr><td colspan="6" style="text-align:right"><b>Saldo em aberto</b></td><td style="text-align:right"><b style="color:var(--ouro)">'+moneyBR(totSaldo)+'</b></td><td></td></tr></tfoot></table></div></div>';
     }).catch(function(){ w.innerHTML='<div class="empty" style="padding:16px">Não foi possível carregar (acesso de gestão).</div>'; });
   }
   function crRefresh(){ if(CR_LAST&&CR_LAST.cid) crRender(CR_LAST.cid, CR_LAST.filtro); if(typeof FC_BUILT!=='undefined'&&FC_BUILT){ try{ fcLoadContas(function(){ fcLoadFluxo(); }); }catch(e){} } }
@@ -3911,12 +4119,15 @@
     rpc('excluir_conta_bancaria',{p_id:id}).then(function(){ fcReload(); }); };
   function fcSalvarLancamento(){
     var val=Number(($('fcl_valor')||{}).value)||0; if(val<=0){ $('fcLancMsg').textContent='Informe um valor.'; return; }
+    var fav=($('fcl_fav')||{}).value||''; var fornId=null, colabId=null;
+    if(fav.indexOf('C:')===0) colabId=fav.slice(2); else if(fav.indexOf('F:')===0) fornId=fav.slice(2);
     var p={ tipo:($('fcl_tipo')||{}).value, categoria:($('fcl_cat')||{}).value, descricao:($('fcl_desc')||{}).value,
       valor:val, vencimento:($('fcl_venc')||{}).value||null, conta_id:($('fcl_conta')||{}).value||null,
-      pago:(($('fcl_pago')||{}).value==='true'), recorrencia_meses:Number(($('fcl_rec')||{}).value)||1 };
+      pago:(($('fcl_pago')||{}).value==='true'), recorrencia_meses:Number(($('fcl_rec')||{}).value)||1,
+      fornecedor_id:fornId, colaborador_id:colabId };
     $('fcl_save').disabled=true; $('fcLancMsg').textContent='Lançando…';
     rpc('lancar_financeiro',p).then(function(r){ $('fcl_save').disabled=false;
-      if(r&&r.ok){ $('fcLancMsg').textContent='✓ '+(r.lancamentos||1)+' lançamento(s)'; if($('fcl_desc'))$('fcl_desc').value=''; if($('fcl_valor'))$('fcl_valor').value='';
+      if(r&&r.ok){ $('fcLancMsg').textContent='✓ '+(r.lancamentos||1)+' lançamento(s)'; if($('fcl_desc'))$('fcl_desc').value=''; if($('fcl_valor'))$('fcl_valor').value=''; if($('fcl_fav'))$('fcl_fav').value='';
         fcReload(); setTimeout(function(){ if($('fcLancMsg'))$('fcLancMsg').textContent=''; },2500); }
       else $('fcLancMsg').textContent='Erro: '+((r&&(r.erro||r.message))||'falha');
     }).catch(function(){ $('fcl_save').disabled=false; $('fcLancMsg').textContent='Erro de conexão.'; });
