@@ -3941,7 +3941,7 @@
       }
     }
     var fn=(FC_ED.mode==='baixa')?'editar_baixa':'editar_financeiro';
-    rpc(fn,p).then(function(r){ $('fced_ok').disabled=false;
+    rpc(fn,{p:p}).then(function(r){ $('fced_ok').disabled=false;
       if(r&&r.ok){ msg.textContent='✓ salvo'; setTimeout(function(){ fcEdFechar(); fcReload(); },600); }
       else msg.textContent='Erro: '+((r&&(r.erro||r.message))||'falha');
     }).catch(function(){ $('fced_ok').disabled=false; msg.textContent='Erro de conexão.'; });
