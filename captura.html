@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KM Interiores — Projeto sob medida para o seu ambiente</title>
+<meta name="description" content="Receba um projeto exclusivo de mobiliário de alto padrão da KM Interiores. Consultoria gratuita.">
+<style>
+  :root{ --ouro:#CB984C; --champ:#F1E4C9; --ouro2:#9D7D31; --bg:#14100a; --card:#1c1710; --line:#2c2314; --txt:#EFE3C8; --muted:#a5997e; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:460px;margin:0 auto;padding:28px 20px 40px;min-height:100vh}
+  .brand{text-align:center;margin-bottom:22px}
+  .brand .logo{font-family:Georgia,"Times New Roman",serif;font-size:26px;letter-spacing:2px;color:var(--ouro);font-weight:700}
+  .brand .slogan{font-size:11.5px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-top:4px}
+  .hero{text-align:center;margin:8px 0 22px}
+  .hero h1{font-family:Georgia,serif;font-size:25px;line-height:1.25;margin:0 0 10px;color:var(--champ);font-weight:600}
+  .hero h1 b{color:var(--ouro)}
+  .hero p{font-size:14.5px;color:var(--muted);margin:0 auto;max-width:360px}
+  .benefits{list-style:none;padding:0;margin:18px 0 4px;display:grid;gap:9px}
+  .benefits li{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--txt)}
+  .benefits li .b{color:var(--ouro);font-weight:700;flex:0 0 auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 16px;margin-top:20px}
+  .card h2{font-family:Georgia,serif;font-size:17px;margin:0 0 4px;color:var(--champ);font-weight:600}
+  .card .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+  input,select{width:100%;background:#221b10;border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:12px 12px;font-size:15px;outline:none}
+  input:focus,select:focus{border-color:var(--ouro)}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  .consent{display:flex;gap:9px;align-items:flex-start;margin-top:14px;font-size:11.5px;color:var(--muted)}
+  .consent input{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
+  .btn{width:100%;margin-top:16px;background:linear-gradient(180deg,var(--ouro),var(--ouro2));border:0;color:#14100a;font-weight:700;font-size:16px;padding:14px;border-radius:10px;cursor:pointer;letter-spacing:.3px}
+  .btn:disabled{opacity:.6;cursor:default}
+  .msg{margin-top:12px;font-size:13px;text-align:center;min-height:18px}
+  .msg.err{color:#e58a6a}
+  .ok-screen{display:none;text-align:center;padding:26px 8px}
+  .ok-screen .ic{font-size:44px}
+  .ok-screen h2{font-family:Georgia,serif;color:var(--ouro);margin:8px 0 6px}
+  .ok-screen p{color:var(--muted);font-size:14px}
+  .wa{display:inline-block;margin-top:16px;background:#1f6f4a;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600;font-size:14px}
+  .foot{text-align:center;font-size:10.5px;color:#6f6552;margin-top:22px;line-height:1.6}
+  .foot a{color:#8a7d63}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo">KM INTERIORES</div>
+      <div class="slogan">Design que inspira · Sofisticação que permanece</div>
+    </div>
+
+    <div id="form-view">
+      <div class="hero">
+        <h1>Um ambiente que combina com <b>quem você é</b>.</h1>
+        <p>Móveis de alto padrão, sob medida, da nossa fábrica ao seu lar. Receba um projeto exclusivo e uma consultoria <b>gratuita</b>.</p>
+      </div>
+      <ul class="benefits">
+        <li><span class="b">✦</span> Projeto e consultoria de ambientes <b>sem custo</b>.</li>
+        <li><span class="b">✦</span> Fabricação própria — <b>alto padrão</b> com preço de fábrica.</li>
+        <li><span class="b">✦</span> Entrega e montagem na sua região.</li>
+      </ul>
+
+      <div class="card">
+        <h2>Quero meu projeto</h2>
+        <div class="sub">Deixe seus dados — um consultor entra em contato.</div>
+        <form id="lead-form" autocomplete="on" novalidate>
+          <div class="hp" aria-hidden="true"><label>Não preencha<input type="text" id="empresa_site" tabindex="-1" autocomplete="off"></label></div>
+          <label for="nome">Nome completo *</label>
+          <input type="text" id="nome" required placeholder="Seu nome">
+          <label for="whatsapp">WhatsApp *</label>
+          <input type="tel" id="whatsapp" inputmode="tel" required placeholder="(32) 90000-0000">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" placeholder="voce@email.com">
+          <label for="cidade">Cidade *</label>
+          <input type="text" id="cidade" required placeholder="Sua cidade">
+          <label for="interesse">O que você procura?</label>
+          <select id="interesse">
+            <option value="">Selecione…</option>
+            <option>Móveis sob medida / planejados</option>
+            <option>Ambiente pronto (sala, quarto, cozinha…)</option>
+            <option>Locação de móveis para evento</option>
+            <option>Peça de decoração 3D exclusiva</option>
+            <option>Ainda não sei — quero uma consultoria</option>
+          </select>
+          <label class="consent"><input type="checkbox" id="consent">
+            <span>Autorizo a KM Interiores a entrar em contato comigo (WhatsApp/e-mail) sobre projetos e ofertas de móveis e decoração. Posso pedir a exclusão dos meus dados a qualquer momento.</span>
+          </label>
+          <button class="btn" id="btn" type="submit">Receber meu projeto</button>
+          <div class="msg" id="msg"></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="ok-screen" id="ok-view">
+      <div class="ic">✅</div>
+      <h2>Recebemos seu contato!</h2>
+      <p>Em breve um consultor da KM Interiores fala com você. Se quiser adiantar, chame no WhatsApp:</p>
+      <a class="wa" id="wa-link" href="#" target="_blank" rel="noopener">💬 Falar no WhatsApp agora</a>
+    </div>
+
+    <div class="foot">
+      KM Interiores · Ubá/MG · Fabricação de móveis de alto padrão<br>
+      Seus dados são usados apenas para contato comercial (LGPD). <a href="mailto:kminterioresmarketing@gmail.com">Solicitar exclusão</a>.
+    </div>
+  </div>
+
+<script>
+  // Config pública (anon key do Supabase — pode ficar no cliente)
+  var SB = 'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  var ANON = 'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var WA_NUMERO = '5532999974419'; // <-- TROCAR pelo WhatsApp comercial da KM (DDI+DDD+numero)
+  var CONSENT_TXT = 'Autorizo a KM Interiores a entrar em contato (WhatsApp/e-mail) sobre móveis e decoração. Posso pedir exclusão a qualquer momento.';
+
+  function $(id){ return document.getElementById(id); }
+  function setMsg(t, err){ var m=$('msg'); m.textContent=t||''; m.className='msg'+(err?' err':''); }
+
+  $('lead-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var nome=$('nome').value.trim(), wpp=$('whatsapp').value.trim(), email=$('email').value.trim();
+    var cidade=$('cidade').value.trim(), interesse=$('interesse').value, consent=$('consent').checked;
+    var hp=$('empresa_site').value; // honeypot
+    if(!nome){ setMsg('Informe seu nome.',true); return; }
+    if(!wpp){ setMsg('Informe seu WhatsApp.',true); return; }
+    if(!cidade){ setMsg('Informe sua cidade.',true); return; }
+    if(!consent){ setMsg('É preciso autorizar o contato para enviarmos.',true); return; }
+    $('btn').disabled=true; setMsg('Enviando…');
+    var payload={ p:{ nome:nome, whatsapp:wpp, email:email, cidade:cidade, interesse:interesse,
+      origem:'lp_bio', consent:true, consent_texto:CONSENT_TXT, hp:hp } };
+    fetch(SB+'/rest/v1/rpc/captar_lead_publico', {
+      method:'POST',
+      headers:{ 'apikey':ANON, 'Authorization':'Bearer '+ANON, 'Content-Type':'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ return {status:r.status, d:d}; }); })
+      .then(function(res){
+        $('btn').disabled=false;
+        var d=res.d||{};
+        if(res.status>=200 && res.status<300 && (d.ok || d.dedupe)){
+          var t='Olá! Vim pelo Instagram e quero um projeto da KM Interiores. Meu nome é '+encodeURIComponent(nome)+'.';
+          $('wa-link').href='https://wa.me/'+WA_NUMERO+'?text='+t;
+          $('form-view').style.display='none'; $('ok-view').style.display='block';
+          window.scrollTo(0,0);
+        } else if(d.erro==='sem_consentimento'){ setMsg('É preciso autorizar o contato.',true); }
+        else { setMsg('Não foi possível enviar agora. Tente novamente em instantes.',true); }
+      }).catch(function(){ $('btn').disabled=false; setMsg('Sem conexão. Tente novamente.',true); });
+  });
+</script>
+</body>
+</html>
