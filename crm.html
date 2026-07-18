@@ -314,6 +314,8 @@
       <a href="#" data-view="arqpropostas"><span class="dot"></span> Propostas de Parceiros</a>
       <a href="#" data-view="forecast"><span class="dot"></span> Forecast (CEO)</a>
       <a href="#" data-view="radar"><span class="dot"></span> Radar do Gestor</a>
+      <a href="#" data-view="placar"><span class="dot"></span> Placar de Vendas</a>
+      <a href="#" data-view="dre"><span class="dot"></span> DRE do Mês</a>
       <a href="#" data-view="arquivo"><span class="dot"></span> Arquivo</a>
       <div class="sec">Cadastros</div>
       <a href="#" data-view="clientes"><span class="dot"></span> Clientes</a>
@@ -713,6 +715,16 @@
         <div class="h1">Radar do Gestor</div>
         <div class="sub">Leitura executiva ao vivo · caixa, recebíveis × a pagar, comissões, vendas do mês e entregas · <b style="color:var(--accent)">só admin/gestão</b></div>
         <div id="mod-radar"><div class="empty" style="padding:20px">Carregando…</div></div>
+      </section>
+      <section class="view" data-v="placar" hidden>
+        <div class="h1">Placar de Vendas</div>
+        <div class="sub">Ranking dos consultores no mês · meta × realizado · projeção de fechamento · <b style="color:var(--accent)">só admin/gestão</b></div>
+        <div id="mod-placar"><div class="empty" style="padding:20px">Carregando…</div></div>
+      </section>
+      <section class="view" data-v="dre" hidden>
+        <div class="h1">DRE do Mês</div>
+        <div class="sub">Resultado do mês (regime de caixa) · receita − custos = margem · comissões por consultor · <b style="color:var(--accent)">só admin/gestão</b></div>
+        <div id="mod-dre"><div class="empty" style="padding:20px">Carregando…</div></div>
       </section>
       <section class="view" data-v="fluxocaixa" hidden>
         <div class="h1">Fluxo de Caixa</div>
@@ -1583,6 +1595,8 @@
     if(v==='financeiro') loadFinanceiro();
     if(v==='fluxocaixa') initFluxoCaixa();
     if(v==='radar') initRadar();
+    if(v==='placar') initPlacar();
+    if(v==='dre') initDRE();
     if(v==='creceber') initContasReceber();
     if(v==='cpagar') initContasPagar();
     if(v==='compras') initCompras();
@@ -3731,6 +3745,128 @@
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+comiHTML+vendHTML+'</div>'+entHTML
         +'<div style="padding:10px 4px;color:var(--muted);font-size:11.5px">Atualizado ao vivo em '+sHoje.split('-').reverse().join('/')+' · lê os dados reais com o seu login (admin/gestão).</div>';
     }).catch(function(e){ host.innerHTML='<div class="empty" style="padding:20px">Não foi possível carregar o radar. Tente novamente.</div>'; console.error('radar:',e); });
+  }
+  // ===== Placar de Vendas (2º artefato de gestão) =====
+  function initPlacar(){
+    var host=$('mod-placar'); if(!host) return;
+    if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ host.innerHTML='<div class="empty" style="padding:22px">Acesso restrito à administração/gestão.</div>'; return; }
+    host.innerHTML='<div class="empty" style="padding:20px">Carregando o placar…</div>';
+    var tok=localStorage.getItem(TOKKEY);
+    var hoje=new Date(); var iso=function(x){ return x.toISOString().slice(0,10); };
+    var mIni=new Date(hoje.getFullYear(),hoje.getMonth(),1), mFim=new Date(hoje.getFullYear(),hoje.getMonth()+1,0);
+    var sMIni=iso(mIni); var diaHoje=hoje.getDate(), diasMes=mFim.getDate();
+    var pPed=fetch(SB+'/rest/v1/pedidos?select=id,valor,vendedor_id,status,data_venda&data_venda=gte.'+sMIni+'&limit=2000',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
+    var pColab=fetch(SB+'/rest/v1/colaboradores?select=id,nome,meta_mensal&ativo=eq.true&limit=500',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
+    Promise.all([pPed,pColab]).then(function(res){
+      var peds=res[0]||[], colabs=res[1]||[];
+      var vPor={};
+      peds.forEach(function(p){ var st=(p.status||'').toLowerCase(); if(st==='cancelado'||st==='excluido')return; var v=Number(p.valor)||0; var k=p.vendedor_id||'—'; if(!vPor[k])vPor[k]={total:0,qtd:0}; vPor[k].total+=v; vPor[k].qtd++; });
+      var rows=colabs.map(function(c){ var d=vPor[c.id]||{total:0,qtd:0}; return {nome:c.nome,total:d.total,qtd:d.qtd,meta:Number(c.meta_mensal)||0}; });
+      if(vPor['—']){ rows.push({nome:'Sem consultor',total:vPor['—'].total,qtd:vPor['—'].qtd,meta:0}); }
+      rows.sort(function(a,b){return b.total-a.total;});
+      var totVendas=rows.reduce(function(a,r){return a+r.total;},0);
+      var totMeta=rows.reduce(function(a,r){return a+r.meta;},0);
+      var totQtd=rows.reduce(function(a,r){return a+r.qtd;},0);
+      var proj=diaHoje>0?(totVendas/diaHoje*diasMes):totVendas;
+      var pctEquipe=totMeta>0?Math.round(totVendas/totMeta*100):null;
+      var kpis=[
+        kpiCard('Vendas do mês',moneyBR(totVendas),totQtd+' venda(s) · '+rows.filter(function(r){return r.total>0;}).length+' consultor(es)'),
+        kpiCard('Meta da equipe',totMeta>0?moneyBR(totMeta):'—',pctEquipe==null?'defina metas nos consultores':pctEquipe+'% atingido'),
+        kpiCard('Projeção de fechamento',moneyBR(proj),'no ritmo atual ('+diaHoje+'/'+diasMes+' dias)'),
+        kpiCard('Ticket médio',moneyBR(totQtd>0?totVendas/totQtd:0),'por venda no mês')
+      ].join('');
+      var medal=['🥇','🥈','🥉'];
+      var trs=rows.map(function(r,i){
+        var pct=r.meta>0?Math.round(r.total/r.meta*100):null;
+        var pcolor=(pct==null)?'var(--muted)':(pct>=100?'#3ea55e':(pct>=60?'#c9862f':'#e5893b'));
+        var barw=r.meta>0?Math.min(100,Math.round(r.total/r.meta*100)):0;
+        var pos=(i<3&&r.total>0)?medal[i]:((i+1)+'º');
+        var gap=(r.meta>r.total)?('faltam '+moneyBR(r.meta-r.total)):(r.meta>0?'meta batida ✔':'—');
+        return '<tr><td style="text-align:center;font-size:16px">'+pos+'</td>'
+          +'<td style="color:var(--text)"><b>'+esc(r.nome)+'</b></td>'
+          +'<td style="text-align:right">'+moneyBR(r.total)+'</td>'
+          +'<td style="text-align:right;color:var(--muted)">'+r.qtd+'</td>'
+          +'<td style="text-align:right;color:var(--muted)">'+(r.meta>0?moneyBR(r.meta):'—')+'</td>'
+          +'<td style="min-width:150px"><div style="background:var(--line);border-radius:6px;height:8px;overflow:hidden"><div style="height:8px;width:'+barw+'%;background:'+pcolor+'"></div></div><div style="font-size:11px;color:'+pcolor+';margin-top:3px">'+(pct==null?'sem meta':(pct+'% · '+gap))+'</div></td></tr>';
+      }).join('');
+      if(!rows.length || totVendas===0){ trs='<tr><td colspan="6"><div class="empty" style="padding:14px">Nenhuma venda registrada no mês ainda.</div></td></tr>'; }
+      var leitura='';
+      if(rows.length && totVendas>0){
+        var lider=rows[0]; var msgs=[];
+        msgs.push('Líder do mês: <b>'+esc(lider.nome)+'</b> com '+moneyBR(lider.total)+(lider.meta>0?(' ('+Math.round(lider.total/lider.meta*100)+'% da meta)'):'')+'.');
+        if(pctEquipe!=null) msgs.push('A equipe está com '+pctEquipe+'% da meta coletiva; a projeção no ritmo atual fecha em '+moneyBR(proj)+'.');
+        var semMeta=rows.filter(function(r){return r.meta===0 && r.nome!=='Sem consultor';}).length;
+        if(semMeta>0) msgs.push('⚠️ '+semMeta+' consultor(es) sem meta cadastrada — defina a meta mensal para medir o atingimento.');
+        leitura='<div class="panel" style="margin-top:14px;border-left:3px solid var(--ouro)"><div class="modbar"><h3>📊 Leitura do gestor</h3></div><div style="padding:10px 16px;color:var(--text);font-size:13.5px;line-height:1.75">'+msgs.map(function(t){return '• '+t;}).join('<br>')+'</div></div>';
+      }
+      host.innerHTML='<div class="kpis">'+kpis+'</div>'+leitura
+        +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Ranking de consultores</h3><b style="margin-left:auto;color:var(--accent)">'+moneyBR(totVendas)+'</b></div>'
+        +'<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th style="text-align:center">#</th><th>Consultor</th><th style="text-align:right">Vendas</th><th style="text-align:right">Qtd</th><th style="text-align:right">Meta</th><th>Atingimento</th></tr></thead><tbody>'+trs+'</tbody></table></div></div>'
+        +'<div style="padding:10px 4px;color:var(--muted);font-size:11.5px">Atualizado ao vivo · mês corrente · vendas de pedidos não cancelados.</div>';
+    }).catch(function(e){ host.innerHTML='<div class="empty" style="padding:20px">Não foi possível carregar o placar. Tente novamente.</div>'; console.error('placar:',e); });
+  }
+  // ===== DRE do Mês (3º artefato de gestão) =====
+  var DRE_MES_OFFSET=0;
+  function initDRE(off){
+    var host=$('mod-dre'); if(!host) return;
+    if(ME_ROLE && ME_ROLE!=='admin' && ME_ROLE!=='gestor'){ host.innerHTML='<div class="empty" style="padding:22px">Acesso restrito à administração/gestão.</div>'; return; }
+    if(typeof off==='number') DRE_MES_OFFSET=off;
+    host.innerHTML='<div class="empty" style="padding:20px">Calculando a DRE…</div>';
+    var hoje=new Date();
+    var base=new Date(hoje.getFullYear(),hoje.getMonth()+DRE_MES_OFFSET,1);
+    var fim=new Date(base.getFullYear(),base.getMonth()+1,0);
+    var iso=function(x){ return x.toISOString().slice(0,10); };
+    var nomeMes=base.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    rpc('dre_mes',{p_de:iso(base),p_ate:iso(fim)}).then(function(d){
+      if(!d || d.erro){ host.innerHTML='<div class="empty" style="padding:22px">Sem permissão para ler a DRE (entre como admin/gestão) — ou rode o SQL da DRE no Supabase.</div>'; return; }
+      var rec=Number(d.receita_total)||0, desp=Number(d.despesa_operacional_total)||0, res=Number(d.resultado_operacional)||0, distrib=Number(d.distribuicao_lucros)||0;
+      var margem=(d.margem_pct==null)?null:Number(d.margem_pct);
+      var resCor=res>=0?'#3ea55e':'#e5534b';
+      var sel='<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">'
+        +'<span style="color:var(--muted);font-size:13px">Mês:</span>'
+        +'<button class="btn" data-dre="0" style="'+(DRE_MES_OFFSET===0?'':'background:transparent;color:var(--muted);border:1px solid var(--line)')+'">Este mês</button>'
+        +'<button class="btn" data-dre="-1" style="'+(DRE_MES_OFFSET===-1?'':'background:transparent;color:var(--muted);border:1px solid var(--line)')+'">Mês passado</button>'
+        +'<button class="btn" data-dre="-2" style="'+(DRE_MES_OFFSET===-2?'':'background:transparent;color:var(--muted);border:1px solid var(--line)')+'">2 meses atrás</button>'
+        +'<span style="margin-left:auto;color:var(--accent);font-weight:600;text-transform:capitalize">'+esc(nomeMes)+'</span></div>';
+      var kpis=[
+        kpiCard('Receita realizada',moneyBR(rec),'entrou no mês'),
+        kpiCard('Despesas operacionais',moneyBR(desp),'saíram no mês'),
+        kpiCard('Resultado operacional',moneyBR(res),margem==null?'—':(margem+'% de margem')),
+        kpiCard('Distribuição de lucros',moneyBR(distrib),'retirada dos sócios')
+      ].join('');
+      var receitas=Array.isArray(d.receitas)?d.receitas:[];
+      var recRows=receitas.length?receitas.map(function(r){ var v=Number(r.valor)||0; var pct=rec>0?Math.round(v/rec*100):0; return '<div style="display:flex;justify-content:space-between;padding:7px 16px;border-bottom:1px solid var(--line)"><span style="color:var(--text)">'+esc(r.categoria)+' <span style="color:var(--muted);font-size:11px">'+pct+'%</span></span><b style="color:#3ea55e">'+moneyBR(v)+'</b></div>'; }).join(''):'<div class="empty" style="padding:12px">Sem receitas realizadas no mês.</div>';
+      var despesas=Array.isArray(d.despesas)?d.despesas:[];
+      var despRows=despesas.length?despesas.map(function(r){ var v=Number(r.valor)||0; var pct=desp>0?Math.round(v/desp*100):0; return '<div style="display:flex;justify-content:space-between;padding:7px 16px;border-bottom:1px solid var(--line)"><span style="color:var(--text)">'+esc(r.grupo)+' <span style="color:var(--muted);font-size:11px">'+pct+'%</span></span><b style="color:#e5893b">'+moneyBR(v)+'</b></div>'; }).join(''):'<div class="empty" style="padding:12px">Sem despesas realizadas no mês.</div>';
+      var comiss=Array.isArray(d.comissoes_pagas)?d.comissoes_pagas:[];
+      var comiTot=comiss.reduce(function(a,c){return a+(Number(c.valor)||0);},0);
+      var comiRows=comiss.length?comiss.map(function(c){ return '<div style="display:flex;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--line)"><span style="color:var(--text)">'+esc(c.consultor)+'</span><b style="color:#c9862f">'+moneyBR(c.valor)+'</b></div>'; }).join(''):'<div class="empty" style="padding:12px">Nenhuma comissão paga no mês.</div>';
+      var resumo='<div class="panel" style="margin-top:14px;border-left:3px solid '+resCor+'"><div class="modbar"><h3>Resultado do mês</h3></div>'
+        +'<div style="padding:10px 16px;font-size:14px;line-height:1.9">'
+        +'<div style="display:flex;justify-content:space-between"><span>Receita realizada</span><b style="color:#3ea55e">'+moneyBR(rec)+'</b></div>'
+        +'<div style="display:flex;justify-content:space-between"><span>(−) Despesas operacionais</span><b style="color:#e5893b">'+moneyBR(desp)+'</b></div>'
+        +'<div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:6px;padding-top:6px"><span><b>(=) Resultado operacional</b></span><b style="color:'+resCor+'">'+moneyBR(res)+(margem==null?'':(' · '+margem+'%'))+'</b></div>'
+        +(distrib>0?('<div style="display:flex;justify-content:space-between;color:var(--muted)"><span>(−) Distribuição de lucros</span><span>'+moneyBR(distrib)+'</span></div><div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:6px;padding-top:6px"><span>Resultado após distribuição</span><b>'+moneyBR(Number(d.resultado_apos_distribuicao)||(res-distrib))+'</b></div>'):'')
+        +'</div></div>';
+      var leitura=[];
+      if(rec===0 && desp===0){ leitura.push('Ainda não há movimento financeiro realizado (baixas/quitações) neste mês.'); }
+      else {
+        if(res>=0) leitura.push('O mês fecha positivo em '+moneyBR(res)+(margem!=null?(' — margem de '+margem+'%'):'')+'.');
+        else leitura.push('⚠️ O mês está negativo em '+moneyBR(res)+' — as despesas realizadas superaram a receita realizada.');
+        if(margem!=null && margem<20 && res>=0) leitura.push('Margem abaixo de 20% — avaliar preço, mix de produtos e custos de produção/frete.');
+        if(comiTot>0) leitura.push('Comissões pagas no mês: '+moneyBR(comiTot)+'.');
+        if(distrib>0) leitura.push('Houve '+moneyBR(distrib)+' de distribuição de lucros (não entra como despesa operacional).');
+      }
+      var leituraHTML='<div class="panel" style="margin-top:14px;border-left:3px solid var(--ouro)"><div class="modbar"><h3>📊 Leitura do gestor</h3></div><div style="padding:10px 16px;color:var(--text);font-size:13.5px;line-height:1.75">'+leitura.map(function(t){return '• '+t;}).join('<br>')+'</div></div>';
+      host.innerHTML=sel+'<div class="kpis">'+kpis+'</div>'+resumo
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">'
+        +'<div class="panel"><div class="modbar"><h3>Receitas por origem</h3><b style="margin-left:auto;color:#3ea55e">'+moneyBR(rec)+'</b></div>'+recRows+'</div>'
+        +'<div class="panel"><div class="modbar"><h3>Despesas por grupo</h3><b style="margin-left:auto;color:#e5893b">'+moneyBR(desp)+'</b></div>'+despRows+'</div></div>'
+        +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Comissões pagas por consultor</h3><b style="margin-left:auto;color:#c9862f">'+moneyBR(comiTot)+'</b></div>'+comiRows+'</div>'
+        +leituraHTML
+        +'<div style="padding:10px 4px;color:var(--muted);font-size:11.5px">DRE por regime de caixa (realizado) · baixas + quitações do período · '+esc(nomeMes)+'.</div>';
+      host.querySelectorAll('[data-dre]').forEach(function(b){ b.addEventListener('click',function(){ initDRE(parseInt(b.getAttribute('data-dre'),10)); }); });
+    }).catch(function(e){ host.innerHTML='<div class="empty" style="padding:20px">Não foi possível calcular a DRE. Tente novamente.</div>'; console.error('dre:',e); });
   }
   // ===== Fluxo de Caixa =====
   var FC_BUILT=false, FC_PERIODO=30, FC_CONTA='', FC_CONTAS=[], FC_CHART=null;
