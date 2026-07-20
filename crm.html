@@ -334,6 +334,7 @@
       <a href="#" data-view="pedidos3d"><span class="dot"></span> Impressão 3D (Pilar 3)</a>
       <a href="#" data-view="programas"><span class="dot"></span> Programas KM</a>
       <a href="#" data-view="treinamentos"><span class="dot"></span> Treinamentos</a>
+      <a href="#" data-view="tabelas_vendas"><span class="dot"></span> Tabelas de Vendas</a>
       <a href="#" data-view="tarefas"><span class="dot"></span> Tarefas</a>
       <a href="#" data-view="agenda"><span class="dot"></span> Agenda</a>
       <a href="#" data-view="chat"><span class="dot"></span> Bate-papo</a>
@@ -902,6 +903,24 @@
           </div>
           <table><thead><tr><th>Título</th><th>Categoria</th><th>Tipo</th><th>Tamanho</th><th style="text-align:right">Ações</th></tr></thead>
           <tbody id="matBodyAdm"><tr><td colspan="5" class="empty">Carregando…</td></tr></tbody></table>
+        </div>
+      </section>
+
+      <!-- ===== TABELAS DE VENDAS (equipe comercial) ===== -->
+      <section class="view" data-v="tabelas_vendas" hidden>
+        <div class="h1">Tabelas de Vendas</div>
+        <div class="sub">Tabelas de preço (Excel, Word, PowerPoint ou PDF) · enviadas aqui ficam disponíveis para a equipe comercial</div>
+
+        <div class="panel">
+          <div class="modbar"><h3>Enviar tabela (Excel / Word / PowerPoint / PDF)</h3><span class="modmsg" id="msg-tv"></span></div>
+          <div class="modform" id="form-tv">
+            <div class="f"><label>Título *</label><input data-k="titulo" placeholder="Ex.: Tabela de Preços 2026"></div>
+            <div class="f"><label>Categoria</label><select data-k="categoria"><option value="">— selecione —</option><option>Preço Líquido</option><option>Preço Bruto</option></select></div>
+            <div class="f"><label>Arquivo *</label><input type="file" id="tv_file" accept=".xls,.xlsx,.doc,.docx,.ppt,.pptx,.pdf"></div>
+            <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="tv_salvar">Enviar tabela</button></div>
+          </div>
+          <table><thead><tr><th>Título</th><th>Categoria</th><th>Tipo</th><th>Tamanho</th><th style="text-align:right">Ações</th></tr></thead>
+          <tbody id="tvBody"><tr><td colspan="5" class="empty">Carregando…</td></tr></tbody></table>
         </div>
       </section>
 
@@ -1577,6 +1596,7 @@
     if(v==='pedidos3d') loadPedidos3d();
     if(v==='programas') loadProgramas();
     if(v==='treinamentos') loadTreinamentos();
+    if(v==='tabelas_vendas') loadTabelasVendas();
     if(v==='tarefas') loadTarefas();
     if(v==='agenda') initAgenda();
     if(v==='ficha360') initFicha360();
@@ -5151,6 +5171,67 @@
       } else if(act==='delmat'){ if(!confirm('Excluir este material?')) return; var path=b.getAttribute('data-path');
         fetch(SB+'/storage/v1/object/'+TBUCKET+'/'+path,{method:'DELETE',headers:authHeaders(tok)}).catch(function(){});
         fetch(SB+'/rest/v1/portal_materiais?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})}).then(function(){ loadTreinamentos(); });
+      }
+    });
+  })();
+
+  // ===== TABELAS DE VENDAS (Excel/Word/PPT/PDF — Preço Líquido/Bruto) =====
+  var TVBUCKET='portal-materiais';                 // reusa o bucket privado dos materiais (aceita qualquer MIME)
+  function tvTam(kb){ return kb?(kb>1024?(kb/1024).toFixed(1)+' MB':kb+' KB'):'—'; }
+  function loadTabelasVendas(){
+    var tok=localStorage.getItem(TOKKEY);
+    fetch(SB+'/rest/v1/portal_tabelas_vendas?select=*&order=created_at.desc&limit=200',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){
+      var tb=$('tvBody'); rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Nenhuma tabela ainda. Envie acima.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(m){
+        var ext=(m.tipo||'').toLowerCase();
+        return '<tr><td style="color:var(--text)">'+esc(m.titulo||'')+'</td><td><span class="badge">'+esc(m.categoria||'—')+'</span></td><td>'+esc(ext.toUpperCase())+'</td><td>'+tvTam(m.tamanho_kb)+'</td>'
+          +'<td style="text-align:right;white-space:nowrap">'
+          +'<button class="ia-btn" data-act="viewtv" data-path="'+esc(m.storage_path||'')+'" data-ext="'+esc(ext)+'">Visualizar</button> '
+          +'<button class="ia-btn" data-act="dltv" data-path="'+esc(m.storage_path||'')+'">Baixar</button> '
+          +'<button class="ia-btn" data-act="deltv" data-id="'+m.id+'" data-path="'+esc(m.storage_path||'')+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button>'
+          +'</td></tr>';
+      }).join('');
+    })
+    .catch(function(){ $('tvBody').innerHTML='<tr><td colspan="5" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; });
+  }
+  (function(){
+    var mb=$('tv_salvar');
+    if(mb) mb.addEventListener('click', function(){
+      var form=$('form-tv'); var g=function(k){ var el=form.querySelector('[data-k="'+k+'"]'); return el?el.value.trim():''; };
+      var file=$('tv_file').files[0];
+      if(!g('titulo')||!file){ $('msg-tv').textContent='Informe o título e selecione o arquivo.'; return; }
+      var ext=(file.name.split('.').pop()||'').toLowerCase();
+      var okExt={xls:1,xlsx:1,doc:1,docx:1,ppt:1,pptx:1,pdf:1};
+      if(!okExt[ext]){ $('msg-tv').textContent='Formato não suportado. Use Excel, Word, PowerPoint ou PDF.'; return; }
+      var tok=localStorage.getItem(TOKKEY);
+      var path='tabelas-vendas/'+Date.now()+'_'+file.name.replace(/[^\w.\-]/g,'_');
+      mb.disabled=true; var old=mb.textContent; mb.textContent='Enviando…'; $('msg-tv').textContent='Enviando arquivo…';
+      fetch(SB+'/storage/v1/object/'+TVBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':file.type||'application/octet-stream','x-upsert':'true'}),body:file})
+      .then(function(r){ if(!r.ok) throw new Error('upload'); return fetch(SB+'/rest/v1/portal_tabelas_vendas',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({titulo:g('titulo'),tipo:ext,categoria:g('categoria'),storage_path:path,tamanho_kb:Math.round(file.size/1024),enviado_por:($('who')?$('who').textContent:'')})}); })
+      .then(function(){ mb.disabled=false; mb.textContent=old; $('msg-tv').textContent='Tabela enviada ✓'; form.querySelectorAll('input').forEach(function(el){ el.value=''; }); var s=form.querySelector('[data-k="categoria"]'); if(s) s.value=''; loadTabelasVendas(); setTimeout(function(){ $('msg-tv').textContent=''; },2500); })
+      .catch(function(){ mb.disabled=false; mb.textContent=old; $('msg-tv').textContent='Falha no envio (verifique seu acesso de equipe).'; });
+    });
+    // Ações da lista: Visualizar (PDF inline · Office via visualizador) / Baixar / Excluir
+    document.addEventListener('click', function(e){
+      var b=e.target.closest?e.target.closest('button[data-act]'):null; if(!b) return;
+      var act=b.getAttribute('data-act'), tok=localStorage.getItem(TOKKEY);
+      if(act==='viewtv'){ var path=b.getAttribute('data-path'), ext=(b.getAttribute('data-ext')||'').toLowerCase(); b.disabled=true; var o=b.textContent; b.textContent='…';
+        fetch(SB+'/storage/v1/object/sign/'+TVBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:3600})})
+        .then(function(r){ return r.json(); }).then(function(j){ b.disabled=false; b.textContent=o; if(!j.signedURL){ alert('Não foi possível gerar o link.'); return; }
+          var url=SB+'/storage/v1'+j.signedURL;
+          if(ext==='pdf'){ window.open(url,'_blank'); }                                   // PDF: o navegador renderiza direto
+          else { window.open('https://view.officeapps.live.com/op/view.aspx?src='+encodeURIComponent(url),'_blank'); } })   // Excel/Word/PPT: visualizador Office online
+        .catch(function(){ b.disabled=false; b.textContent=o; alert('Não foi possível abrir o arquivo.'); });
+      } else if(act==='dltv'){ var dpath=b.getAttribute('data-path'); b.disabled=true; var od=b.textContent; b.textContent='…';
+        fetch(SB+'/storage/v1/object/sign/'+TVBUCKET+'/'+dpath,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:3600})})
+        .then(function(r){ return r.json(); }).then(function(j){ b.disabled=false; b.textContent=od; if(j.signedURL) window.open(SB+'/storage/v1'+j.signedURL+'&download=','_blank'); else alert('Não foi possível gerar o link.'); })
+        .catch(function(){ b.disabled=false; b.textContent=od; });
+      } else if(act==='deltv'){ if(!confirm('Excluir esta tabela de vendas?')) return; var xpath=b.getAttribute('data-path');
+        fetch(SB+'/storage/v1/object/'+TVBUCKET+'/'+xpath,{method:'DELETE',headers:authHeaders(tok)}).catch(function(){});
+        fetch(SB+'/rest/v1/portal_tabelas_vendas?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})}).then(function(){ loadTabelasVendas(); });
       }
     });
   })();
