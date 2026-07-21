@@ -570,6 +570,12 @@
         <div class="h1">Produtos</div>
         <div class="sub">Cadastro de produtos do e-commerce · imagem, vídeo, preço, estoque e ranking · <a href="catalogo.html" target="_blank" style="color:var(--accent)">ver loja →</a></div>
         <div id="mod-produtos"></div>
+        <div class="panel" style="margin-top:14px">
+          <div class="modbar"><h3>💬 Comentários dos produtos (moderação)</h3><span class="modmsg" id="msg-pcmod"></span></div>
+          <div style="padding:4px 16px 2px;color:var(--muted);font-size:12px">Comentários enviados pelos visitantes no site. <b style="color:var(--text)">Aprovar</b> publica no produto; <b style="color:var(--text)">Excluir</b> remove. Os pendentes aparecem primeiro.</div>
+          <table><thead><tr><th>Produto</th><th>Nome</th><th>Comentário</th><th>Quando</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
+          <tbody id="pcModBody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody></table>
+        </div>
       </section>
       <section class="view" data-v="estoque" hidden>
         <div class="h1">Estoque</div>
@@ -913,14 +919,38 @@
 
         <div class="panel">
           <div class="modbar"><h3>Enviar tabela (Excel / Word / PowerPoint / PDF)</h3><span class="modmsg" id="msg-tv"></span></div>
+          <style>
+            .tv-catbtns,.tv-filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+            .tv-cat,.tv-fil{background:#221b10;border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:7px 16px;font-size:12.5px;cursor:pointer;transition:.2s}
+            .tv-cat:hover,.tv-fil:hover{border-color:var(--accent);color:var(--text)}
+            .tv-cat.active,.tv-fil.active{background:var(--accent);border-color:var(--accent);color:#14100a;font-weight:600}
+            .tv-arrow{background:transparent;border:1px solid var(--line);color:var(--accent);border-radius:4px;width:26px;height:22px;cursor:pointer;font-size:10px;line-height:1;padding:0;vertical-align:middle}
+            .tv-arrow:disabled{opacity:.28;cursor:default}
+            .tv-arrow:hover:not(:disabled){background:var(--accent);color:#14100a}
+          </style>
           <div class="modform" id="form-tv">
             <div class="f"><label>Título *</label><input data-k="titulo" placeholder="Ex.: Tabela de Preços 2026"></div>
-            <div class="f"><label>Categoria</label><select data-k="categoria"><option value="">— selecione —</option><option>Preço Líquido</option><option>Preço Bruto</option></select></div>
+            <div class="f"><label>Categoria</label>
+              <div class="tv-catbtns" id="tv_catbtns">
+                <button type="button" class="tv-cat" data-cat="Preço Bruto">Preço Bruto</button>
+                <button type="button" class="tv-cat" data-cat="Preço Líquido">Preço Líquido</button>
+                <button type="button" class="tv-cat" data-cat="Catálogo">Catálogo</button>
+              </div>
+              <input type="hidden" data-k="categoria" id="tv_cat" value="">
+            </div>
             <div class="f"><label>Arquivo *</label><input type="file" id="tv_file" accept=".xls,.xlsx,.doc,.docx,.ppt,.pptx,.pdf"></div>
             <div class="f full" style="text-align:right;display:flex;justify-content:flex-end;gap:10px;align-items:center"><button class="btn" id="tv_salvar">Enviar tabela</button></div>
           </div>
-          <table><thead><tr><th>Título</th><th>Categoria</th><th>Tipo</th><th>Tamanho</th><th style="text-align:right">Ações</th></tr></thead>
-          <tbody id="tvBody"><tr><td colspan="5" class="empty">Carregando…</td></tr></tbody></table>
+          <div class="tv-filtros" id="tv_filtros" style="padding:6px 2px 12px">
+            <span style="color:var(--muted);font-size:12px">Filtrar:</span>
+            <button type="button" class="tv-fil active" data-fil="">Todos</button>
+            <button type="button" class="tv-fil" data-fil="Preço Bruto">Preço Bruto</button>
+            <button type="button" class="tv-fil" data-fil="Preço Líquido">Preço Líquido</button>
+            <button type="button" class="tv-fil" data-fil="Catálogo">Catálogo</button>
+            <button type="button" class="ia-btn" id="tv_az" style="margin-left:auto" title="Reordenar todas as tabelas em ordem alfabética">↕ Ordenar A→Z</button>
+          </div>
+          <table><thead><tr><th style="width:70px">Ordem</th><th>Título</th><th>Categoria</th><th>Tipo</th><th>Tamanho</th><th style="text-align:right">Ações</th></tr></thead>
+          <tbody id="tvBody"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody></table>
         </div>
       </section>
 
@@ -1588,6 +1618,7 @@
     if(v==='certificados') initCertificados();
     if(v==='arquivo') loadArquivo();
     if(v==='engajamento') initEngajamento();
+    if(v==='produtos') loadComentariosMod();
     if(v==='pedidos') loadPedidos();
     if(v==='os') loadOS();
     if(v==='dashboard') loadDashboard();
@@ -3829,8 +3860,19 @@
       +'<button class="ia-btn" id="fcExBtn">Consultar</button></span></div>'
       +'<div style="padding:4px 16px 2px;color:var(--muted);font-size:12px">Todos os pagamentos e recebimentos já efetivados no período escolhido, com o destino (conta). Use Dia, Semana ou Mês, ou escolha o intervalo.</div>'
       +'<div id="fcExResumo" style="padding:4px 16px"></div>'
+      +'<div id="fcExTipoFil" style="padding:2px 16px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="color:var(--muted);font-size:12px">Ver:</span>'
+        +'<button type="button" class="tv-fil active" data-extipo="">Todos</button>'
+        +'<button type="button" class="tv-fil" data-extipo="entrada">Recebimentos</button>'
+        +'<button type="button" class="tv-fil" data-extipo="saida">Pagamentos</button></div>'
       +'<div style="padding:6px 16px"><input type="text" id="fcExBusca" placeholder="🔎 Pesquisar por descrição ou nome de quem recebeu/pagou…" style="width:100%;background:#221b10;border:1px solid var(--line);border-radius:6px;color:#fff;padding:9px 11px;font-size:13px"></div>'
       +'<div id="fcExLista" style="padding:6px 4px"></div></div>'
+    +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>📊 Gastos do mês por grupo</h3>'
+      +'<span style="margin-left:auto;display:flex;gap:8px;align-items:center">'
+      +'<button class="ia-btn" id="fcGgPrev" title="Mês anterior">‹</button>'
+      +'<input type="month" id="fcGgMes" style="background:#221b10;border:1px solid var(--line);border-radius:4px;color:#fff;padding:6px 8px;font-size:12.5px">'
+      +'<button class="ia-btn" id="fcGgNext" title="Próximo mês">›</button></span></div>'
+      +'<div style="padding:4px 16px 2px;color:var(--muted);font-size:12px">Soma de todas as saídas (pagamentos) efetivadas no mês, agrupadas por categoria — ex.: Combustível (total), Pedágio (total), Alimentação (total).</div>'
+      +'<div id="fcGgLista" style="padding:6px 4px"></div></div>'
     +'<div class="panel" style="margin-top:14px"><div class="modbar"><h3>Em aberto (a pagar / a receber)</h3></div>'
       +'<div style="padding:4px 16px 2px;color:var(--muted);font-size:12px">Inclui recebíveis de vendas (a receber), comissões de consultores e contas a pagar ainda não quitadas.</div>'
       +'<div id="fcAbertos" style="padding:6px 4px"></div></div>'
@@ -3869,7 +3911,9 @@
     if(ex30) ex30.addEventListener('click', function(){ fcExPreset('mes'); });
     if(exb) exb.addEventListener('click', fcLoadExtrato);
     var ebusca=$('fcExBusca'); if(ebusca) ebusca.addEventListener('input', fcExRenderTabela);
+    var etf=$('fcExTipoFil'); if(etf){ etf.addEventListener('click', function(e){ var b=e.target&&e.target.closest?e.target.closest('button[data-extipo]'):null; if(!b) return; FC_EXT_TIPO=b.getAttribute('data-extipo')||''; Array.prototype.forEach.call(etf.querySelectorAll('button[data-extipo]'),function(x){ x.classList.toggle('active',(x.getAttribute('data-extipo')||'')===FC_EXT_TIPO); }); fcExRenderTabela(); }); }
     fcExSetDefault();
+    fcLoadGastosGrupo();
   }
   var FC_FAV_CACHE={fornecedores:[],consultores:[],clientes:[]};
   function fcFavOptions(sel){
@@ -3890,7 +3934,7 @@
     }).catch(function(){});
   }
   // ===== Edição de lançamentos/baixas (botão "editar" nos painéis) =====
-  var FC_REC_ITENS=[], FC_PAG_ITENS=[], FC_EXT_ITENS=[], FC_ED=null;
+  var FC_REC_ITENS=[], FC_PAG_ITENS=[], FC_EXT_ITENS=[], FC_ED=null, FC_EXT_TIPO='';
   var FC_ED_METODOS=[['','—'],['pix','PIX'],['dinheiro','Dinheiro'],['cartao','Cartão'],['transferencia','Transferência'],['boleto','Boleto'],['cheque','Cheque'],['outro','Outro']];
   function fcEnsureEdModal(){
     if($('fcEdModal')) return;
@@ -4059,12 +4103,17 @@
     var q=((($('fcExBusca')||{}).value)||'').trim().toLowerCase();
     var METLBL={pix:'PIX',dinheiro:'Dinheiro',cartao:'Cartão',transferencia:'Transferência',boleto:'Boleto',cheque:'Cheque',outro:'Outro'};
     var rows=FC_EXT_ITENS.map(function(it,i){ return {it:it,i:i}; }).filter(function(o){
-      if(!q) return true; var it=o.it;
+      var it=o.it;
+      if(FC_EXT_TIPO && (it.direcao||'')!==FC_EXT_TIPO) return false;   // filtro Recebimentos/Pagamentos
+      if(!q) return true;
       var quem=(it.direcao==='entrada')?(it.cliente||it.descricao||''):(it.favorecido||it.descricao||'');
       return ((it.descricao||'')+' '+(it.cliente||'')+' '+(it.favorecido||'')+' '+quem+' '+(it.categoria||'')).toLowerCase().indexOf(q)>=0;
     });
-    if(!rows.length){ wrap.innerHTML='<div class="empty" style="padding:14px">'+(q?('Nenhum movimento para “'+esc(q)+'”.'):'Nenhum movimento efetivado no período.')+'</div>'; return; }
-    wrap.innerHTML='<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição / quem</th><th>Categoria</th><th>Destino (conta)</th><th>Método</th><th style="text-align:right">Valor</th><th>Ação</th></tr></thead><tbody>'
+    if(!rows.length){ wrap.innerHTML='<div class="empty" style="padding:14px">'+(q?('Nenhum movimento para “'+esc(q)+'”.'):(FC_EXT_TIPO?'Nenhum movimento deste tipo no período.':'Nenhum movimento efetivado no período.'))+'</div>'; return; }
+    var _sub=rows.reduce(function(s,o){ return s+(Number(o.it.valor)||0); },0);
+    var _lbl=(FC_EXT_TIPO==='entrada')?'Recebimentos':((FC_EXT_TIPO==='saida')?'Pagamentos':'Todos os movimentos');
+    wrap.innerHTML='<div style="padding:4px 12px 8px;color:var(--muted);font-size:12px">'+_lbl+': <b style="color:var(--text)">'+rows.length+'</b> item(ns) · total <b style="color:'+(FC_EXT_TIPO==='saida'?'#e5893b':'var(--accent)')+'">'+moneyBR(_sub)+'</b></div>'
+      +'<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição / quem</th><th>Categoria</th><th>Destino (conta)</th><th>Método</th><th style="text-align:right">Valor</th><th>Ação</th></tr></thead><tbody>'
       +rows.map(function(o){ var it=o.it, i=o.i;
         var isEnt=(it.direcao==='entrada');
         var quem=isEnt?(it.cliente||it.descricao||'—'):(it.favorecido||it.descricao||'—');
@@ -4079,6 +4128,32 @@
           +'<td><span class="badge" style="cursor:pointer;color:#c9862f" onclick="fcAbrirEd(\'ext\',FC_EXT_ITENS['+i+'])">editar</span></td></tr>';
       }).join('')
       +'</tbody></table></div>';
+  }
+  // ===== Gastos do mês por grupo (saídas agrupadas por categoria) =====
+  var FC_GG_WIRED=false;
+  function fcMesStr(d){ d=d||new Date(); var m=(d.getMonth()+1); return d.getFullYear()+'-'+(m<10?'0'+m:m); }
+  function fcGgShift(delta){ var inp=$('fcGgMes'); if(!inp) return; var ym=(inp.value||fcMesStr()).split('-'); var dt=new Date(Number(ym[0]), Number(ym[1])-1+delta, 1); inp.value=fcMesStr(dt); fcLoadGastosGrupo(); }
+  function fcLoadGastosGrupo(){
+    var inp=$('fcGgMes'); if(!inp) return;
+    if(!inp.value){ inp.value=fcMesStr(); }
+    if(!FC_GG_WIRED){ FC_GG_WIRED=true; inp.addEventListener('change', fcLoadGastosGrupo);
+      var pv=$('fcGgPrev'), nx=$('fcGgNext'); if(pv) pv.addEventListener('click', function(){ fcGgShift(-1); }); if(nx) nx.addEventListener('click', function(){ fcGgShift(1); }); }
+    var ym=(inp.value||fcMesStr()).split('-'); var y=Number(ym[0]), mo=Number(ym[1]); if(!y||!mo) return;
+    var mm=(mo<10?'0'+mo:''+mo); var de=y+'-'+mm+'-01';
+    var ultimo=new Date(y, mo, 0).getDate(); var ate=y+'-'+mm+'-'+(ultimo<10?'0'+ultimo:''+ultimo);
+    var wrap=$('fcGgLista'); if(wrap) wrap.innerHTML='<div class="empty" style="padding:12px;color:var(--muted)">Somando…</div>';
+    rpc('movimentos_periodo',{p_de:de,p_ate:ate}).then(function(d){
+      if(!d||!d.ok){ if(wrap) wrap.innerHTML='<div class="empty" style="padding:14px">Acesso restrito à administração/gestão.</div>'; return; }
+      var itens=(d.itens||[]).filter(function(it){ return (it.direcao||'')==='saida'; });
+      var grupos={}, total=0;
+      itens.forEach(function(it){ var c=(it.categoria&&String(it.categoria).trim())||'Sem categoria'; var v=Number(it.valor)||0; if(!grupos[c]) grupos[c]={cat:c,qtd:0,total:0}; grupos[c].qtd++; grupos[c].total+=v; total+=v; });
+      var arr=Object.keys(grupos).map(function(k){ return grupos[k]; }).sort(function(a,b){ return b.total-a.total; });
+      if(!arr.length){ if(wrap) wrap.innerHTML='<div class="empty" style="padding:14px">Nenhum gasto (pagamento) efetivado neste mês.</div>'; return; }
+      var totFix=total||1;
+      if(wrap) wrap.innerHTML='<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Grupo (categoria)</th><th style="text-align:center">Qtd</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead><tbody>'
+        +arr.map(function(g){ var pct=Math.round((g.total/totFix)*100); return '<tr><td style="color:var(--text)">'+esc(g.cat)+'</td><td style="text-align:center;color:var(--muted)">'+g.qtd+'</td><td style="text-align:right;color:#e5893b"><b>'+moneyBR(g.total)+'</b></td><td style="text-align:right;color:var(--muted)">'+pct+'%</td></tr>'; }).join('')
+        +'</tbody><tfoot><tr><td style="border-top:2px solid var(--ouro)"><b>Total do mês</b></td><td style="border-top:2px solid var(--ouro)"></td><td style="border-top:2px solid var(--ouro);text-align:right"><b style="color:var(--ouro)">'+moneyBR(total)+'</b></td><td style="border-top:2px solid var(--ouro)"></td></tr></tfoot></table></div>';
+    }).catch(function(){ if(wrap) wrap.innerHTML='<div class="empty" style="padding:14px">Não foi possível carregar.</div>'; });
   }
   function fcSyncCats(){ var t=($('fcl_tipo')||{}).value; var arr=(t==='receita')?FC_CAT_REC:FC_CAT_DESP; var s=$('fcl_cat'); if(s) s.innerHTML=arr.map(function(c){return '<option>'+c+'</option>';}).join(''); }
   function fcReload(){ fcLoadContas(function(){ fcLoadFluxo(); fcLoadAbertos(); fcLoadRecebimentos(); fcLoadPagamentos(); fcLoadExtrato(); }); }
@@ -5058,7 +5133,7 @@
       if(!rows.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Nenhum material ainda. Envie acima.</td></tr>'; return; }
       tb.innerHTML=rows.map(function(m){
         return '<tr><td style="color:var(--text)">'+esc(m.titulo||'')+'</td><td><span class="badge">'+esc(m.categoria||'—')+'</span></td><td>'+esc((m.tipo||'').toUpperCase())+'</td><td>'+matTam(m.tamanho_kb)+'</td>'
-          +'<td style="text-align:right;white-space:nowrap"><button class="ia-btn" data-act="dlmat" data-path="'+esc(m.storage_path||'')+'">Baixar</button> <button class="ia-btn" data-act="delmat" data-id="'+m.id+'" data-path="'+esc(m.storage_path||'')+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button></td></tr>';
+          +'<td style="text-align:right;white-space:nowrap"><button class="ia-btn" data-act="viewmat" data-path="'+esc(m.storage_path||'')+'" data-ext="'+esc((m.tipo||'').toLowerCase())+'">Abrir na tela</button> <button class="ia-btn" data-act="dlmat" data-path="'+esc(m.storage_path||'')+'">Baixar</button> <button class="ia-btn" data-act="delmat" data-id="'+m.id+'" data-path="'+esc(m.storage_path||'')+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button></td></tr>';
       }).join('');
     })
     .catch(function(){ $('matBodyAdm').innerHTML='<tr><td colspan="5" class="empty">Sem permissão ou erro de conexão.</td></tr>'; });
@@ -5164,6 +5239,14 @@
         fetch(SB+'/rest/v1/portal_videos?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})})
           .then(function(){ if(_vsb){ fetch(SB+'/storage/v1/object/'+TBUCKET+'/'+_vsb,{method:'DELETE',headers:authHeaders(tok)}).catch(function(){}); }
             if(_vr2){ vidR2Call('delete',{key:_vr2}).catch(function(){}); } loadTreinamentos(); });
+      } else if(act==='viewmat'){ var vpath=b.getAttribute('data-path'), vext=(b.getAttribute('data-ext')||'').toLowerCase(); b.disabled=true; var vo=b.textContent; b.textContent='…';
+        fetch(SB+'/storage/v1/object/sign/'+TBUCKET+'/'+vpath,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:3600})})
+        .then(function(r){ return r.json(); }).then(function(j){ b.disabled=false; b.textContent=vo; if(!j.signedURL){ alert('Não foi possível gerar o link.'); return; }
+          var url=SB+'/storage/v1'+j.signedURL;
+          if(vext==='pdf'){ window.open(url,'_blank'); }                                                       // PDF: navegador renderiza direto
+          else if(/^(docx?|xlsx?|pptx?)$/.test(vext)){ window.open('https://view.officeapps.live.com/op/view.aspx?src='+encodeURIComponent(url),'_blank'); }  // Office online
+          else { window.open(url,'_blank'); } })                                                               // imagem/txt/outros: abre inline
+        .catch(function(){ b.disabled=false; b.textContent=vo; alert('Não foi possível abrir o arquivo.'); });
       } else if(act==='dlmat'){ var path=b.getAttribute('data-path'); b.disabled=true; var o=b.textContent; b.textContent='…';
         fetch(SB+'/storage/v1/object/sign/'+TBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:3600})})
         .then(function(r){ return r.json(); }).then(function(j){ b.disabled=false; b.textContent=o; if(j.signedURL) window.open(SB+'/storage/v1'+j.signedURL,'_blank'); else alert('Não foi possível gerar o link.'); })
@@ -5175,27 +5258,53 @@
     });
   })();
 
-  // ===== TABELAS DE VENDAS (Excel/Word/PPT/PDF — Preço Líquido/Bruto) =====
+  // ===== TABELAS DE VENDAS (Excel/Word/PPT/PDF — Preço Bruto/Líquido/Catálogo) =====
   var TVBUCKET='portal-materiais';                 // reusa o bucket privado dos materiais (aceita qualquer MIME)
+  var TV_ROWS=[], TV_FILTRO='';
   function tvTam(kb){ return kb?(kb>1024?(kb/1024).toFixed(1)+' MB':kb+' KB'):'—'; }
+  function tvVisiveis(){ return TV_ROWS.filter(function(m){ return !TV_FILTRO || (m.categoria||'')===TV_FILTRO; }); }
   function loadTabelasVendas(){
     var tok=localStorage.getItem(TOKKEY);
-    fetch(SB+'/rest/v1/portal_tabelas_vendas?select=*&order=created_at.desc&limit=200',{headers:authHeaders(tok)})
+    fetch(SB+'/rest/v1/portal_tabelas_vendas?select=*&order=ordem.asc.nullslast,titulo.asc&limit=300',{headers:authHeaders(tok)})
     .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-    .then(function(rows){
-      var tb=$('tvBody'); rows=Array.isArray(rows)?rows:[];
-      if(!rows.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Nenhuma tabela ainda. Envie acima.</td></tr>'; return; }
-      tb.innerHTML=rows.map(function(m){
-        var ext=(m.tipo||'').toLowerCase();
-        return '<tr><td style="color:var(--text)">'+esc(m.titulo||'')+'</td><td><span class="badge">'+esc(m.categoria||'—')+'</span></td><td>'+esc(ext.toUpperCase())+'</td><td>'+tvTam(m.tamanho_kb)+'</td>'
-          +'<td style="text-align:right;white-space:nowrap">'
-          +'<button class="ia-btn" data-act="viewtv" data-path="'+esc(m.storage_path||'')+'" data-ext="'+esc(ext)+'">Visualizar</button> '
-          +'<button class="ia-btn" data-act="dltv" data-path="'+esc(m.storage_path||'')+'">Baixar</button> '
-          +'<button class="ia-btn" data-act="deltv" data-id="'+m.id+'" data-path="'+esc(m.storage_path||'')+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button>'
-          +'</td></tr>';
-      }).join('');
-    })
-    .catch(function(){ $('tvBody').innerHTML='<tr><td colspan="5" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; });
+    .then(function(rows){ TV_ROWS=Array.isArray(rows)?rows:[]; tvSetFilUI(); tvRender(); })
+    .catch(function(){ TV_ROWS=[]; $('tvBody').innerHTML='<tr><td colspan="6" class="empty">Sem permissão (entre como equipe) ou erro de conexão.</td></tr>'; });
+  }
+  function tvRender(){
+    var tb=$('tvBody'); if(!tb) return;
+    var rows=tvVisiveis();
+    if(!rows.length){ tb.innerHTML='<tr><td colspan="6" class="empty">'+(TV_FILTRO?'Nenhuma tabela nesta categoria.':'Nenhuma tabela ainda. Envie acima.')+'</td></tr>'; return; }
+    tb.innerHTML=rows.map(function(m,idx){
+      var ext=(m.tipo||'').toLowerCase(), first=(idx===0), last=(idx===rows.length-1);
+      return '<tr>'
+        +'<td style="white-space:nowrap"><button class="tv-arrow" data-act="tvup" data-id="'+m.id+'"'+(first?' disabled':'')+' title="Subir">▲</button> <button class="tv-arrow" data-act="tvdown" data-id="'+m.id+'"'+(last?' disabled':'')+' title="Descer">▼</button></td>'
+        +'<td style="color:var(--text)">'+esc(m.titulo||'')+'</td><td><span class="badge">'+esc(m.categoria||'—')+'</span></td><td>'+esc(ext.toUpperCase())+'</td><td>'+tvTam(m.tamanho_kb)+'</td>'
+        +'<td style="text-align:right;white-space:nowrap">'
+        +'<button class="ia-btn" data-act="viewtv" data-path="'+esc(m.storage_path||'')+'" data-ext="'+esc(ext)+'">Visualizar</button> '
+        +'<button class="ia-btn" data-act="dltv" data-path="'+esc(m.storage_path||'')+'">Baixar</button> '
+        +'<button class="ia-btn" data-act="deltv" data-id="'+m.id+'" data-path="'+esc(m.storage_path||'')+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button>'
+        +'</td></tr>';
+    }).join('');
+  }
+  function tvSetCatUI(val){ var box=$('tv_catbtns'); if(box){ Array.prototype.forEach.call(box.querySelectorAll('.tv-cat'),function(x){ x.classList.toggle('active', x.getAttribute('data-cat')===val); }); } var h=$('tv_cat'); if(h) h.value=val||''; }
+  function tvSetFilUI(){ var box=$('tv_filtros'); if(box){ Array.prototype.forEach.call(box.querySelectorAll('.tv-fil'),function(x){ x.classList.toggle('active', (x.getAttribute('data-fil')||'')===TV_FILTRO); }); } }
+  function tvPatch(id, ordem, tok){ return fetch(SB+'/rest/v1/portal_tabelas_vendas?id=eq.'+id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({ordem:ordem})}); }
+  function tvReindexar(){ var tok=localStorage.getItem(TOKKEY); var calls=TV_ROWS.map(function(m,i){ return tvPatch(m.id,i+1,tok); }); if(!calls.length) return; Promise.all(calls).then(loadTabelasVendas).catch(loadTabelasVendas); }
+  function tvMove(id, dir){
+    var vis=tvVisiveis(), i=-1;
+    for(var k=0;k<vis.length;k++){ if(String(vis[k].id)===String(id)){ i=k; break; } }
+    var j=(dir==='up')?i-1:i+1;
+    if(i<0||j<0||j>=vis.length) return;
+    var a=vis[i], b=vis[j], oa=a.ordem, ob=b.ordem, tok=localStorage.getItem(TOKKEY);
+    if(oa==null||ob==null||oa===ob){ tvReindexar(); return; }   // numeração inconsistente: conserta e recarrega; repita a ação
+    Promise.all([ tvPatch(a.id,ob,tok), tvPatch(b.id,oa,tok) ]).then(loadTabelasVendas).catch(loadTabelasVendas);
+  }
+  function tvOrdenarAZ(){
+    var tok=localStorage.getItem(TOKKEY);
+    var ord=TV_ROWS.slice().sort(function(a,b){ return (a.titulo||'').toLowerCase().localeCompare((b.titulo||'').toLowerCase(),'pt'); });
+    var calls=ord.map(function(m,i){ return tvPatch(m.id,i+1,tok); });
+    if(!calls.length) return;
+    Promise.all(calls).then(function(){ TV_FILTRO=''; loadTabelasVendas(); }).catch(loadTabelasVendas);
   }
   (function(){
     var mb=$('tv_salvar');
@@ -5211,13 +5320,22 @@
       mb.disabled=true; var old=mb.textContent; mb.textContent='Enviando…'; $('msg-tv').textContent='Enviando arquivo…';
       fetch(SB+'/storage/v1/object/'+TVBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':file.type||'application/octet-stream','x-upsert':'true'}),body:file})
       .then(function(r){ if(!r.ok) throw new Error('upload'); return fetch(SB+'/rest/v1/portal_tabelas_vendas',{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({titulo:g('titulo'),tipo:ext,categoria:g('categoria'),storage_path:path,tamanho_kb:Math.round(file.size/1024),enviado_por:($('who')?$('who').textContent:'')})}); })
-      .then(function(){ mb.disabled=false; mb.textContent=old; $('msg-tv').textContent='Tabela enviada ✓'; form.querySelectorAll('input').forEach(function(el){ el.value=''; }); var s=form.querySelector('[data-k="categoria"]'); if(s) s.value=''; loadTabelasVendas(); setTimeout(function(){ $('msg-tv').textContent=''; },2500); })
+      .then(function(){ mb.disabled=false; mb.textContent=old; $('msg-tv').textContent='Tabela enviada ✓'; form.querySelectorAll('input').forEach(function(el){ el.value=''; }); tvSetCatUI(''); loadTabelasVendas(); setTimeout(function(){ $('msg-tv').textContent=''; },2500); })
       .catch(function(){ mb.disabled=false; mb.textContent=old; $('msg-tv').textContent='Falha no envio (verifique seu acesso de equipe).'; });
     });
-    // Ações da lista: Visualizar (PDF inline · Office via visualizador) / Baixar / Excluir
+    // Cliques: botões de categoria (envio) · filtro da lista · Ordenar A→Z · setas de ordem · Visualizar/Baixar/Excluir
     document.addEventListener('click', function(e){
-      var b=e.target.closest?e.target.closest('button[data-act]'):null; if(!b) return;
+      if(!e.target||!e.target.closest) return;
+      var cb=e.target.closest('#tv_catbtns .tv-cat');
+      if(cb){ tvSetCatUI(cb.getAttribute('data-cat')); return; }
+      var fb=e.target.closest('#tv_filtros .tv-fil');
+      if(fb){ TV_FILTRO=fb.getAttribute('data-fil')||''; tvSetFilUI(); tvRender(); return; }
+      if(e.target.closest('#tv_az')){ tvOrdenarAZ(); return; }
+      var b=e.target.closest('button[data-act]'); if(!b) return;
       var act=b.getAttribute('data-act'), tok=localStorage.getItem(TOKKEY);
+      if(act!=='tvup'&&act!=='tvdown'&&act!=='viewtv'&&act!=='dltv'&&act!=='deltv') return;  // não intercepta ações de outras telas
+      if(act==='tvup'){ tvMove(b.getAttribute('data-id'),'up'); return; }
+      if(act==='tvdown'){ tvMove(b.getAttribute('data-id'),'down'); return; }
       if(act==='viewtv'){ var path=b.getAttribute('data-path'), ext=(b.getAttribute('data-ext')||'').toLowerCase(); b.disabled=true; var o=b.textContent; b.textContent='…';
         fetch(SB+'/storage/v1/object/sign/'+TVBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:3600})})
         .then(function(r){ return r.json(); }).then(function(j){ b.disabled=false; b.textContent=o; if(!j.signedURL){ alert('Não foi possível gerar o link.'); return; }
@@ -5233,6 +5351,38 @@
         fetch(SB+'/storage/v1/object/'+TVBUCKET+'/'+xpath,{method:'DELETE',headers:authHeaders(tok)}).catch(function(){});
         fetch(SB+'/rest/v1/portal_tabelas_vendas?id=eq.'+b.getAttribute('data-id'),{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})}).then(function(){ loadTabelasVendas(); });
       }
+    });
+  })();
+
+  // ===== MODERAÇÃO DE COMENTÁRIOS DOS PRODUTOS (site) =====
+  function loadComentariosMod(){
+    var tok=localStorage.getItem(TOKKEY); var tb=$('pcModBody'); if(!tb) return;
+    fetch(SB+'/rest/v1/produto_comentarios?select=*,produtos(nome,sku)&order=aprovado.asc,created_at.desc&limit=300',{headers:authHeaders(tok)})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rows){ rows=Array.isArray(rows)?rows:[];
+      if(!rows.length){ tb.innerHTML='<tr><td colspan="6" class="empty">Nenhum comentário ainda.</td></tr>'; return; }
+      tb.innerHTML=rows.map(function(c){
+        var pnome=(c.produtos&&c.produtos.nome)?c.produtos.nome:'—';
+        var d=new Date(c.created_at); var dt=isNaN(d)?'':d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        var st=c.aprovado?'<span class="badge" style="color:#3ea55e">Aprovado</span>':'<span class="badge" style="color:#c9862f">Pendente</span>';
+        var acoes=(c.aprovado?'<button class="ia-btn" data-act="pcocultar" data-id="'+c.id+'">Ocultar</button> ':'<button class="ia-btn" data-act="pcaprovar" data-id="'+c.id+'">Aprovar</button> ')
+          +'<button class="ia-btn" data-act="pcexcluir" data-id="'+c.id+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button>';
+        return '<tr><td style="color:var(--text)">'+esc(pnome)+'</td><td>'+esc(c.nome||'')+'</td><td style="color:var(--muted);max-width:340px">'+esc(c.comentario||'')+'</td><td style="white-space:nowrap;color:var(--muted)">'+dt+'</td><td>'+st+'</td>'
+          +'<td style="text-align:right;white-space:nowrap">'+acoes+'</td></tr>';
+      }).join('');
+    })
+    .catch(function(){ tb.innerHTML='<tr><td colspan="6" class="empty">Sem permissão (entre como gestor/admin) ou erro de conexão.</td></tr>'; });
+  }
+  (function(){
+    document.addEventListener('click', function(e){
+      var b=e.target&&e.target.closest?e.target.closest('button[data-act]'):null; if(!b) return;
+      var act=b.getAttribute('data-act'); if(act!=='pcaprovar'&&act!=='pcocultar'&&act!=='pcexcluir') return;
+      var tok=localStorage.getItem(TOKKEY), id=b.getAttribute('data-id');
+      if(act==='pcexcluir'){ if(!confirm('Excluir este comentário definitivamente?')) return;
+        fetch(SB+'/rest/v1/produto_comentarios?id=eq.'+id,{method:'DELETE',headers:Object.assign(authHeaders(tok),{Prefer:'return=minimal'})}).then(function(){ loadComentariosMod(); }); return; }
+      var aprovar=(act==='pcaprovar');
+      fetch(SB+'/rest/v1/produto_comentarios?id=eq.'+id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({aprovado:aprovar})})
+      .then(function(){ var m=$('msg-pcmod'); if(m){ m.textContent=aprovar?'Comentário aprovado ✓':'Comentário ocultado'; setTimeout(function(){ if($('msg-pcmod'))$('msg-pcmod').textContent=''; },2500); } loadComentariosMod(); });
     });
   })();
 
