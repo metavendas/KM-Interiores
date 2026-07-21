@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultoria em IA, Marketing e Estratégia | Rede Global de Comunicação</title>
+<meta name="description" content="Consultoria e assessoria em Inteligência Artificial, Marketing e Planejamento Estratégico para pequenas e médias empresas. Da estratégia à execução, com foco em resultado.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://www.redeglobaldecomunicacao.com.br/consultoria">
+<meta property="og:title" content="Consultoria em IA, Marketing e Estratégia | Rede Global">
+<meta property="og:description" content="Levamos IA aplicada, marketing de resultado e estratégia de dono para a sua empresa.">
+<meta property="og:image" content="https://www.redeglobaldecomunicacao.com.br/logo-rede-global.png">
+<meta property="og:type" content="website">
+<link rel="apple-touch-icon" href="https://www.redeglobaldecomunicacao.com.br/logo-rede-global.png">
+<style>
+  :root{
+    --preto:#0a0a0c; --preto2:#111319; --vermelho:#ce1b22; --vermelho2:#e23b42;
+    --branco:#f5f5f7; --muted:#a7adba; --linha:#23262f; --card:#15171e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--preto);color:var(--branco);line-height:1.6;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 22px}
+  .red{color:var(--vermelho2)}
+  h1,h2,h3{line-height:1.15;font-weight:800}
+  .eyebrow{text-transform:uppercase;letter-spacing:3px;font-size:.72rem;font-weight:700;color:var(--vermelho2)}
+  .btn{display:inline-block;padding:14px 26px;border-radius:9px;font-weight:700;font-size:.95rem;cursor:pointer;border:none;transition:.2s;text-align:center}
+  .btn-red{background:var(--vermelho);color:#fff}
+  .btn-red:hover{background:var(--vermelho2);transform:translateY(-2px)}
+  .btn-ghost{background:transparent;color:var(--branco);border:1.5px solid var(--linha)}
+  .btn-ghost:hover{border-color:var(--vermelho2);color:var(--vermelho2)}
+  .btn-wpp{background:#25D366;color:#06310f}
+  .btn-wpp:hover{background:#2bea73;transform:translateY(-2px)}
+
+  /* NAV */
+  header.nav{position:sticky;top:0;z-index:50;background:rgba(10,10,12,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--linha)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;max-width:1140px;margin:0 auto}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand img{width:42px;height:42px;border-radius:8px;object-fit:cover}
+  .brand b{font-size:.98rem;display:block;line-height:1.1}
+  .brand span{font-size:.62rem;letter-spacing:1.5px;color:var(--vermelho2);text-transform:uppercase;font-weight:700}
+  .nav-links{display:flex;gap:18px;align-items:center}
+  .nav-links a{font-size:.84rem;color:var(--muted);font-weight:600;white-space:nowrap}
+  .nav-links a:hover{color:var(--branco)}
+  .nav-cta{padding:10px 18px;font-size:.85rem}
+  .burger{display:none;font-size:1.5rem;background:none;border:none;color:#fff;cursor:pointer}
+
+  /* HERO */
+  .hero{position:relative;padding:92px 0 80px;text-align:center;overflow:hidden}
+  .hero::before{content:"";position:absolute;width:680px;height:680px;border-radius:50%;background:radial-gradient(circle,rgba(206,27,34,.32),transparent 60%);top:-180px;left:50%;transform:translateX(-50%);filter:blur(40px);z-index:0}
+  .hero .wrap{position:relative;z-index:1}
+  .hero h1{font-size:clamp(2rem,5vw,3.5rem);margin:16px auto 18px;max-width:900px}
+  .hero p.lead{font-size:clamp(1.02rem,2.2vw,1.28rem);color:var(--muted);max-width:720px;margin:0 auto 30px}
+  .hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .trust{margin-top:30px;font-size:.86rem;color:var(--muted)}
+  .trust b{color:var(--branco)}
+
+  section{padding:68px 0}
+  .sec-head{text-align:center;max-width:720px;margin:0 auto 46px}
+  .sec-head h2{font-size:clamp(1.6rem,3.6vw,2.4rem);margin:12px 0}
+  .sec-head p{color:var(--muted);font-size:1.04rem}
+
+  /* MOMENTO */
+  .momento{background:linear-gradient(180deg,var(--preto),var(--preto2));border-top:1px solid var(--linha);border-bottom:1px solid var(--linha)}
+  .momento .wrap{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+  .momento h2{font-size:clamp(1.5rem,3.2vw,2.1rem);margin-bottom:14px}
+  .momento p{color:var(--muted);margin-bottom:14px}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .stat{background:var(--card);border:1px solid var(--linha);border-radius:12px;padding:20px}
+  .stat b{display:block;font-size:1.8rem;color:var(--vermelho2)}
+  .stat span{font-size:.82rem;color:var(--muted)}
+
+  /* PILARES */
+  .pilares{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .pilar{background:var(--card);border:1px solid var(--linha);border-radius:16px;padding:30px 26px;transition:.25s}
+  .pilar:hover{border-color:var(--vermelho);transform:translateY(-4px)}
+  .pilar .ico{width:54px;height:54px;border-radius:12px;background:rgba(206,27,34,.14);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:16px}
+  .pilar h3{font-size:1.24rem;margin-bottom:12px}
+  .pilar ul{list-style:none}
+  .pilar li{font-size:.92rem;color:var(--muted);padding:6px 0 6px 24px;position:relative}
+  .pilar li::before{content:"▸";color:var(--vermelho2);position:absolute;left:0;font-weight:700}
+
+  /* METODO */
+  .metodo{background:var(--preto2);border-top:1px solid var(--linha);border-bottom:1px solid var(--linha)}
+  .passos{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;counter-reset:step}
+  .passo{position:relative;background:var(--card);border:1px solid var(--linha);border-radius:14px;padding:28px 22px}
+  .passo .n{width:38px;height:38px;border-radius:50%;background:var(--vermelho);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;margin-bottom:14px}
+  .passo h3{font-size:1.08rem;margin-bottom:8px}
+  .passo p{font-size:.88rem;color:var(--muted)}
+
+  /* CASES */
+  .cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
+  .case{background:var(--card);border:1px solid var(--linha);border-radius:16px;padding:32px;position:relative;overflow:hidden}
+  .case::after{content:"";position:absolute;top:0;left:0;width:5px;height:100%;background:var(--vermelho)}
+  .case .tag{display:inline-block;font-size:.7rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:var(--vermelho2);margin-bottom:8px}
+  .case h3{font-size:1.4rem;margin-bottom:6px}
+  .case .seg{font-size:.85rem;color:var(--muted);margin-bottom:16px}
+  .case ul{list-style:none}
+  .case li{font-size:.93rem;color:var(--branco);padding:7px 0 7px 26px;position:relative;border-top:1px solid var(--linha)}
+  .case li:first-child{border-top:none}
+  .case li::before{content:"";color:var(--vermelho2);position:absolute;left:0;font-weight:800}
+
+  /* PARA QUEM / DIFERENCIAIS */
+  .dif-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .dif{text-align:center;padding:24px 16px}
+  .dif .ico{font-size:2rem;margin-bottom:10px}
+  .dif h3{font-size:1.04rem;margin-bottom:7px}
+  .dif p{font-size:.86rem;color:var(--muted)}
+
+  /* FAQ */
+  .faq-item{border-bottom:1px solid var(--linha);padding:18px 0;cursor:pointer}
+  .faq-q{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:1.02rem}
+  .faq-q span.plus{color:var(--vermelho2);font-size:1.4rem;transition:.2s}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;color:var(--muted);font-size:.94rem}
+  .faq-item.open .faq-a{max-height:240px;margin-top:10px}
+  .faq-item.open .plus{transform:rotate(45deg)}
+
+  /* CONTATO */
+  .contato{background:linear-gradient(180deg,var(--preto2),var(--preto));border-top:1px solid var(--linha)}
+  .contato-box{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center}
+  .contato h2{font-size:clamp(1.7rem,3.5vw,2.4rem);margin-bottom:14px}
+  .contato p{color:var(--muted);margin-bottom:20px}
+  .contato .direct{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+  .contato .direct a{display:flex;align-items:center;gap:10px;font-size:.96rem;color:var(--branco);overflow-wrap:anywhere;word-break:break-word}
+  footer .brand + p, footer p{overflow-wrap:anywhere;word-break:break-word}
+  form{background:var(--card);border:1px solid var(--linha);border-radius:16px;padding:30px}
+  form label{display:block;font-size:.82rem;color:var(--muted);margin:12px 0 5px;font-weight:600}
+  form input,form select,form textarea{width:100%;padding:12px 14px;background:var(--preto);border:1px solid var(--linha);border-radius:9px;color:var(--branco);font-size:.95rem;font-family:inherit}
+  form input:focus,form select:focus,form textarea:focus{outline:none;border-color:var(--vermelho2)}
+  form button{width:100%;margin-top:20px}
+  .form-note{font-size:.76rem;color:var(--muted);text-align:center;margin-top:12px}
+
+  /* FOOTER */
+  footer{background:var(--preto);border-top:1px solid var(--linha);padding:40px 0 28px;text-align:center}
+  footer .brand{justify-content:center;margin-bottom:14px}
+  footer p{font-size:.82rem;color:var(--muted);margin:4px 0}
+  .badge{display:inline-block;margin-top:10px;font-size:.72rem;color:var(--vermelho2);letter-spacing:2px;text-transform:uppercase;font-weight:700}
+
+  @media(max-width:860px){
+    .nav-links{display:none}
+    .burger{display:block}
+    .nav-links.show{display:flex;position:absolute;top:67px;left:0;right:0;flex-direction:column;background:var(--preto2);padding:18px 22px;gap:16px;border-bottom:1px solid var(--linha)}
+    .momento .wrap,.pilares,.passos,.cases,.dif-grid,.contato-box{grid-template-columns:1fr}
+    .stat-grid{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav">
+  <div class="nav-in">
+    <a href="#topo" class="brand">
+      <img src="https://www.redeglobaldecomunicacao.com.br/logo-rede-global.png" alt="Rede Global" onerror="this.style.display='none'">
+      <div><b>Rede Global de Comunicação</b><span>Conhecimento é Poder</span></div>
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#servicos">Serviços</a>
+      <a href="#metodo">Método</a>
+      <a href="#cases">Cases</a>
+      <a href="#recrutamento" style="color:var(--red,#e23b42);font-weight:800">Recrutamento</a>
+      <a href="#equipe">Equipe</a>
+      <a href="/representantes" style="color:var(--gold,#c9a227);font-weight:700">Representantes</a>
+      <a href="#contato">Contato</a>
+      <a href="#contato" class="btn btn-red nav-cta">Diagnóstico gratuito</a>
+    </nav>
+    <button class="burger" onclick="document.getElementById('navLinks').classList.toggle('show')"></button>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="topo">
+  <div class="wrap">
+    <div class="eyebrow">Consultoria &amp; Assessoria empresarial</div>
+    <h1>Inteligência Artificial, Marketing e <span class="red">Planejamento Estratégico</span> para a sua empresa</h1>
+    <p class="lead">Ajudamos pequenas e médias empresas a crescer com IA aplicada, marketing de resultado e estratégia de dono — do diagnóstico à execução, com foco em ROI.</p>
+    <div class="hero-cta">
+      <a href="#contato" class="btn btn-red">Solicitar diagnóstico gratuito</a>
+      <a href="#" id="heroWpp" class="btn btn-wpp">Falar no WhatsApp</a>
+    </div>
+    <p class="trust">Empresas que já confiam no nosso trabalho: <b>KM Interiores</b> &nbsp;•&nbsp; <b>KS Import</b></p>
+  </div>
+</section>
+
+<!-- MOMENTO -->
+<section class="momento">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Por que agora</div>
+      <h2>A IA deixou de ser tendência. Virou vantagem competitiva.</h2>
+      <p>Empresas que aplicam inteligência artificial em vendas, atendimento e operação ganham velocidade e cortam custos. As que esperam, perdem espaço para concorrentes mais ágeis.</p>
+      <p>Nós unimos <b>tecnologia, marketing e estratégia</b> num só lugar — sem promessas vazias, com método e resultado medível.</p>
+    </div>
+    <div class="stat-grid">
+      <div class="stat"><b>3</b><span>frentes integradas: IA, Marketing e Estratégia</span></div>
+      <div class="stat"><b>360°</b><span>do diagnóstico à execução e acompanhamento</span></div>
+      <div class="stat"><b>PME</b><span>foco em pequenas e médias empresas</span></div>
+      <div class="stat"><b>ROI</b><span>decisões guiadas por dados e retorno</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVIÇOS / PILARES -->
+<section id="servicos">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">O que entregamos</div>
+      <h2>Três pilares que trabalham juntos</h2>
+      <p>Cada pilar resolve um gargalo da empresa. Combinados, viram um motor de crescimento.</p>
+    </div>
+    <div class="pilares">
+      <div class="pilar">
+        
+        <h3>Inteligência Artificial</h3>
+        <ul>
+          <li>Automação de WhatsApp e atendimento com IA</li>
+          <li>Sites e lojas inteligentes</li>
+          <li>Agentes de IA para vendas e suporte</li>
+          <li>Automação de processos e tarefas repetitivas</li>
+          <li>Análise de dados e relatórios automáticos</li>
+        </ul>
+      </div>
+      <div class="pilar">
+        
+        <h3>Marketing</h3>
+        <ul>
+          <li>Tráfego pago (Meta Ads, Google)</li>
+          <li>Estratégia de conteúdo e redes sociais</li>
+          <li>Funil de vendas e geração de leads</li>
+          <li>CRM e qualificação de oportunidades</li>
+          <li>Posicionamento e identidade de marca</li>
+        </ul>
+      </div>
+      <div class="pilar">
+        
+        <h3>Planejamento Estratégico</h3>
+        <ul>
+          <li>Diagnóstico e plano de crescimento</li>
+          <li>Definição de metas e OKRs</li>
+          <li>Modelo de negócio e novas frentes de receita</li>
+          <li>Análise financeira e de margens</li>
+          <li>Acompanhamento e revisões periódicas</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MÉTODO -->
+<section class="metodo" id="metodo">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Como trabalhamos</div>
+      <h2>Um método claro, do diagnóstico ao resultado</h2>
+      <p>Nada de projeto solto. Cada fase tem entregável e acompanhamento.</p>
+    </div>
+    <div class="passos">
+      <div class="passo"><div class="n">1</div><h3>Diagnóstico</h3><p>Entendemos o negócio, os gargalos e as oportunidades de IA, marketing e estratégia.</p></div>
+      <div class="passo"><div class="n">2</div><h3>Estratégia</h3><p>Montamos o plano com prioridades, metas e o que gera mais retorno primeiro.</p></div>
+      <div class="passo"><div class="n">3</div><h3>Implementação</h3><p>Colocamos em prática: automações, campanhas, sites, processos e ferramentas.</p></div>
+      <div class="passo"><div class="n">4</div><h3>Acompanhamento</h3><p>Medimos resultados, ajustamos e evoluímos continuamente com você.</p></div>
+    </div>
+    <div style="max-width:820px;margin:34px auto 0">
+      <div id="metodoVideoBox" style="aspect-ratio:16/9;border-radius:14px;overflow:hidden;border:1px solid var(--linha,#232a33);background:#000">
+        <iframe src="https://www.youtube.com/embed/gOhietZ1tPE" title="O método Rede Global" loading="lazy" style="width:100%;height:100%;border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CASES -->
+<section id="cases">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Quem já confia</div>
+      <h2>Cases reais</h2>
+      <p>Resultados construídos lado a lado com os nossos clientes.</p>
+    </div>
+    <div class="cases">
+      <div class="case">
+        <div class="tag">Plataforma própria</div>
+        <h3>Rede Global de Comunicação</h3>
+        <div class="seg">Streaming por assinatura • Jornalismo &amp; geopolítica</div>
+        <ul>
+          <li>Plataforma de streaming por assinatura (vídeos, jornal, lives e podcasts)</li>
+          <li>CRM e Analytics próprios + pagamentos recorrentes (Mercado Pago e PayPal)</li>
+          <li>Agentes de IA: editorial, relacionamento e distribuição (IA propõe, humano aprova)</li>
+          <li>Captação de leads, e-mail marketing e programa de indicação</li>
+          <li>Portal de representantes com funil de vendas e prospecção B2B</li>
+        </ul>
+      </div>
+      <div class="case">
+        <div class="tag">Consultoria 360°</div>
+        <h3>KM Interiores</h3>
+        <div class="seg">Móveis premium • Locação • Impressão 3D de decoração</div>
+        <ul>
+          <li>Estratégia integrada dos 3 pilares de negócio</li>
+          <li>Operação de marketing: tráfego pago, conteúdo e geração de leads</li>
+          <li>CRM, qualificação de leads e propostas comerciais</li>
+          <li>Metas, OKRs e análise financeira</li>
+          <li>Próximo passo: site institucional + loja virtual</li>
+        </ul>
+      </div>
+      <div class="case">
+        <div class="tag">IA aplicada</div>
+        <h3>KS Import</h3>
+        <div class="seg">Importação &amp; comércio</div>
+        <ul>
+          <li>Automação inteligente do WhatsApp com IA</li>
+          <li>Criação de um site inteligente</li>
+          <li>Atendimento mais rápido e qualificação automática</li>
+          <li>Projeto em andamento, em fase de implementação</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DIFERENCIAIS -->
+<section class="metodo">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Por que nós</div>
+      <h2>O diferencial é executar</h2>
+    </div>
+    <div class="dif-grid">
+      <div class="dif"><h3>IA de verdade</h3><p>Aplicamos IA na prática, não em teoria ou apresentação bonita.</p></div>
+      <div class="dif"><h3>Visão de dono</h3><p>Pensamos no seu negócio como se fosse nosso, focados em lucro.</p></div>
+      <div class="dif"><h3>Ponta a ponta</h3><p>Da estratégia à execução: você não fica com o plano na gaveta.</p></div>
+      <div class="dif"><h3>Foco em ROI</h3><p>Decisões guiadas por dados e por retorno sobre o investimento.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- RECRUTAMENTO -->
+<section id="recrutamento" style="background:linear-gradient(180deg,#0e1116 0%,#161b22 100%);color:#f3f3f3;border-top:3px solid var(--red,#e23b42)">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow" style="color:#e8c75a">Trabalhe conosco</div>
+      <h2 style="color:#fff">Seja um Consultor Rede Global</h2>
+      <p style="color:#c9c9c9">Represente uma empresa de tecnologia real, leve Inteligência Artificial, Marketing e Estratégia para pequenas e médias empresas — e construa uma renda que se acumula mês após mês.</p>
+    </div>
+
+    <!-- Vídeos (gerenciados no admin › Configurações) -->
+    <div id="recrutVideoWrap" style="display:none;max-width:980px;margin:0 auto 26px">
+      <div id="recrutVideos" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px"></div>
+    </div>
+
+    <!-- O momento -->
+    <div class="stat-grid" style="margin-bottom:30px">
+      <div class="stat" style="background:#11161d;border-color:#2a3340"><b style="color:#e8c75a">US$ 4,2 bi</b><span style="color:#bdbdbd">mercado de IA no Brasil em 2026 — líder da América Latina</span></div>
+      <div class="stat" style="background:#11161d;border-color:#2a3340"><b style="color:#e8c75a">~40% a.a.</b><span style="color:#bdbdbd">de crescimento do setor de IA na região</span></div>
+      <div class="stat" style="background:#11161d;border-color:#2a3340"><b style="color:#e8c75a">44%</b><span style="color:#bdbdbd">das pequenas empresas já usam IA — mas sem método</span></div>
+      <div class="stat" style="background:#11161d;border-color:#2a3340"><b style="color:#e8c75a">99%</b><span style="color:#bdbdbd">das empresas são PMEs; só 37% têm maturidade digital</span></div>
+    </div>
+
+
+    <!-- NOSSA EQUIPE (movida para cá — antes ficava depois do FAQ; ocupa o lugar do antigo bloco "Como você ganha") -->
+    <div id="equipe" style="max-width:1000px;margin:0 auto 34px">
+      <div class="sec-head" style="margin-bottom:18px">
+        <div class="eyebrow" style="color:#e8c75a">Quem faz acontecer</div>
+        <h2 style="color:#fff;font-size:1.5rem">Nossa Equipe</h2>
+        <p style="color:#c9c9c9">Os profissionais que representam a Rede Global de Comunicação pelo Brasil.</p>
+      </div>
+      <div id="equipeGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px"></div>
+    </div>
+
+    <!-- O que você vende -->
+    <div class="sec-head" style="margin-bottom:18px"><h2 style="color:#fff;font-size:1.5rem">O que você leva ao cliente</h2><p style="color:#c9c9c9">Um portfólio completo de transformação digital — ticket maior, mais recorrência.</p></div>
+    <div class="pilares" style="margin-bottom:30px">
+      <div class="pilar" style="background:#11161d;border-color:#2a3340"><h3 style="color:#fff">Inteligência Artificial</h3><p style="color:#bdbdbd">Agentes de IA, automação de atendimento e processos — o “funcionário digital” que trabalha 24h.</p></div>
+      <div class="pilar" style="background:#11161d;border-color:#2a3340"><h3 style="color:#fff">Marketing</h3><p style="color:#bdbdbd">Tráfego, conteúdo, captação e nutrição de leads — uma máquina de aquisição de clientes.</p></div>
+      <div class="pilar" style="background:#11161d;border-color:#2a3340"><h3 style="color:#fff">Planejamento Estratégico</h3><p style="color:#bdbdbd">Diagnóstico, metas e plano de crescimento — você vira o conselheiro de confiança do cliente.</p></div>
+    </div>
+
+    <!-- Quem procuramos + o que oferecemos -->
+    <div class="dif-grid" style="margin-bottom:30px">
+      <div class="dif" style="background:#11161d;border-color:#2a3340"><h3 style="color:#fff">Quem procuramos</h3><p style="color:#bdbdbd">Vendedor consultivo com rede no mundo das PMEs, autonomia e mentalidade de dono. Não precisa ser técnico — nós entregamos a parte de IA.</p></div>
+      <div class="dif" style="background:#11161d;border-color:#2a3340"><h3 style="color:#fff">O que oferecemos</h3><p style="color:#bdbdbd">Treinamento, materiais e propostas prontas, apoio dos nossos agentes de IA, suporte técnico e de pós-venda. Você vende; nós entregamos.</p></div>
+      <div class="dif" style="background:#11161d;border-color:#2a3340"><h3 style="color:#fff">Como funciona</h3><p style="color:#bdbdbd">Parceria de empresa para empresa: você atua como PJ (MEI ou ME). O MEI é gratuito e abre em minutos — orientamos no onboarding.</p></div>
+      <div class="dif" style="background:#11161d;border-color:#2a3340"><h3 style="color:#fff">Empresa que pratica</h3><p style="color:#bdbdbd">Você vende a mesma tecnologia que já opera na Rede Global. Quando perguntarem “funciona?”, você mostra o que está no ar.</p></div>
+    </div>
+
+    <!-- CTA -->
+    <div style="text-align:center;background:#11161d;border:1px solid #2a3340;border-radius:16px;padding:34px 24px">
+      <h2 style="color:#fff;font-size:1.5rem;margin-bottom:8px">Pronto para construir a sua carteira?</h2>
+      <p style="color:#c9c9c9;max-width:640px;margin:0 auto 20px">Você quer ser pago só pelo que vende hoje, ou também pelo que construiu ontem? Fale com a gente e dê o primeiro passo.</p>
+      <div class="hero-cta" style="justify-content:center">
+        <a href="#" id="recrutWpp" class="btn btn-red">Quero ser consultor</a>
+        <a href="#recrutForm" class="btn btn-wpp" style="background:#1f2630;color:#fff">Deixar meus dados</a>
+      </div>
+    </div>
+
+    <!-- Formulário de candidatura -->
+    <form id="recrutForm" onsubmit="return enviarRecrut(event)" style="max-width:640px;margin:28px auto 0;background:#11161d;border:1px solid #2a3340;border-radius:16px;padding:26px">
+      <h3 style="color:#fff;margin:0 0 14px">Candidate-se</h3>
+      <label style="color:#cfcfcf;font-size:.85rem">Nome*</label>
+      <input type="text" id="r_nome" required placeholder="Seu nome" style="width:100%;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid #2a3340;background:#0e1116;color:#fff">
+      <label style="color:#cfcfcf;font-size:.85rem">E-mail ou WhatsApp*</label>
+      <input type="text" id="r_contato" required placeholder="seu@email.com ou (DD) 9...." style="width:100%;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid #2a3340;background:#0e1116;color:#fff">
+      <label style="color:#cfcfcf;font-size:.85rem">Cidade/UF</label>
+      <input type="text" id="r_cidade" placeholder="Ex.: Varginha/MG" style="width:100%;margin:4px 0 12px;padding:10px;border-radius:8px;border:1px solid #2a3340;background:#0e1116;color:#fff">
+      <label style="color:#cfcfcf;font-size:.85rem">Conte sua experiência em vendas</label>
+      <textarea id="r_exp" rows="3" placeholder="Onde já vendeu, sua rede de contatos, etc." style="width:100%;margin:4px 0 14px;padding:10px;border-radius:8px;border:1px solid #2a3340;background:#0e1116;color:#fff"></textarea>
+      <button type="submit" id="recrutBtn" class="btn btn-red" style="width:100%">Enviar candidatura</button>
+      <p id="recrutMsg" style="color:#9aa0a6;font-size:.8rem;margin-top:10px">Vamos avaliar e entrar em contato. Seus dados vão direto para a nossa equipe.</p>
+    </form>
+    <div id="recrutOk" style="display:none;max-width:640px;margin:18px auto 0;background:#11161d;border:1px solid #2a3340;border-radius:16px;padding:34px;text-align:center">
+      
+      <h3 style="color:#fff;margin-bottom:8px">Candidatura enviada!</h3>
+      <p style="color:#bdbdbd">Recebemos os seus dados. Nossa equipe vai analisar e entrar em contato em breve. Obrigado pelo interesse!</p>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="wrap" style="max-width:820px">
+    <div class="sec-head">
+      <div class="eyebrow">Dúvidas comuns</div>
+      <h2>Perguntas frequentes</h2>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Vocês atendem empresas de qualquer porte e segmento? <span class="plus">+</span></div>
+      <div class="faq-a">Nosso foco são pequenas e médias empresas de diversos segmentos. No diagnóstico avaliamos o seu caso e indicamos o melhor caminho.</div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Preciso entender de tecnologia para contratar? <span class="plus">+</span></div>
+      <div class="faq-a">Não. Cuidamos da parte técnica e traduzimos tudo em linguagem de negócio. Você foca no que faz melhor: tocar a empresa.</div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Como começa o trabalho? <span class="plus">+</span></div>
+      <div class="faq-a">Começa com um diagnóstico gratuito de 30 minutos, onde entendemos suas necessidades e mostramos onde a IA, o marketing e a estratégia podem gerar resultado.</div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Vocês fazem só a estratégia ou também executam? <span class="plus">+</span></div>
+      <div class="faq-a">Os dois. Entregamos o plano e colocamos em prática: automações, campanhas, sites e processos — com acompanhamento contínuo.</div>
+    </div>
+  </div>
+</section>
+
+<!-- NOSSA EQUIPE: movida para dentro de #recrutamento (no lugar do antigo bloco "Como você ganha") -->
+
+<!-- CONTATO -->
+<section class="contato" id="contato">
+  <div class="wrap">
+    <div class="contato-box">
+      <div>
+        <div class="eyebrow">Vamos conversar</div>
+        <h2>Diagnóstico gratuito da sua empresa</h2>
+        <p>Preencha ao lado ou fale direto no WhatsApp. Em 30 minutos mostramos onde a sua empresa pode crescer com IA, marketing e estratégia.</p>
+        <div class="direct">
+          <a href="#" id="boxWpp"><b>WhatsApp:</b>&nbsp;atendimento direto</a>
+          <a href="mailto:contato@redeglobaldecomunicacao.com.br"><b>E-mail:</b>&nbsp;contato@redeglobaldecomunicacao.com.br</a>
+        </div>
+      </div>
+      <form id="leadForm" onsubmit="return enviarLead(event)">
+        <label>Nome*</label>
+        <input type="text" id="f_nome" required placeholder="Seu nome">
+        <label>Empresa*</label>
+        <input type="text" id="f_empresa" required placeholder="Nome da sua empresa">
+        <label>E-mail ou WhatsApp para contato*</label>
+        <input type="text" id="f_contato" required placeholder="seu@email.com ou (DD) 9....">
+        <label>Segmento</label>
+        <input type="text" id="f_seg" placeholder="Ex.: comércio, serviços, indústria...">
+        <label>Qual o seu maior desafio hoje?</label>
+        <textarea id="f_desafio" rows="3" placeholder="Conte rapidamente o que você quer resolver"></textarea>
+        <button type="submit" id="leadBtn" class="btn btn-red">Quero meu diagnóstico gratuito</button>
+        <p class="form-note" id="leadMsg">Resposta em até 1 dia útil. Seus dados vão direto para a nossa equipe.</p>
+      </form>
+      <div id="leadOk" style="display:none;background:var(--card);border:1px solid var(--linha);border-radius:16px;padding:46px 30px;text-align:center">
+        <h3 style="font-size:1.4rem;margin-bottom:10px">Solicitação enviada!</h3>
+        <p style="color:var(--muted)">Recebemos os seus dados e a nossa equipe vai entrar em contato em breve. Obrigado!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="brand">
+      <img src="https://www.redeglobaldecomunicacao.com.br/logo-rede-global.png" alt="Rede Global" style="width:40px;height:40px;border-radius:8px" onerror="this.style.display='none'">
+      <div style="text-align:left"><b>Rede Global de Comunicação</b><span style="display:block;font-size:.62rem;letter-spacing:1.5px;color:var(--vermelho2);text-transform:uppercase;font-weight:700">Conhecimento é Poder</span></div>
+    </div>
+    <p>Consultoria e assessoria em Inteligência Artificial, Marketing e Planejamento Estratégico.</p>
+    <p><a href="mailto:contato@redeglobaldecomunicacao.com.br" style="color:inherit;overflow-wrap:anywhere;word-break:break-word">contato@redeglobaldecomunicacao.com.br</a></p>
+    <p style="margin-top:10px">© <span id="ano"></span> Rede Global de Comunicação. Todos os direitos reservados.</p>
+    <div class="badge">Conhecimento é Poder</div>
+  </div>
+</footer>
+
+<script>
+  // ===== CONFIG: troque pelo seu numero de WhatsApp (so digitos, com DDI 55) =====
+  const WHATSAPP = "5535984435379"; // (35) 98443-5379
+  // ================================================================================
+
+  document.getElementById('ano').textContent = new Date().getFullYear();
+
+  function abrirWpp(texto){
+    const msg = encodeURIComponent(texto || "Olá! Vim pelo site e quero um diagnóstico gratuito para a minha empresa.");
+    window.open("https://wa.me/" + WHATSAPP + "?text=" + msg, "_blank");
+  }
+  document.getElementById('heroWpp').addEventListener('click', e=>{e.preventDefault();abrirWpp();});
+  document.getElementById('boxWpp').addEventListener('click', e=>{e.preventDefault();abrirWpp();});
+
+  const EMAIL = "contato@redeglobaldecomunicacao.com.br";
+  const SB_URL = "https://nojwziftqhlwewzaoieh.supabase.co";
+  const SB_KEY = "sb_publishable_QcHlRRukCScLdSmokCg1DQ_bmxV1zw6";
+
+  async function enviarLead(e){
+    e.preventDefault();
+    const btn = document.getElementById('leadBtn');
+    const msg = document.getElementById('leadMsg');
+    const dados = {
+      nome: document.getElementById('f_nome').value.trim(),
+      empresa: document.getElementById('f_empresa').value.trim(),
+      contato: document.getElementById('f_contato').value.trim(),
+      segmento: document.getElementById('f_seg').value.trim(),
+      desafio: document.getElementById('f_desafio').value.trim()
+    };
+    btn.disabled = true; btn.textContent = "Enviando...";
+    try{
+      const r = await fetch(SB_URL + "/functions/v1/consultoria-lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY },
+        body: JSON.stringify(dados)
+      });
+      const j = await r.json().catch(()=>({}));
+      if(r.ok && j.ok){
+        document.getElementById('leadForm').style.display = 'none';
+        document.getElementById('leadOk').style.display = 'block';
+      } else {
+        throw new Error('falha');
+      }
+    }catch(err){
+      btn.disabled = false; btn.textContent = "Quero meu diagnóstico gratuito";
+      msg.style.color = "#e23b42";
+      msg.innerHTML = 'Não foi possível enviar agora. Fale com a gente no WhatsApp ou por e-mail: <b>'+EMAIL+'</b>.';
+    }
+    return false;
+  }
+
+  // ===== Recrutamento: vídeo (gerenciado no admin) + WhatsApp + candidatura =====
+  function recrutEmbed(url){
+    url=String(url||'').trim(); let id='',m;
+    if((m=url.match(/[?&]v=([A-Za-z0-9_-]{6,})/))) id=m[1];
+    else if((m=url.match(/youtu\.be\/([A-Za-z0-9_-]{6,})/))) id=m[1];
+    else if((m=url.match(/youtube\.com\/(?:live|embed|shorts)\/([A-Za-z0-9_-]{6,})/))) id=m[1];
+    if(id) return '<iframe src="https://www.youtube.com/embed/'+id+'?rel=0" style="width:100%;height:100%;border:0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>';
+    if((m=url.match(/vimeo\.com\/(\d+)/))) return '<iframe src="https://player.vimeo.com/video/'+m[1]+'" style="width:100%;height:100%;border:0" allowfullscreen></iframe>';
+    if(/^https?:\/\/[^\s]+\.(mp4|webm)(\?.*)?$/i.test(url)) return '<video controls style="width:100%;height:100%" src="'+url+'"></video>';
+    if(/^https?:\/\//.test(url)) return '<iframe src="'+url+'" style="width:100%;height:100%;border:0" allowfullscreen></iframe>';
+    return '';
+  }
+  (async function(){
+    function escR(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+    try{
+      const r=await fetch(SB_URL+'/rest/v1/recrutamento_videos?ativo=eq.true&order=ordem.asc,created_at.desc&select=titulo,video_url,descricao',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+      const j=await r.json().catch(()=>[]);
+      const box=document.getElementById('recrutVideos'); if(!box) return;
+      const cards=(Array.isArray(j)?j:[]).map(function(v){
+        const emb=recrutEmbed(v.video_url); if(!emb) return '';
+        const meta=(v.titulo||v.descricao)
+          ? '<div style="padding:12px 14px">'+(v.titulo?'<div style="color:#fff;font-weight:700;font-size:.98rem">'+escR(v.titulo)+'</div>':'')+(v.descricao?'<div style="color:#bdbdbd;font-size:.85rem;margin-top:4px">'+escR(v.descricao)+'</div>':'')+'</div>'
+          : '';
+        return '<div style="border:1px solid #2a3340;border-radius:16px;overflow:hidden;background:#11161d;box-shadow:0 10px 40px rgba(0,0,0,.4)">'
+             + '<div style="aspect-ratio:16/9;background:#000">'+emb+'</div>'+meta+'</div>';
+      }).filter(Boolean).join('');
+      if(cards){ box.innerHTML=cards; document.getElementById('recrutVideoWrap').style.display='block'; }
+    }catch(e){}
+  })();
+  // Vídeo da seção "O Método" (#metodo) — editável no admin (config: metodo_video_url)
+  (async function(){
+    try{
+      const r=await fetch(SB_URL+'/rest/v1/config_publica_kv?chave=eq.metodo_video_url&select=valor',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+      const j=await r.json().catch(()=>[]);
+      const url=(j&&j[0]&&j[0].valor)||'';
+      if(url){ const emb=recrutEmbed(url); const box=document.getElementById('metodoVideoBox'); if(emb&&box) box.innerHTML=emb; }
+    }catch(e){}
+  })();
+  (function(){ const el=document.getElementById('recrutWpp'); if(el) el.addEventListener('click', e=>{ e.preventDefault(); abrirWpp('Olá! Vi a página de Recrutamento e quero ser Consultor da Rede Global. Pode me explicar como funciona?'); }); })();
+  async function enviarRecrut(e){
+    e.preventDefault();
+    const btn=document.getElementById('recrutBtn'), msg=document.getElementById('recrutMsg');
+    const dados={ nome:document.getElementById('r_nome').value.trim(), empresa:'CANDIDATO CONSULTOR', contato:document.getElementById('r_contato').value.trim(), segmento:document.getElementById('r_cidade').value.trim(), desafio:'[CANDIDATURA RECRUTAMENTO] '+document.getElementById('r_exp').value.trim(), origem:'recrutamento' };
+    btn.disabled=true; btn.textContent='Enviando...';
+    try{
+      const r=await fetch(SB_URL+'/functions/v1/consultoria-lead',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},body:JSON.stringify(dados)});
+      const j=await r.json().catch(()=>({}));
+      if(r.ok&&j.ok){ document.getElementById('recrutForm').style.display='none'; document.getElementById('recrutOk').style.display='block'; }
+      else throw new Error('falha');
+    }catch(err){ btn.disabled=false; btn.textContent='Enviar candidatura'; if(msg){ msg.style.color='#e23b42'; msg.innerHTML='Não foi possível enviar agora. Fale no WhatsApp pelo botão acima.'; } }
+    return false;
+  }
+
+  // fecha menu mobile ao clicar
+  document.querySelectorAll('#navLinks a').forEach(a=>a.addEventListener('click',()=>document.getElementById('navLinks').classList.remove('show')));
+</script>
+<!-- ===== Analytics proprio de trafego (beacon para /api/track) ===== -->
+<script>
+(function(){
+  var ENDPOINT = '/api/track';
+  function sid(){
+    try{
+      var s = localStorage.getItem('rg_sid');
+      if(!s){ s = (crypto.randomUUID ? crypto.randomUUID() : (Date.now()+'-'+Math.random().toString(36).slice(2))); localStorage.setItem('rg_sid', s); }
+      return s;
+    }catch(e){ return 't-'+Math.random().toString(36).slice(2); }
+  }
+  function utm(){
+    try{
+      var st = sessionStorage.getItem('rg_utm');
+      if(st) return JSON.parse(st);
+      var q = new URLSearchParams(location.search), o = {};
+      ['source','medium','campaign','term','content'].forEach(function(k){ var v=q.get('utm_'+k); if(v) o[k]=v; });
+      if(q.get('ref') && !o.source){ o.source = q.get('ref'); o.medium = o.medium||'indicacao'; }
+      sessionStorage.setItem('rg_utm', JSON.stringify(o));
+      return o;
+    }catch(e){ return {}; }
+  }
+  var _utm = utm();
+  function uid(){ try{ return (typeof appState!=='undefined' && appState && appState.user) ? appState.user.id : null; }catch(e){ return null; } }
+  function logado(){ try{ return !!(typeof appState!=='undefined' && appState && appState.user); }catch(e){ return false; } }
+  function send(tipo){
+    try{
+      var p = {
+        sid: sid(), uid: uid(), logado: logado(), tipo: tipo,
+        path: location.pathname || '/', titulo: (document.title||'').slice(0,200),
+        referrer: document.referrer || '', utm: _utm, lang: navigator.language || ''
+      };
+      var body = JSON.stringify(p);
+      if(navigator.sendBeacon){ navigator.sendBeacon(ENDPOINT, new Blob([body], {type:'application/json'})); }
+      else { fetch(ENDPOINT, {method:'POST', headers:{'content-type':'application/json'}, body:body, keepalive:true}); }
+    }catch(e){}
+  }
+  async function carregarEquipe(){
+    try{
+      const r = await fetch(SB_URL+'/rest/v1/equipe?ativo=eq.true&order=ordem.asc,nome.asc&select=nome,cargo,cidade,estado,foto_url,bio',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+      const data = await r.json();
+      const grid = document.getElementById('equipeGrid');
+      const sec = document.getElementById('equipe');
+      if(!grid) return;
+      if(!Array.isArray(data) || !data.length){ if(sec) sec.style.display='none'; return; }
+      grid.innerHTML = data.map(function(m){
+        var ini = ((m.nome||'?').trim()[0]||'?').toUpperCase();
+        var foto = m.foto_url ? '<img src="'+m.foto_url+'" alt="" style="width:84px;height:84px;border-radius:50%;object-fit:cover">' : '<div style="width:84px;height:84px;border-radius:50%;background:#26303a;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;color:#c9a227;margin:0 auto">'+ini+'</div>';
+        return '<div style="background:#161b22;border:1px solid #232a33;border-radius:14px;padding:18px;text-align:center">'+foto+'<div style="font-weight:800;margin-top:10px">'+(m.nome||'')+'</div><div style="color:#c9a227;font-size:.85rem">'+(m.cargo||'')+'</div><div style="color:#9aa3ad;font-size:.8rem;margin-top:2px">'+((m.cidade||'')+(m.estado?(' · '+m.estado):''))+'</div>'+(m.bio?'<div style="color:#aeb6bf;font-size:.78rem;margin-top:8px">'+m.bio+'</div>':'')+'</div>';
+      }).join('');
+    }catch(e){ try{ var s=document.getElementById('equipe'); if(s) s.style.display='none'; }catch(_e){} }
+  }
+  window.addEventListener('DOMContentLoaded', carregarEquipe);
+  if(document.readyState === 'complete' || document.readyState === 'interactive') send('pageview');
+  else window.addEventListener('DOMContentLoaded', function(){ send('pageview'); });
+  setInterval(function(){ if(document.visibilityState === 'visible') send('heartbeat'); }, 45000);
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'visible') send('heartbeat'); });
+})();
+</script>
+</body>
+</html>
