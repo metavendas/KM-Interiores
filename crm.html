@@ -5286,6 +5286,7 @@
         +'<td style="color:var(--text)">'+esc(m.titulo||'')+'</td><td><span class="badge">'+esc(m.categoria||'—')+'</span></td><td>'+esc(ext.toUpperCase())+'</td><td>'+tvTam(m.tamanho_kb)+'</td>'
         +'<td style="text-align:right;white-space:nowrap">'
         +'<button class="ia-btn" data-act="viewtv" data-path="'+esc(m.storage_path||'')+'" data-ext="'+esc(ext)+'">Visualizar</button> '
+        +'<button class="ia-btn" data-act="edittv" data-id="'+m.id+'">Editar</button> '
         +'<button class="ia-btn" data-act="dltv" data-path="'+esc(m.storage_path||'')+'">Baixar</button> '
         +'<button class="ia-btn" data-act="deltv" data-id="'+m.id+'" data-path="'+esc(m.storage_path||'')+'" style="border-color:rgba(211,154,154,.5);color:#d39a9a">Excluir</button>'
         +'</td></tr>';
@@ -5310,6 +5311,73 @@
     var calls=ord.map(function(m,i){ return tvPatch(m.id,i+1,tok); });
     if(!calls.length) return;
     Promise.all(calls).then(function(){ TV_FILTRO=''; loadTabelasVendas(); }).catch(loadTabelasVendas);
+  }
+  // ===== EDITAR tabela de vendas (título · categoria · trocar arquivo) =====
+  var TV_CATS=['Preço Bruto','Preço Líquido','Catálogo'];
+  var TV_ED=null;
+  function tvEnsureEdModal(){
+    if($('tvEdModal')) return;
+    var m=document.createElement('div'); m.id='tvEdModal'; m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML='<div class="lmbox" style="max-width:480px"><div class="lmhead"><div><b>Editar tabela de vendas</b><div class="lm-meta" id="tved_meta"></div></div><span class="lmx" id="tved_x">✕</span></div>'
+      +'<div class="lmbody"><div class="modform">'
+      +'<div class="f full"><label>Título *</label><input id="tved_titulo"></div>'
+      +'<div class="f full"><label>Categoria</label><select id="tved_cat"><option value="">— sem categoria —</option>'+TV_CATS.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join('')+'</select></div>'
+      +'<div class="f full"><label>Trocar arquivo <span style="color:var(--muted);font-weight:400">(opcional — deixe em branco para manter o atual)</span></label><input type="file" id="tved_file" accept=".xls,.xlsx,.doc,.docx,.ppt,.pptx,.pdf"></div>'
+      +'<div class="f full" id="tved_atual" style="color:var(--muted);font-size:12px"></div>'
+      +'<div class="f full" style="display:flex;gap:8px;align-items:center"><button class="btn" id="tved_ok">Salvar alterações</button><button class="btn" id="tved_cancel" style="background:transparent;color:var(--muted);border:1px solid var(--line)">Cancelar</button><span class="lm-msg" id="tved_msg"></span></div>'
+      +'</div></div></div>';
+    document.body.appendChild(m);
+    $('tved_x').addEventListener('click', tvEdFechar);
+    $('tved_cancel').addEventListener('click', tvEdFechar);
+    m.addEventListener('click', function(e){ if(e.target===m) tvEdFechar(); });
+    $('tved_ok').addEventListener('click', tvSalvarEd);
+  }
+  function tvEdFechar(){ var m=$('tvEdModal'); if(m) m.style.display='none'; TV_ED=null; }
+  function tvAbrirEd(id){
+    var row=null; for(var i=0;i<TV_ROWS.length;i++){ if(String(TV_ROWS[i].id)===String(id)){ row=TV_ROWS[i]; break; } }
+    if(!row){ alert('Registro não encontrado. Recarregue a lista.'); return; }
+    tvEnsureEdModal();
+    TV_ED={id:row.id, storage_path:row.storage_path||'', tipo:(row.tipo||'')};
+    $('tved_titulo').value=row.titulo||'';
+    $('tved_cat').value=row.categoria||'';
+    $('tved_file').value='';
+    $('tved_meta').textContent=(row.tipo||'').toUpperCase()+' · '+tvTam(row.tamanho_kb);
+    var nomeAtual=(row.storage_path||'').split('/').pop().replace(/^\d+_/,'');
+    $('tved_atual').textContent=nomeAtual?('Arquivo atual: '+nomeAtual):'';
+    $('tved_msg').textContent='';
+    $('tvEdModal').style.display='flex';
+  }
+  function tvSalvarEd(){
+    if(!TV_ED) return;
+    var tok=localStorage.getItem(TOKKEY);
+    var titulo=($('tved_titulo').value||'').trim();
+    var categoria=$('tved_cat').value||'';
+    if(!titulo){ $('tved_msg').textContent='Informe o título.'; return; }
+    var file=$('tved_file').files[0];
+    var ok=$('tved_ok'), old=ok.textContent; ok.disabled=true;
+    function patchRow(extra){
+      var body=Object.assign({titulo:titulo,categoria:categoria}, extra||{});
+      return fetch(SB+'/rest/v1/portal_tabelas_vendas?id=eq.'+TV_ED.id,{method:'PATCH',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)});
+    }
+    if(file){
+      var ext=(file.name.split('.').pop()||'').toLowerCase();
+      var okExt={xls:1,xlsx:1,doc:1,docx:1,ppt:1,pptx:1,pdf:1};
+      if(!okExt[ext]){ ok.disabled=false; $('tved_msg').textContent='Formato não suportado. Use Excel, Word, PowerPoint ou PDF.'; return; }
+      ok.textContent='Enviando…'; $('tved_msg').textContent='Enviando novo arquivo…';
+      var novoPath='tabelas-vendas/'+Date.now()+'_'+file.name.replace(/[^\w.\-]/g,'_');
+      var antigo=TV_ED.storage_path;
+      fetch(SB+'/storage/v1/object/'+TVBUCKET+'/'+novoPath,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':file.type||'application/octet-stream','x-upsert':'true'}),body:file})
+      .then(function(r){ if(!r.ok) throw new Error('upload'); return patchRow({tipo:ext,storage_path:novoPath,tamanho_kb:Math.round(file.size/1024)}); })
+      .then(function(r){ if(!r.ok) throw new Error('patch');
+        // arquivo antigo substituído a pedido do usuário — a LINHA/registro é preservada; o binário antigo NÃO é apagado automaticamente (governança: nada é apagado sem autorização)
+        ok.disabled=false; ok.textContent=old; tvEdFechar(); loadTabelasVendas();
+      })
+      .catch(function(){ ok.disabled=false; ok.textContent=old; $('tved_msg').textContent='Falha ao salvar (verifique seu acesso de equipe).'; });
+    } else {
+      ok.textContent='Salvando…';
+      patchRow().then(function(r){ if(!r.ok) throw new Error('patch'); ok.disabled=false; ok.textContent=old; tvEdFechar(); loadTabelasVendas(); })
+      .catch(function(){ ok.disabled=false; ok.textContent=old; $('tved_msg').textContent='Falha ao salvar (verifique seu acesso de equipe).'; });
+    }
   }
   (function(){
     var mb=$('tv_salvar');
@@ -5338,9 +5406,10 @@
       if(e.target.closest('#tv_az')){ tvOrdenarAZ(); return; }
       var b=e.target.closest('button[data-act]'); if(!b) return;
       var act=b.getAttribute('data-act'), tok=localStorage.getItem(TOKKEY);
-      if(act!=='tvup'&&act!=='tvdown'&&act!=='viewtv'&&act!=='dltv'&&act!=='deltv') return;  // não intercepta ações de outras telas
+      if(act!=='tvup'&&act!=='tvdown'&&act!=='viewtv'&&act!=='edittv'&&act!=='dltv'&&act!=='deltv') return;  // não intercepta ações de outras telas
       if(act==='tvup'){ tvMove(b.getAttribute('data-id'),'up'); return; }
       if(act==='tvdown'){ tvMove(b.getAttribute('data-id'),'down'); return; }
+      if(act==='edittv'){ tvAbrirEd(b.getAttribute('data-id')); return; }
       if(act==='viewtv'){ var path=b.getAttribute('data-path'), ext=(b.getAttribute('data-ext')||'').toLowerCase(); b.disabled=true; var o=b.textContent; b.textContent='…';
         fetch(SB+'/storage/v1/object/sign/'+TVBUCKET+'/'+path,{method:'POST',headers:Object.assign(authHeaders(tok),{'Content-Type':'application/json'}),body:JSON.stringify({expiresIn:3600})})
         .then(function(r){ return r.json(); }).then(function(j){ b.disabled=false; b.textContent=o; if(!j.signedURL){ alert('Não foi possível gerar o link.'); return; }
