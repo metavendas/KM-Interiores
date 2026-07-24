@@ -7343,7 +7343,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   var SB = (window.SB) || 'https://hpbtnlfihbwwawgtesvm.supabase.co';
   var KEY = (window.KEY) || 'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
   var TOKKEY = 'km_crm_token';
-  var PREF = 'km_voz_on';
+  var PREF = 'km_voz_on2';   // v2: zera qualquer "desligado" antigo -> todos nascem LIGADOS
   var base = null;           // baseline de contagens já "faladas" (null = adota atual em silêncio)
   var engaj = 0;             // fila do Engajamento (LinkedIn), buscada por nós
   var nome = '';             // primeiro nome do usuário logado
@@ -7457,14 +7457,20 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   }
 
   // ao ABRIR o CRM: espera o login + as notificações carregarem, então fala o resumo uma vez
+  var abriuFalou=false;
+  function falarAbertura(){ if(on() && !abriuFalou && tok() && window._notif){ abriuFalou=true; resolveNome(); resumoFalado(true); } }
   function abrirResumo(){
     var tries=0;
     var iv=setInterval(function(){
       tries++;
       if(!on()){ clearInterval(iv); return; }
-      if(tok() && window._notif){ clearInterval(iv); resolveNome(); resumoFalado(true); }
+      if(abriuFalou || (tok() && window._notif)){ clearInterval(iv); falarAbertura(); }
       else if(tries>25){ clearInterval(iv); }   // ~25s: desiste em silêncio
     }, 1000);
+    // rede de segurança p/ autoplay do navegador: se o áudio foi bloqueado, fala no 1º gesto
+    var primer=function(){ falarAbertura(); if(abriuFalou){ document.removeEventListener('click',primer,true); document.removeEventListener('keydown',primer,true); } };
+    document.addEventListener('click',primer,true);
+    document.addEventListener('keydown',primer,true);
   }
 
   function init(){
