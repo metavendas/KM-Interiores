@@ -7351,7 +7351,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
   function tok(){ try{ return (window.notifTok?window.notifTok():null) || localStorage.getItem(TOKKEY) || ''; }catch(e){ return ''; } }
   function headers(){ var t=tok(); if(window.authHeaders){ try{ return window.authHeaders(t); }catch(e){} } return { apikey:KEY, Authorization:'Bearer '+(t||KEY) }; }
-  function on(){ return localStorage.getItem(PREF)==='1'; }
+  function on(){ var v=localStorage.getItem(PREF); return v===null ? true : v==='1'; } // padrão LIGADO
   function supported(){ return typeof window.speechSynthesis!=='undefined' && typeof window.SpeechSynthesisUtterance!=='undefined'; }
   function plural(n,s,p){ return n+' '+(n===1?s:p); }
 
@@ -7594,9 +7594,11 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     ]).then(function(res){
       var c=(res[0]||[])[0]; var msgs=res[1]||[]; if(!c) return;
       lastMsgTs=msgs.length?msgs[msgs.length-1].created_at:'';
+      atualConv=c;
       renderConversa(c, msgs);
       if(c.status==='aberta'){ // assume o atendimento
         req(CT+'?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status:'atendendo',atendente:quem()})}).then(carregarLista).catch(function(){});
+        registrarAtendente(c);   // grava quem atendeu no lead e no card do funil
       }
     }).catch(function(){});
   }
@@ -7606,20 +7608,21 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     var txt=inp.value.trim(); if(!txt) return; inp.value=''; inp.style.height='auto';
     req(MT,{method:'POST',body:JSON.stringify({conversa_id:atual,autor:'equipe',corpo:txt,atendente:quem()})}).then(function(){
       req(CT+'?id=eq.'+encodeURIComponent(atual),{method:'PATCH',body:JSON.stringify({last_msg_at:new Date().toISOString(),status:'atendendo',atendente:quem()})}).catch(function(){});
+      if(atualConv){ registrarAtendente(atualConv); gravarTranscript(atualConv); }
       atualizarMsgs();
     }).catch(function(){});
   }
 
   function encerrar(id){
     if(!confirm('Encerrar este atendimento? A conversa não é apagada — fica como "fechada".')) return;
-    req(CT+'?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status:'fechada'})}).then(function(){ carregarLista(); if(atual===id) abrir(id); }).catch(function(){});
+    req(CT+'?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({status:'fechada'})}).then(function(){ if(atualConv&&atualConv.id===id) gravarTranscript(atualConv); carregarLista(); if(atual===id) abrir(id); }).catch(function(){});
   }
 
   function atualizarMsgs(){
     if(!atual) return;
     req(MT+'?conversa_id=eq.'+encodeURIComponent(atual)+'&select=*&order=created_at.asc&limit=500').then(function(msgs){
       msgs=msgs||[]; var novoTs=msgs.length?msgs[msgs.length-1].created_at:'';
-      if(novoTs!==lastMsgTs){ lastMsgTs=novoTs; req(CT+'?id=eq.'+encodeURIComponent(atual)+'&select=*&limit=1').then(function(cc){ var c=(cc||[])[0]; if(c) renderConversa(c,msgs); }); }
+      if(novoTs!==lastMsgTs){ lastMsgTs=novoTs; req(CT+'?id=eq.'+encodeURIComponent(atual)+'&select=*&limit=1').then(function(cc){ var c=(cc||[])[0]; if(c){ atualConv=c; renderConversa(c,msgs); } }); }
     }).catch(function(){});
   }
 
@@ -7630,6 +7633,38 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   function ativo(){ var s=document.querySelector('.view[data-v="chat_atendimento"]'); return s && !s.hidden; }
   function startPoll(){ stopPoll(); poll=setInterval(function(){ if(!ativo()){ stopPoll(); return; } carregarLista(); if(atual) atualizarMsgs(); }, 5000); }
   function stopPoll(){ if(poll){ clearInterval(poll); poll=null; } }
+
+  // ---- Atendente + gravação da conversa ----
+  var atualConv=null, meuNome='';
+  function resolveMeuNome(cb){
+    if(meuNome){ cb(meuNome); return; }
+    fetch(SB+'/auth/v1/user',{headers:H()}).then(function(r){return r.ok?r.json():null;}).then(function(u){
+      if(!u||!u.id){ meuNome=quem(); cb(meuNome); return; }
+      req('perfis?select=nome&id=eq.'+encodeURIComponent(u.id)+'&limit=1').then(function(a){
+        var nm=(a&&a[0]&&a[0].nome)||quem(); meuNome=String(nm||'').trim()||quem(); cb(meuNome);
+      }).catch(function(){ meuNome=quem(); cb(meuNome); });
+    }).catch(function(){ meuNome=quem(); cb(meuNome); });
+  }
+  // registra QUEM ATENDEU no lead (Leads & Atendimento) e no card do funil
+  function registrarAtendente(c){
+    if(!c || !c.lead_id) return;
+    resolveMeuNome(function(nm){
+      if(!nm) return; var cliente=c.nome||'Visitante';
+      req('leads?id=eq.'+encodeURIComponent(c.lead_id),{method:'PATCH',body:JSON.stringify({ atendente:nm, interesse:'Atendimento ao vivo — atendido por '+nm })}).catch(function(){});
+      req('oportunidades?lead_id=eq.'+encodeURIComponent(c.lead_id),{method:'PATCH',body:JSON.stringify({ atendente:nm, titulo:cliente+' — Atendimento ao vivo — atendido por '+nm })}).catch(function(){});
+    });
+  }
+  // grava a CONVERSA INTEIRA no lead (registro durável p/ confrontação; também vive em chat_site_mensagens)
+  function gravarTranscript(c){
+    if(!c || !c.lead_id) return;
+    req(MT+'?conversa_id=eq.'+encodeURIComponent(c.id)+'&select=autor,corpo,created_at&order=created_at.asc&limit=1000').then(function(msgs){
+      msgs=msgs||[]; if(!msgs.length) return;
+      var linhas=msgs.map(function(m){ var d=''; try{ d=new Date(m.created_at).toLocaleString('pt-BR'); }catch(e){}
+        return '['+d+'] '+(m.autor==='cliente'?'Cliente':'Atendente')+': '+(m.corpo||''); });
+      var txt='=== Conversa · Atendimento ao Vivo'+(meuNome?(' · atendido por '+meuNome):'')+' ===\n'+linhas.join('\n');
+      req('leads?id=eq.'+encodeURIComponent(c.lead_id),{method:'PATCH',body:JSON.stringify({ mensagem: txt })}).catch(function(){});
+    }).catch(function(){});
+  }
 
   window.loadChatAtendimento=function(){ ensureSection(); carregarLista(); startPoll(); };
 })();
