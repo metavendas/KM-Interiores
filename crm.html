@@ -7402,13 +7402,19 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
   // coleta as contagens atuais (sino + fila do LinkedIn) e entrega em cb
   function coletar(cb){
-    fetch(SB+'/rest/v1/leads_engajamento?select=id&status=eq.pendente&limit=500',{headers:headers()})
-      .then(function(r){return r.ok?r.json():null;}).then(function(a){ if(Array.isArray(a)) engaj=a.length; })
-      .catch(function(){}).then(function(){
-        var d=window._notif||{};
-        cb({ leads:Number(d.leads||0), engaj:Number(engaj||0), cobrancas:Number(d.cobrancas||0),
-             tarefas:Number(d.tarefas||0), mencoes:Number(d.mencoes||0), chat:Number(d.chat||0) });
-      });
+    function entrega(d){ cb({ leads:Number((d&&d.leads)||0), engaj:Number(engaj||0), cobrancas:Number((d&&d.cobrancas)||0),
+      tarefas:Number((d&&d.tarefas)||0), mencoes:Number((d&&d.mencoes)||0), chat:Number((d&&d.chat)||0) }); }
+    if(!tok()){ entrega(window._notif); return; }
+    var hz=headers(); hz['Content-Type']='application/json';
+    // busca DIRETO as notificações (não espera o ciclo do sino) + a fila do LinkedIn
+    Promise.all([
+      fetch(SB+'/rest/v1/rpc/get_notificacoes',{method:'POST',headers:hz,body:'{}'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}),
+      fetch(SB+'/rest/v1/leads_engajamento?select=id&status=eq.pendente&limit=500',{headers:headers()}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;})
+    ]).then(function(res){
+      var d=res[0]||window._notif||{}; if(res[0]) window._notif=res[0];
+      if(Array.isArray(res[1])) engaj=res[1].length;
+      entrega(d);
+    }).catch(function(){ entrega(window._notif); });
   }
   function itens(cur){
     var p=[];
@@ -7458,15 +7464,16 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
   // ao ABRIR o CRM: espera o login + as notificações carregarem, então fala o resumo uma vez
   var abriuFalou=false;
-  function falarAbertura(){ if(on() && !abriuFalou && tok() && window._notif){ abriuFalou=true; resolveNome(); resumoFalado(true); } }
+  // fala assim que houver LOGIN (não espera o sino); coletar() busca as pendências direto
+  function falarAbertura(){ if(on() && !abriuFalou && tok()){ abriuFalou=true; resolveNome(); resumoFalado(true); } }
   function abrirResumo(){
     var tries=0;
     var iv=setInterval(function(){
       tries++;
       if(!on()){ clearInterval(iv); return; }
-      if(abriuFalou || (tok() && window._notif)){ clearInterval(iv); falarAbertura(); }
-      else if(tries>25){ clearInterval(iv); }   // ~25s: desiste em silêncio
-    }, 1000);
+      if(abriuFalou || tok()){ clearInterval(iv); falarAbertura(); }   // logou -> fala em <=0,5s
+      else if(tries>240){ clearInterval(iv); }   // ~2min esperando o login; desiste em silêncio
+    }, 500);
     // rede de segurança p/ autoplay do navegador: se o áudio foi bloqueado, fala no 1º gesto
     var primer=function(){ falarAbertura(); if(abriuFalou){ document.removeEventListener('click',primer,true); document.removeEventListener('keydown',primer,true); } };
     document.addEventListener('click',primer,true);
