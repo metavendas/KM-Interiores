@@ -7378,7 +7378,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     b.style.cssText='cursor:pointer;font-size:16px;margin-right:12px;user-select:none;line-height:1';
     b.onclick=function(){
       var novo=!on(); localStorage.setItem(PREF, novo?'1':'0'); paint();
-      if(novo){ base={leads:0,engaj:0,cobrancas:0,tarefas:0,mencoes:0,chat:0}; resolveNome(); setTimeout(tick,60); }
+      if(novo){ resolveNome(); setTimeout(function(){ resumoFalado(true); },60); }  // ao ligar, lê o resumo atual
       else { base=null; try{ window.speechSynthesis.cancel(); }catch(e){} }
     };
     bell.parentNode.insertBefore(b, bell);
@@ -7400,40 +7400,82 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
   function saudacao(){ return nome ? (nome+', ') : 'Atenção: '; }
 
-  function tick(){
-    if(!on()){ base=null; return; }
-    // fila do Engajamento (LinkedIn)
+  // coleta as contagens atuais (sino + fila do LinkedIn) e entrega em cb
+  function coletar(cb){
     fetch(SB+'/rest/v1/leads_engajamento?select=id&status=eq.pendente&limit=500',{headers:headers()})
       .then(function(r){return r.ok?r.json():null;}).then(function(a){ if(Array.isArray(a)) engaj=a.length; })
       .catch(function(){}).then(function(){
         var d=window._notif||{};
-        var cur={ leads:Number(d.leads||0), engaj:Number(engaj||0), cobrancas:Number(d.cobrancas||0),
-                  tarefas:Number(d.tarefas||0), mencoes:Number(d.mencoes||0), chat:Number(d.chat||0) };
-        if(base===null){ base=cur; return; }              // adota atual como baseline (sem falar)
-        var p=[];
-        if(cur.leads>base.leads)     p.push(plural(cur.leads,'novo lead para aprovar','novos leads para aprovar')+' em Leads e Atendimento');
-        if(cur.engaj>base.engaj)     p.push(plural(cur.engaj,'lead para aprovar','leads para aprovar')+' em Engajamento do LinkedIn');
-        if(cur.cobrancas>base.cobrancas) p.push(plural(cur.cobrancas,'cobrança pendente','cobranças pendentes'));
-        if(cur.tarefas>base.tarefas) p.push(plural(cur.tarefas,'tarefa atrasada','tarefas atrasadas'));
-        if(cur.mencoes>base.mencoes) p.push(plural(cur.mencoes,'menção a você','menções a você')+' no chat');
-        if(cur.chat>base.chat)       p.push(plural(cur.chat,'mensagem nova','mensagens novas')+' no chat interno');
-        base=cur;                                          // atualiza baseline (subidas e descidas)
-        if(p.length){ var frase = p.length===1 ? p[0] : (p.slice(0,-1).join(', ')+' e '+p[p.length-1]);
-          fala(saudacao()+'existem '+frase+'.'); }
+        cb({ leads:Number(d.leads||0), engaj:Number(engaj||0), cobrancas:Number(d.cobrancas||0),
+             tarefas:Number(d.tarefas||0), mencoes:Number(d.mencoes||0), chat:Number(d.chat||0) });
       });
+  }
+  function itens(cur){
+    var p=[];
+    if(cur.leads>0)     p.push(plural(cur.leads,'lead para aprovar','leads para aprovar')+' em Leads e Atendimento');
+    if(cur.engaj>0)     p.push(plural(cur.engaj,'lead para aprovar','leads para aprovar')+' em Engajamento do LinkedIn');
+    if(cur.cobrancas>0) p.push(plural(cur.cobrancas,'cobrança pendente','cobranças pendentes'));
+    if(cur.tarefas>0)   p.push(plural(cur.tarefas,'tarefa atrasada','tarefas atrasadas'));
+    if(cur.mencoes>0)   p.push(plural(cur.mencoes,'menção a você','menções a você')+' no chat');
+    if(cur.chat>0)      p.push(plural(cur.chat,'mensagem nova','mensagens novas')+' no chat interno');
+    return p;
+  }
+  function junta(p){ return p.length===1 ? p[0] : (p.slice(0,-1).join(', ')+' e '+p[p.length-1]); }
+
+  // fala um RESUMO das pendências atuais — usado AO ABRIR o CRM e AO CLICAR NO SINO
+  function resumoFalado(sync){
+    if(!on()) return;
+    coletar(function(cur){
+      if(sync) base=cur;                 // sincroniza baseline p/ os avisos de novidade não repetirem
+      var p=itens(cur);
+      if(p.length) fala(saudacao()+'existem '+junta(p)+'.');
+      else fala(nome ? (nome+', tudo em dia. Nenhuma pendência.') : 'Tudo em dia. Nenhuma pendência.');
+    });
+  }
+
+  // avisa APENAS quando um contador SOBE (novidade que chega enquanto você trabalha)
+  function tick(){
+    if(!on()){ base=null; return; }
+    coletar(function(cur){
+      if(base===null){ base=cur; return; }
+      var p=[];
+      if(cur.leads>base.leads)     p.push(plural(cur.leads,'novo lead para aprovar','novos leads para aprovar')+' em Leads e Atendimento');
+      if(cur.engaj>base.engaj)     p.push(plural(cur.engaj,'lead para aprovar','leads para aprovar')+' em Engajamento do LinkedIn');
+      if(cur.cobrancas>base.cobrancas) p.push(plural(cur.cobrancas,'cobrança pendente','cobranças pendentes'));
+      if(cur.tarefas>base.tarefas) p.push(plural(cur.tarefas,'tarefa atrasada','tarefas atrasadas'));
+      if(cur.mencoes>base.mencoes) p.push(plural(cur.mencoes,'menção a você','menções a você')+' no chat');
+      if(cur.chat>base.chat)       p.push(plural(cur.chat,'mensagem nova','mensagens novas')+' no chat interno');
+      base=cur;
+      if(p.length) fala(saudacao()+'existem '+junta(p)+'.');
+    });
+  }
+
+  // clicar no SINO 🔔 lê o resumo em voz alta, sob demanda (se a voz estiver ligada)
+  function wireSino(){
+    var bell=document.getElementById('bell'); if(!bell || bell.__kmVozWired) return; bell.__kmVozWired=true;
+    bell.addEventListener('click', function(){ resolveNome(); resumoFalado(false); });
+  }
+
+  // ao ABRIR o CRM: espera o login + as notificações carregarem, então fala o resumo uma vez
+  function abrirResumo(){
+    var tries=0;
+    var iv=setInterval(function(){
+      tries++;
+      if(!on()){ clearInterval(iv); return; }
+      if(tok() && window._notif){ clearInterval(iv); resolveNome(); resumoFalado(true); }
+      else if(tries>25){ clearInterval(iv); }   // ~25s: desiste em silêncio
+    }, 1000);
   }
 
   function init(){
     if(!supported()) return;                 // navegador sem TTS: não monta o botão
     try{ window.speechSynthesis.onvoiceschanged=function(){}; window.speechSynthesis.getVoices(); }catch(e){}
-    mountBtn();
-    // se já estava ligado (recarregou a página), adota o estado atual sem despejar o histórico
-    if(on()){ base=null; resolveNome(); }
+    mountBtn(); wireSino();
+    if(on()){ resolveNome(); abrirResumo(); }   // voz ligada -> resumo ao abrir
     setInterval(tick, 7000);
-    setTimeout(tick, 2500);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
-  window.kmVozTick = tick; // exposto p/ teste
+  window.kmVozTick = tick; window.kmVozResumo = resumoFalado; // expostos p/ teste
 })();
 </script>
 <!-- ===== FIM DO PATCH NOTIFICAÇÕES POR VOZ KM (crm.html) 2026-07-24 ===== -->
@@ -7525,7 +7567,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   function renderConversa(c, msgs){
     var box=document.getElementById('cav-conv'); if(!box) return;
     var head='<div id="cav-head"><div><b style="color:#F1E4C9">'+esc(c.nome||'Visitante')+'</b>'+(c.contato?(' <span style="color:rgba(241,228,201,.6);font-size:12px">· '+esc(c.contato)+'</span>'):'')+
-      '<div style="font-size:11px;color:rgba(241,228,201,.5)">'+esc(c.origem||'site')+(c.pagina?(' · '+esc(c.pagina)):'')+' · '+esc(c.status||'')+(c.atendente?(' · '+esc(c.atendente)):'')+'</div></div>'+
+      '<div style="font-size:11px;color:rgba(241,228,201,.5)">'+esc(c.origem||'site')+(c.pagina?(' · '+esc(c.pagina)):'')+' · '+esc(c.status||'')+(c.atendente?(' · '+esc(c.atendente)):'')+(c.lead_id?' · <span style="color:#7fbf6a">✓ no funil</span>':'')+'</div></div>'+
       '<button class="cav-btn ghost" id="cav-fechar">Encerrar</button></div>';
     var lista='<div id="cav-msgs">'+((msgs&&msgs.length)?msgs.map(function(m){
       var cli=m.autor==='cliente';
