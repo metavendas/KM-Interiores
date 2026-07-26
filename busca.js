@@ -57,13 +57,18 @@
   function run(q) {
     lastq = q;
     res.style.display = 'block'; res.innerHTML = '<div class="km-smsg">Buscando…</div>';
-    var like = encodeURIComponent('%' + q + '%');
-    var url = SB + '/rest/v1/produtos?select=sku,nome,categoria,colecao,foto_url,preco&ativo=eq.true&or=(nome.ilike.' + like + ',categoria.ilike.' + like + ',colecao.ilike.' + like + ')&order=destaque.desc.nullslast,nome.asc&limit=12';
-    fetch(url, { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } })
+    // RPC buscar_produtos: imune a acento e caixa (ex.: "sofa" acha "Sofá")
+    fetch(SB + '/rest/v1/rpc/buscar_produtos', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ q: q }) })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         if (q !== lastq) return;
-        rows = rows || [];
+        // 26/07/2026 (item 5 do Edson): Terceirização é trabalho interno — fora do site e da busca.
+        rows = (rows || []).filter(function (p) {
+          var c = String(p && p.categoria || '');
+          try { c = c.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) { }
+          c = c.toLowerCase().trim();
+          return c !== 'terceirizacao' && c !== 'tercerizacao';
+        });
         if (!rows.length) { res.innerHTML = '<div class="km-smsg">Nada encontrado para “' + esc(q) + '”. <a href="catalogo.html" style="color:#CB984C">Ver catálogo completo →</a></div>'; return; }
         res.innerHTML = rows.map(function (p) {
           var thumb = p.foto_url ? '<img class="km-sthumb" src="' + esc(p.foto_url) + '" alt="' + esc(p.nome) + '" loading="lazy">' : '<div class="km-sthumb"></div>';

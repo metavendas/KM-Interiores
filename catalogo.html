@@ -53,8 +53,9 @@
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
   .card{background:var(--card-bg);border:1px solid var(--line);overflow:hidden;transition:.4s;box-shadow:0 14px 40px rgba(0,0,0,.25);display:flex;flex-direction:column}
   .card:hover{transform:translateY(-5px)}
-  .card .img{position:relative;overflow:hidden;aspect-ratio:16/10;background:#0f0e0c}
-  .card .img img{width:100%;height:100%;object-fit:cover;display:block;transition:.6s}
+  /* 26/07/2026 (item 6 do Edson): a peça inteira precisa caber no card — sem cortar o produto. */
+  .card .img{position:relative;overflow:hidden;aspect-ratio:4/3;background:#0f0e0c}
+  .card .img img{width:100%;height:100%;object-fit:contain;display:block;transition:.6s}
   .card:hover .img img{transform:scale(1.04)}
   .card .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:radial-gradient(80% 90% at 40% 25%,#2a2114,#0c0b09)}
   .card .ph .bf{position:absolute;opacity:.12;width:120px;height:120px}
@@ -128,18 +129,35 @@
   var state = document.getElementById('state');
   var filtersEl = document.getElementById('filters');
   var produtos = [], filtro = 'Todos';
-  var ORDEM = ['Sofás','Cabeceiras','Mesas','Banquetas','Guarda-Roupas','Colchões'];
+  var ORDEM = ['Sofás','Poltronas','Cabeceiras','Dormitório','Guarda-Roupas','Sala de Estar','Sala de Jantar','Cadeiras','Banquetas','Área Gourmet','Decoração'];
+  /* 26/07/2026 (item 5 do Edson): Terceirização é trabalho INTERNO — não aparece no site.
+     Continua normal no CRM. Base já normalizada (uma categoria por nicho, sem duplicidade de grafia). */
+  var CAT_OCULTAS = ['terceirizacao','terceirizaçao','tercerizacao','terceirização','tercerização'];
+  function catNorm(s){ var t=String(s||''); try{ t=t.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){} return t.toLowerCase().trim(); }
+  function catPublica(c){ return CAT_OCULTAS.indexOf(catNorm(c))<0; }
   function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function ord(c){var i=ORDEM.indexOf(c);return i<0?99:i;}
   function nl(v){ try{return 'R$ '+Number(v).toLocaleString('pt-BR');}catch(e){return 'R$ '+v;} }
+  /* Peças cujo preço vive nas VERSÕES (preco base nulo) mostram "a partir de" em vez de sumir o valor. */
+  function precoMinVar(p){
+    var its = Array.isArray(p.itens) ? p.itens : [];
+    var vs = its.filter(function(x){ return x && x.tipo==='variacao' && String(x.nome||'').trim()!=='' && (Number(x.valor)||0)>0; })
+                .map(function(x){ return Number(x.valor)||0; });
+    return vs.length ? Math.min.apply(null, vs) : 0;
+  }
   function card(p){
     var img = p.foto_url
       ? '<div class="img"><img src="'+esc(p.foto_url)+'" alt="'+esc(p.nome)+'" loading="lazy"></div>'
       : '<div class="img"><div class="ph"><svg class="bf"><use href="#bf"/></svg><span>'+esc(p.nome)+'</span></div></div>';
-    var buyable = (Number(p.preco)>0) && (Number(p.estoque_disponivel)>0);
+    var pmin = precoMinVar(p);
+    var base = Number(p.preco)>0 ? Number(p.preco) : pmin;
+    var buyable = base>0 && (Number(p.estoque_disponivel)>0);
     var tr = buyable ? 'Pronta-entrega' : 'Sob curadoria';
+    var rot = (Number(p.preco)>0 ? '' : 'a partir de ')+nl(base);
     var right = buyable
-      ? '<div style="text-align:right"><div class="price">'+nl(p.preco)+'</div><button class="addbtn" data-id="'+esc(p.id)+'" data-nome="'+esc(p.nome)+'" data-preco="'+(p.preco||0)+'" data-foto="'+esc(p.foto_url||'')+'">+ Carrinho</button></div>'
+      ? (Number(p.preco)>0
+          ? '<div style="text-align:right"><div class="price">'+nl(base)+'</div><button class="addbtn" data-id="'+esc(p.id)+'" data-nome="'+esc(p.nome)+'" data-preco="'+base+'" data-foto="'+esc(p.foto_url||'')+'">+ Carrinho</button></div>'
+          : '<div style="text-align:right"><div class="price" style="font-size:13px">'+esc(rot)+'</div><span class="cta">Escolher versão →</span></div>')
       : '<span class="cta">Ver peça →</span>';
     return '<a class="card" href="produto.html?sku='+encodeURIComponent(p.sku)+'">'+img+
       '<div class="bar"><div class="meta"><div class="nm">'+esc(p.nome)+'</div><div class="cat">'+esc(p.categoria)+' · '+tr+'</div></div>'+right+'</div></a>';
@@ -173,10 +191,10 @@
       });
     });
   }
-  fetch(SB+'/rest/v1/produtos?select=id,sku,nome,categoria,colecao,foto_url,trilha,destaque,preco,estoque_disponivel&ativo=eq.true&order=ranking.asc.nullslast,destaque.desc,categoria.asc,nome.asc',
+  fetch(SB+'/rest/v1/produtos?select=id,sku,nome,categoria,colecao,foto_url,trilha,destaque,preco,estoque_disponivel,itens&ativo=eq.true&order=ranking.asc.nullslast,destaque.desc,categoria.asc,nome.asc',
     {headers:{apikey:KEY, Authorization:'Bearer '+KEY}})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-    .then(function(data){ produtos = data||[]; buildFilters(); render(); updateCartBadge(); })
+    .then(function(data){ produtos = (data||[]).filter(function(p){ return catPublica(p.categoria); }); buildFilters(); render(); updateCartBadge(); })
     .catch(function(e){ state.textContent='Não foi possível carregar o catálogo agora.'; console.error(e); });
 </script>
 <script defer src="assistente.js"></script>

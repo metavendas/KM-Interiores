@@ -31,8 +31,16 @@
   .icons{display:flex;gap:20px;align-items:center}.icons svg{width:19px;height:19px;stroke:var(--text);opacity:.85}
   .crumbs{padding:26px 0 0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ouro-antigo)}
   .pdp{display:grid;grid-template-columns:1.15fr 1fr;gap:56px;padding:30px 0 100px;align-items:start}
-  .gallery .main{border:1px solid var(--line);overflow:hidden;background:var(--card-bg);aspect-ratio:16/11;display:flex;align-items:center;justify-content:center}
-  .gallery .main img{width:100%;height:100%;object-fit:cover;display:block}
+  /* 26/07/2026 (item 6 do Edson): a peça inteira precisa aparecer — nada de corte. */
+  .gallery .main{border:1px solid var(--line);overflow:hidden;background:var(--card-bg);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;position:relative}
+  .gallery .main img{width:100%;height:100%;object-fit:contain;display:block}
+  .gallery .main video{width:100%;height:100%;object-fit:contain;display:block;background:#0f0c07}
+  .gallery .main iframe{width:100%;height:100%;border:0;display:block;background:#0f0c07}
+  #galeria .km-thumb{position:relative;width:66px;height:66px;border-radius:6px;cursor:pointer;border:2px solid rgba(0,0,0,.12);overflow:hidden;background:#0f0c07;flex:0 0 auto}
+  #galeria .km-thumb img{width:100%;height:100%;object-fit:contain;display:block}
+  #galeria .km-thumb.on{border-color:#c9a227}
+  #galeria .km-thumb .km-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.42);color:#F1E4C9;font-size:20px}
+  #galeria .km-thumb.km-vid-only{display:flex;align-items:center;justify-content:center;color:#CB984C;font-size:11px;letter-spacing:.08em;text-align:center;line-height:1.2}
   .gallery .ph{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:radial-gradient(80% 90% at 40% 25%,#2a2114,#0c0b09)}
   .gallery .ph .bf{position:absolute;opacity:.14;width:160px;height:160px}.gallery .ph span{position:relative;z-index:2;font-family:var(--serif);font-size:30px;color:var(--champagne)}
   .info{padding-top:6px}.info .eyebrow{color:var(--ouro-antigo)}
@@ -140,22 +148,65 @@
           h.textContent='Pelo celular, toque em "Ver na minha casa" para posicionar a peça em tamanho real no seu ambiente (Realidade Aumentada).';
           mm.parentNode.insertBefore(h, mm.nextSibling); }
       }
-      var galeria=[p.foto_url].concat((Array.isArray(p.itens)?p.itens:[]).map(function(it){return it.foto;})).filter(Boolean);
-      if(galeria.length>1){
+      // ===== Galeria com FOTOS + VÍDEOS (26/07/2026, item 6 do Edson) =====
+      // Fontes de vídeo: produtos.video_url (um por linha/vírgula), fotos_extra com extensão de vídeo
+      // e o campo "video" de cada item (variação/adicional). YouTube e Vimeo entram como player embutido.
+      function ytId(u){ var m=String(u).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/); return m?m[1]:''; }
+      function vmId(u){ var m=String(u).match(/vimeo\.com\/(?:video\/)?(\d+)/); return m?m[1]:''; }
+      function ehVideoArq(u){ return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(String(u)); }
+      function ehVideo(u){ return !!(ytId(u)||vmId(u)||ehVideoArq(u)); }
+      function splitLinks(v){ return String(v||'').split(/[\n,;]+/).map(function(s){return s.trim();}).filter(Boolean); }
+
+      var midias=[];
+      function addMidia(u, tipo){
+        u=String(u||'').trim(); if(!u) return;
+        for(var i=0;i<midias.length;i++){ if(midias[i].u===u) return; }
+        midias.push({u:u, tipo:tipo||(ehVideo(u)?'video':'img')});
+      }
+      if(p.foto_url) addMidia(p.foto_url,'img');
+      (Array.isArray(p.fotos_extra)?p.fotos_extra:[]).forEach(function(u){ addMidia(u); });
+      (Array.isArray(p.itens)?p.itens:[]).forEach(function(it){ if(it&&it.foto) addMidia(it.foto); if(it&&it.video) addMidia(it.video,'video'); });
+      splitLinks(p.video_url).forEach(function(u){ addMidia(u,'video'); });
+
+      function mainVideoHTML(u){
+        var y=ytId(u); if(y) return '<iframe src="https://www.youtube.com/embed/'+esc(y)+'?rel=0" title="'+esc(p.nome)+'" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;fullscreen" allowfullscreen loading="lazy"></iframe>';
+        var v=vmId(u); if(v) return '<iframe src="https://player.vimeo.com/video/'+esc(v)+'" title="'+esc(p.nome)+'" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen loading="lazy"></iframe>';
+        return '<video src="'+esc(u)+'" controls playsinline preload="metadata"'+(p.foto_url?(' poster="'+esc(p.foto_url)+'"'):'')+'></video>';
+      }
+      function thumbHTML(m,i,ativo){
+        var cls='km-thumb'+(ativo?' on':'');
+        if(m.tipo==='video'){
+          var y=ytId(m.u);
+          var capa=y?('https://img.youtube.com/vi/'+y+'/mqdefault.jpg'):(p.foto_url||'');
+          if(capa) return '<div class="'+cls+'" data-i="'+i+'" title="Vídeo"><img src="'+esc(capa)+'" alt="Vídeo"><span class="km-play">▶</span></div>';
+          return '<div class="'+cls+' km-vid-only" data-i="'+i+'" title="Vídeo">▶ vídeo</div>';
+        }
+        return '<div class="'+cls+'" data-i="'+i+'" title="Foto"><img src="'+esc(m.u)+'" alt="'+esc(p.nome)+'"></div>';
+      }
+      if(midias.length>1 || (midias.length===1 && midias[0].tipo==='video')){
         var gel=document.getElementById('galeria');
-        if(!gel){ gel=document.createElement('div'); gel.id='galeria'; gel.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap'; var mm=document.getElementById('main'); if(mm&&mm.parentNode) mm.parentNode.insertBefore(gel, mm.nextSibling); }
-        gel.innerHTML=galeria.map(function(u,i){ return '<img src="'+esc(u)+'" data-u="'+esc(u)+'" style="width:62px;height:62px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid '+(i===0?'#c9a227':'rgba(0,0,0,.12)')+'">'; }).join('');
-        Array.prototype.forEach.call(gel.querySelectorAll('img'),function(t){ t.addEventListener('click',function(){
-          document.getElementById('main').innerHTML='<img src="'+esc(t.getAttribute('data-u'))+'" alt="'+esc(p.nome)+'">';
-          Array.prototype.forEach.call(gel.querySelectorAll('img'),function(x){x.style.borderColor='rgba(0,0,0,.12)';}); t.style.borderColor='#c9a227';
-        }); });
+        if(!gel){ gel=document.createElement('div'); gel.id='galeria'; gel.style.cssText='display:flex;gap:8px;margin-top:10px;flex-wrap:wrap'; var mm2=document.getElementById('main'); if(mm2&&mm2.parentNode) mm2.parentNode.insertBefore(gel, mm2.nextSibling); }
+        gel.innerHTML=midias.map(function(m,i){ return thumbHTML(m,i,(i===0 && !modelUrl)); }).join('');
+        gel.addEventListener('click', function(e){
+          var t=e.target&&e.target.closest?e.target.closest('.km-thumb'):null; if(!t) return;
+          var m=midias[Number(t.getAttribute('data-i'))]; if(!m) return;
+          document.getElementById('main').innerHTML = (m.tipo==='video') ? mainVideoHTML(m.u) : ('<img src="'+esc(m.u)+'" alt="'+esc(p.nome)+'">');
+          Array.prototype.forEach.call(gel.querySelectorAll('.km-thumb'),function(x){ x.classList.remove('on'); });
+          t.classList.add('on');
+        });
       }
       document.getElementById('ey').textContent = 'Coleção '+(p.colecao||p.categoria)+' · Autoral';
       document.getElementById('nome').textContent = p.nome;
       document.getElementById('crumbs').textContent = 'Início · Coleções · '+p.categoria+' · '+(p.colecao||p.nome);
       document.title = p.nome+' · KM Interiores';
-      var buyable = (Number(p.preco)>0) && (Number(p.estoque_disponivel)>0);
-      document.getElementById('price').textContent = buyable ? nl(p.preco) : 'Sob consulta';
+      // 26/07/2026: peças cujo preço vive nas VERSÕES (preco base nulo) também são compráveis —
+      // antes apareciam como "Sob consulta" mesmo com "Tamanho 2.20 · R$ 2.999" listado logo abaixo.
+      var _itsAll = Array.isArray(p.itens) ? p.itens : [];
+      var _varsOk = _itsAll.filter(function(x){ return x && x.tipo==='variacao' && String(x.nome||'').trim()!=='' && (Number(x.valor)||0)>0; });
+      var _precoMin = _varsOk.length ? Math.min.apply(null, _varsOk.map(function(x){ return Number(x.valor)||0; })) : 0;
+      var _temEstoque = (Number(p.estoque_disponivel)>0);
+      var buyable = ((Number(p.preco)>0) || _precoMin>0) && _temEstoque;
+      document.getElementById('price').textContent = buyable ? nl(Number(p.preco)>0 ? p.preco : _precoMin) : 'Sob consulta';
       document.getElementById('pnote').textContent = buyable ? 'Pronta-entrega' : 'Curadoria personalizada';
       document.getElementById('cta1').textContent = buyable ? 'Adicionar ao carrinho' : 'Solicitar curadoria';
       document.getElementById('cta1').onclick = function(){
@@ -189,17 +240,22 @@
         } else { if(swLabel) swLabel.style.display='none'; swBox.style.display='none'; }
       }
       var its=Array.isArray(p.itens)?p.itens:[];
-      var vars=its.filter(function(x){return x.tipo==='variacao';}), adis=its.filter(function(x){return x.tipo==='adicional';});
+      // 26/07/2026 (item 7 do Edson): fora a opção "Padrão · R$ 0" e as variações vazias/zeradas
+      // que vinham do cadastro (ex.: "Versão · R$ 0"). A 1ª versão real já vem marcada.
+      function adicValido(x){ return x && x.tipo==='adicional' && String(x.nome||'').trim()!=='' && (Number(x.valor)||0)>0; }
+      var vars=_varsOk, adis=its.filter(adicValido);
       var optBox=null;
       if(vars.length||adis.length){
         optBox=document.createElement('div'); optBox.style.cssText='margin:18px 0;border-top:1px solid var(--line);padding-top:18px';
         var oh='';
         if(vars.length){ oh+='<div class="opt-label">Versão</div><div style="display:flex;flex-direction:column;gap:8px">';
-          oh+='<label style="font-size:14px;color:var(--text);cursor:pointer"><input type="radio" name="pdp_var" data-valor="'+precoBase+'" checked> Padrão · R$ '+precoBase.toLocaleString('pt-BR')+'</label>';
-          vars.forEach(function(a){ var v=Number(a.valor)||0; oh+='<label style="font-size:14px;color:var(--text);cursor:pointer"><input type="radio" name="pdp_var" data-valor="'+v+'"> '+esc(a.nome||'Versão')+' · R$ '+v.toLocaleString('pt-BR')+'</label>'; });
+          // Só mostra a opção do preço base quando ele existe de verdade (> 0) — e com o nome da peça, nunca "Padrão".
+          if(precoBase>0){ oh+='<label style="font-size:14px;color:var(--text);cursor:pointer"><input type="radio" name="pdp_var" data-valor="'+precoBase+'" checked> '+esc(p.nome||'Versão única')+' · R$ '+precoBase.toLocaleString('pt-BR')+'</label>'; }
+          vars.forEach(function(a,i){ var v=Number(a.valor)||0; var marcar=(precoBase<=0 && i===0)?' checked':'';
+            oh+='<label style="font-size:14px;color:var(--text);cursor:pointer"><input type="radio" name="pdp_var" data-valor="'+v+'"'+marcar+'> '+esc(a.nome)+' · R$ '+v.toLocaleString('pt-BR')+'</label>'; });
           oh+='</div>'; }
         if(adis.length){ oh+='<div class="opt-label" style="margin-top:16px">Adicionais</div><div style="display:flex;flex-direction:column;gap:8px">';
-          adis.forEach(function(a){ var v=Number(a.valor)||0; oh+='<label style="font-size:14px;color:var(--text);cursor:pointer"><input type="checkbox" class="pdp-adic" data-valor="'+v+'"> '+esc(a.nome||'Adicional')+' · + R$ '+v.toLocaleString('pt-BR')+'</label>'; });
+          adis.forEach(function(a){ var v=Number(a.valor)||0; oh+='<label style="font-size:14px;color:var(--text);cursor:pointer"><input type="checkbox" class="pdp-adic" data-valor="'+v+'"> '+esc(a.nome)+' · + R$ '+v.toLocaleString('pt-BR')+'</label>'; });
           oh+='</div>'; }
         optBox.innerHTML=oh;
         var pr=document.querySelector('.price-row'); if(pr&&pr.parentNode) pr.parentNode.insertBefore(optBox, pr.nextSibling);
