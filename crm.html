@@ -596,7 +596,7 @@
         <div class="panel">
           <div class="modbar"><h3>＋ Lançar venda</h3><span class="modmsg" id="msg-venda"></span></div>
           <div class="modform" id="form-venda">
-            <div class="f"><label>Cliente</label><select data-k="cliente_id" id="venda_cliente"><option value="">— selecione —</option></select></div>
+            <div class="f"><label>Cliente *</label><select data-k="cliente_id" id="venda_cliente"><option value="">— selecione —</option></select></div>
             <div class="f"><label>Vendedor *</label><select data-k="vendedor_id" id="venda_vendedor"><option value="">— selecione —</option></select></div>
             <div class="f"><label>Pilar / linha *</label><select data-k="pilar" id="venda_pilar">
               <option value="p1">Pilar 1 — Venda de Móveis</option>
@@ -2883,7 +2883,9 @@
     if(!rows.length){ tb.innerHTML='<tr><td colspan="12" style="color:var(--muted);padding:18px">'+(PED_CACHE.length?'Nenhum pedido no período selecionado.':'Nenhuma venda ainda. Lance a primeira no formulário acima.')+'</td></tr>'; return; }
     tb.innerHTML=rows.map(function(p){
       var dt=p.data_venda?new Date(p.data_venda+'T00:00:00').toLocaleDateString('pt-BR'):(p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'');
-      var cli=(p.clientes&&p.clientes.nome)?p.clientes.nome:'—';
+      // 27/07/2026: pedido órfão (histórico) fica VISÍVEL em vermelho para ser vinculado — não some como '—'
+      var cli=(p.clientes&&p.clientes.nome)?esc(p.clientes.nome)
+        :'<span style="color:#e5534b;font-weight:700" title="Pedido gravado sem cliente antes da trava de 27/07/2026. Vincule o cliente pela ficha do pedido.">⚠ SEM CLIENTE</span>';
       var val='R$ '+Number(p.valor||0).toLocaleString('pt-BR');
       var frt=Number(p.valor_frete||0)>0?('R$ '+Number(p.valor_frete).toLocaleString('pt-BR')):'—';
       var com=Number(p.comissao_valor||0)>0?('R$ '+Number(p.comissao_valor).toLocaleString('pt-BR')):'—';
@@ -2899,7 +2901,7 @@
       var acoes=canc
         ? '<button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>'
         : btnNF+'<button class="badge" style="cursor:pointer;margin-right:4px" onclick="acaoVenda(\''+p.id+'\',\'cancelado\')">Cancelar</button><button class="badge" style="cursor:pointer" onclick="acaoVenda(\''+p.id+'\',\'excluido\')">Excluir</button>';
-      return '<tr'+(canc?' style="opacity:.55"':'')+'><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+esc(cli)+'</td><td>'+esc(pil)+'</td><td>'+esc(p.canal||'')+'</td><td>'+esc(vendNome(p.vendedor_id))+'</td><td style="color:var(--accent)">'+val+'</td><td style="color:var(--muted)">'+frt+'</td><td style="color:var(--ouro)">'+com+'</td><td>'+pedEntregaCell(p)+'</td><td>'+stHtml+'</td><td>'+acoes+'</td></tr>';
+      return '<tr'+(canc?' style="opacity:.55"':'')+'><td style="color:var(--text)">'+esc(p.numero||'')+'</td><td>'+esc(dt)+'</td><td>'+cli+'</td><td>'+esc(pil)+'</td><td>'+esc(p.canal||'')+'</td><td>'+esc(vendNome(p.vendedor_id))+'</td><td style="color:var(--accent)">'+val+'</td><td style="color:var(--muted)">'+frt+'</td><td style="color:var(--ouro)">'+com+'</td><td>'+pedEntregaCell(p)+'</td><td>'+stHtml+'</td><td>'+acoes+'</td></tr>';
     }).join('');
   }
   function loadFechamento(){
@@ -3127,6 +3129,18 @@
         }
         try{ alert(texto); }catch(e){}
       }
+      // 27/07/2026 — PEDIDO NUNCA MAIS SEM CLIENTE.
+      // Causa-raiz: o campo virou um combo com datalist; se o texto digitado não casava
+      // exatamente com um cliente, o select ficava vazio EM SILÊNCIO e a venda gravava órfã.
+      // Agora bloqueia aqui, avisa no campo certo e oferece o cadastro na hora.
+      var _cli=vendaG('cliente_id');
+      if(!_cli){
+        var _txt=(($('km-vcli')||{}).value||'').trim();
+        if(_txt){ vendaAviso('km-vcli','⚠ O cliente "'+_txt+'" não está cadastrado.\n\nEscolha um nome da lista ou clique em "+ Cadastrar cliente" para criá-lo agora.'); }
+        else { vendaAviso('km-vcli','⚠ Selecione o CLIENTE antes de registrar a venda.\n\nSe ele ainda não existe, clique em "+ Cadastrar cliente".'); }
+        try{ if(window.kmVendaAbrirCadastroCliente) window.kmVendaAbrirCadastroCliente(_txt); }catch(e){}
+        return;
+      }
       if(!vendedor){ vendaAviso('venda_vendedor','⚠ Selecione o VENDEDOR antes de registrar a venda.'); return; }
       if(!itens.length || total<=0){ vendaAviso('venda_itens','⚠ Adicione ao menos um produto com valor.'); return; }
       btn.disabled=true; var old=btn.textContent; btn.textContent='Registrando…';
@@ -3153,6 +3167,11 @@
           var dR=$('venda_desc_reais'), dP=$('venda_desc_pct'); if(dR){dR.value='';dR.disabled=false;} if(dP){dP.value='';dP.disabled=false;}
           $('venda_preview').innerHTML='Adicione ao menos um produto com valor para ver a estimativa de comissão.';
           loadPedidos(); loadFechamento(); if(typeof loadForecast==='function'){try{loadForecast();}catch(e){}} setTimeout(function(){ $('msg-venda').textContent=''; },5000); }
+        else if(j && j.erro==='cliente_obrigatorio'){
+          // rede de segurança: o servidor recusou a venda sem cliente
+          vendaAviso('km-vcli', '⚠ '+(j.mensagem||'Selecione o CLIENTE antes de registrar a venda.'));
+          try{ if(window.kmVendaAbrirCadastroCliente) window.kmVendaAbrirCadastroCliente((($('km-vcli')||{}).value||'').trim()); }catch(e){}
+        }
         else { $('msg-venda').textContent='Não foi possível: '+((j&&j.erro)||'erro'); } })
       .catch(function(){ btn.disabled=false; btn.textContent=old; $('msg-venda').textContent='Erro de conexão.'; });
     });
@@ -6836,9 +6855,38 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     dl.innerHTML=o;
     if(inp && !inp.value && sel.selectedIndex>0){ inp.value=sel.options[sel.selectedIndex].text; }
   }
-  function cliPick(){ var sel=el('venda_cliente'), inp=el('km-vcli'); if(!sel||!inp) return; var t=(inp.value||'').trim().toLowerCase(); var v='';
-    for(var i=0;i<sel.options.length;i++){ if((sel.options[i].text||'').trim().toLowerCase()===t){ v=sel.options[i].value; break; } }
-    sel.value=v; try{ sel.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){} }
+  // 27/07/2026 — casamento TOLERANTE (sem acento, sem caixa, sem espaço duplo) + prefixo único.
+  // Antes exigia igualdade exata: "maria  silva" ou "Maria Silva " não casavam e o cliente
+  // se perdia em silêncio. Agora, além de casar melhor, o campo AVISA quando não encontra.
+  function cliNorm(s){ var t=String(s==null?'':s); try{ t=t.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){}
+    return t.toLowerCase().replace(/\s+/g,' ').trim(); }
+  function cliMarca(ok, achou){
+    var inp=el('km-vcli'), av=el('km-vcli-aviso'); if(!inp) return;
+    inp.style.borderColor = ok ? '' : (inp.value.trim() ? '#e5893b' : '');
+    if(av){
+      if(ok && achou){ av.innerHTML='<span style="color:#7fbf6a">✓ '+cliEsc(achou)+'</span>'; }
+      else if(inp.value.trim()){ av.innerHTML='<span style="color:#e5893b">Cliente não encontrado — escolha da lista ou cadastre</span>'; }
+      else { av.innerHTML=''; }
+    }
+  }
+  function cliPick(){
+    var sel=el('venda_cliente'), inp=el('km-vcli'); if(!sel||!inp) return;
+    var t=cliNorm(inp.value), v='', nome='';
+    if(t){
+      var pref=[], i, tx;
+      for(i=0;i<sel.options.length;i++){
+        if(!sel.options[i].value) continue;
+        tx=cliNorm(sel.options[i].text);
+        if(tx===t){ v=sel.options[i].value; nome=sel.options[i].text; break; }
+        if(tx.indexOf(t)===0) pref.push(sel.options[i]);
+      }
+      // sem match exato: aceita só quando o prefixo digitado leva a UM único cliente
+      if(!v && pref.length===1){ v=pref[0].value; nome=pref[0].text; }
+    }
+    sel.value=v;
+    cliMarca(!!v, nome);
+    try{ sel.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
+  }
   function cliRebuild(){ var sel=el('venda_cliente'); if(!sel) return;
     // se o select ainda está vazio, carrega os clientes e então preenche a lista
     if(sel.options.length<=1 && typeof window.ensureClientes==='function'){
@@ -6853,14 +6901,82 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
       inp.setAttribute('autocomplete','off'); inp.placeholder='Digite o nome do cliente…';
       var dl=document.createElement('datalist'); dl.id='km-vcli-dl';
       sel.parentNode.insertBefore(inp, sel); sel.parentNode.insertBefore(dl, sel);
+      // 27/07/2026: linha de feedback + cadastro na hora (sem isso o vendedor trava e a venda sai órfã)
+      var bar=document.createElement('div'); bar.id='km-vcli-bar';
+      bar.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:4px;font-size:11px;min-height:16px';
+      bar.innerHTML='<span id="km-vcli-aviso"></span>'
+        +'<a id="km-vcli-novo" style="color:var(--ouro);cursor:pointer;text-decoration:underline;white-space:nowrap">+ Cadastrar cliente</a>';
+      sel.parentNode.insertBefore(bar, sel);
       inp.addEventListener('input', cliPick);
       inp.addEventListener('change', cliPick);
       inp.addEventListener('focus', cliRebuild);   // reconstrói a lista ao focar (garante que enche)
       inp.addEventListener('pointerdown', cliRebuild);
+      var lnk=el('km-vcli-novo');
+      if(lnk) lnk.addEventListener('click', function(){ kmVendaAbrirCadastroCliente((inp.value||'').trim()); });
       var obs=new MutationObserver(cliSyncDL); obs.observe(sel,{childList:true}); sel.__kmObs=obs;
     }
     cliRebuild();
   }
+
+  /* ===== Cadastro rápido de cliente, sem sair da tela de venda (27/07/2026) ===== */
+  function kmVendaAbrirCadastroCliente(nomeSugerido){
+    var m=el('km-cli-novo');
+    if(!m){
+      m=document.createElement('div'); m.id='km-cli-novo';
+      m.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:10000;align-items:center;justify-content:center';
+      m.innerHTML='<div class="km-box" style="max-width:420px"><div class="km-head"><b>Cadastrar cliente</b><span class="km-x" id="kcn-x">✕</span></div>'
+        +'<div class="km-body">'
+        +'<label class="km-lab">Nome *</label><input id="kcn-nome" placeholder="Nome completo do cliente">'
+        +'<div class="km-grid" style="margin-top:6px"><div><label class="km-lab">Telefone / WhatsApp</label><input id="kcn-tel" inputmode="tel" placeholder="(32) 9 9999-9999"></div>'
+        +'<div><label class="km-lab">Cidade</label><input id="kcn-cidade" placeholder="Ubá"></div></div>'
+        +'<label class="km-lab" style="margin-top:6px">E-mail (opcional)</label><input id="kcn-email" inputmode="email">'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:8px">O cliente é criado e já entra selecionado na venda. Nada é apagado nem sobrescrito.</div>'
+        +'<div class="km-ft"><button class="km-ok" id="kcn-save">Cadastrar e usar</button><button class="km-cancel" id="kcn-cancel">Cancelar</button><span class="km-msg" id="kcn-msg"></span></div>'
+        +'</div></div>';
+      document.body.appendChild(m);
+      var fechar=function(){ m.style.display='none'; };
+      el('kcn-x').onclick=fechar; el('kcn-cancel').onclick=fechar;
+      m.addEventListener('click', function(e){ if(e.target===m) fechar(); });
+      el('kcn-save').onclick=kmVendaSalvarCliente;
+      el('kcn-nome').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); kmVendaSalvarCliente(); } });
+    }
+    el('kcn-nome').value=nomeSugerido||''; el('kcn-msg').textContent='';
+    ['kcn-tel','kcn-cidade','kcn-email'].forEach(function(id){ if(el(id)) el(id).value=''; });
+    m.style.display='flex';
+    setTimeout(function(){ try{ el('kcn-nome').focus(); }catch(e){} }, 60);
+  }
+  function kmVendaSalvarCliente(){
+    var nome=(el('kcn-nome').value||'').trim();
+    if(!nome){ el('kcn-msg').textContent='Informe o nome.'; el('kcn-nome').focus(); return; }
+    var btn=el('kcn-save'); btn.disabled=true; var old=btn.textContent; btn.textContent='Cadastrando…';
+    el('kcn-msg').textContent='';
+    var body={ nome:nome, telefone:(el('kcn-tel').value||'').trim()||null,
+               cidade:(el('kcn-cidade').value||'').trim()||null,
+               email:(el('kcn-email').value||'').trim()||null, origem:'crm-venda' };
+    fetch(SB+'/rest/v1/clientes',{ method:'POST',
+      headers:Object.assign(H(),{'Content-Type':'application/json',Prefer:'return=representation'}),
+      body:JSON.stringify(body) })
+    .then(function(r){ return r.ok ? r.json() : r.text().then(function(t){ throw new Error(t.slice(0,120)); }); })
+    .then(function(rows){
+      var c=(rows&&rows[0])||null; if(!c||!c.id) throw new Error('resposta inesperada');
+      btn.disabled=false; btn.textContent=old;
+      // injeta no select, seleciona e reflete no combo — sem precisar recarregar a página
+      var sel=el('venda_cliente');
+      if(sel){
+        var o=document.createElement('option'); o.value=c.id; o.text=c.nome; sel.appendChild(o); sel.value=c.id;
+        try{ sel.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
+      }
+      var inp=el('km-vcli'); if(inp) inp.value=c.nome;
+      cliSyncDL(); cliMarca(true, c.nome);
+      try{ if(window.kmClientesCache) window.kmClientesCache=null; }catch(e){}
+      el('km-cli-novo').style.display='none';
+      var mv=el('msg-venda'); if(mv){ mv.textContent='Cliente '+c.nome+' cadastrado e selecionado ✓'; mv.style.color='var(--ouro)'; mv.style.fontWeight=''; mv.style.fontSize='';
+        setTimeout(function(){ if(el('msg-venda')&&/cadastrado e selecionado/.test(el('msg-venda').textContent)) el('msg-venda').textContent=''; },4000); }
+    })
+    .catch(function(e){ btn.disabled=false; btn.textContent=old;
+      el('kcn-msg').textContent='Não foi possível cadastrar: '+(e.message||'erro'); console.error('cadastro cliente:', e); });
+  }
+  window.kmVendaAbrirCadastroCliente=kmVendaAbrirCadastroCliente;
 
   /* ===================== (2)+(5) FRETE NO TOTAL + PERSISTÊNCIA ===================== */
   function ensureFreteLine(){
