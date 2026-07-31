@@ -79,8 +79,29 @@
   .ar-hint{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ouro-antigo);margin-top:10px;text-align:center;line-height:1.5}
 </style>
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
-</head>
+<!-- Meta Pixel Code — KM Interiores — Tráfego Pago Meta Ads 2026-07-29 -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1546077119714760');
+fbq('track', 'PageView');
+</script>
+<!-- End Meta Pixel Code -->
+
+
+
 <body>
+
+<!-- Meta Pixel (noscript fallback) -->
+<noscript><img height="1" width="1" style="display:none" alt=""
+src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
+></noscript>
 <svg width="0" height="0" style="position:absolute"><defs>
   <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F1E4C9"/><stop offset="40%" stop-color="#CB984C"/><stop offset="100%" stop-color="#9D7D31"/></linearGradient>
   <symbol id="bf" viewBox="0 0 200 200"><g fill="none" stroke="url(#gold)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
@@ -108,7 +129,7 @@
     <p class="desc" id="desc"></p>
     <div class="opt-label">Acabamento</div>
     <div class="swatches"><div class="sw sw1 active" title="Marrom Madeira"></div><div class="sw sw2" title="Preto Ébano"></div><div class="sw sw3" title="Ouro Antigo"></div><div class="sw sw4" title="Nogueira"></div></div>
-    <div class="cta-row"><button class="btn btn-primary" id="cta1">Solicitar curadoria</button><a class="btn btn-ghost" href="catalogo.html">Voltar ao catálogo</a></div>
+    <div class="cta-row"><button class="btn btn-primary" id="cta1">Solicitar curadoria</button><button class="btn btn-ghost" id="ctaWa" data-km-wa data-wa-assunto="Gostaria de falar com um especialista.">✆ Falar no WhatsApp</button><a class="btn btn-ghost" href="catalogo.html">Voltar ao catálogo</a></div>
     <div class="assur"><div>✦ Entrega assegurada</div><div>✦ Garantia KM Care</div><div>✦ Sob medida</div></div>
     <div class="specs"><h3>Ficha técnica</h3><table id="specs"></table></div>
   </div>
@@ -279,6 +300,15 @@
         localStorage.setItem('km_cart',JSON.stringify(cart));
         location.href='carrinho.html';
       };
+      // 26/07/2026: botão de WhatsApp já sai com a peça, o SKU, o preço e a ORIGEM do anúncio
+      // (km-track.js monta a mensagem). É o que liga o tráfego pago ao lead no CRM.
+      var _wa=document.getElementById('ctaWa');
+      if(_wa){
+        _wa.setAttribute('data-wa-produto', p.nome||'');
+        _wa.setAttribute('data-wa-sku', p.sku||'');
+        _wa.setAttribute('data-wa-preco', (document.getElementById('price')||{}).textContent||'');
+        _wa.removeAttribute('data-wa-assunto');
+      }
       document.getElementById('state').style.display='none';
       document.getElementById('pdp').style.display='grid';
     })
@@ -287,5 +317,6 @@
 </script>
 <script defer src="assistente.js"></script>
 <script defer src="busca.js"></script>
+<script defer src="km-track.js"></script>
 </body>
 </html>
