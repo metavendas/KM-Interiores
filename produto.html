@@ -146,7 +146,7 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
   Array.prototype.forEach.call(document.querySelectorAll('.sw'),function(s){s.addEventListener('click',function(){Array.prototype.forEach.call(document.querySelectorAll('.sw'),function(x){x.classList.remove('active');});s.classList.add('active');});});
   function nl(v){ try{ return 'R$ '+Number(v).toLocaleString('pt-BR'); }catch(e){ return 'R$ '+v; } }
   sbSelect('produtos?select=*&sku=eq.'+encodeURIComponent(sku)+'&limit=1')
-    .then(function(arr){ if(arr&&arr[0]) return arr[0]; return sbSelect('produtos?select=*&destaque=eq.true&limit=1').then(function(a){return a[0];}); })
+    .then(function(arr){ if(arr&&arr[0]) return arr[0]; return sbSelect('produtos?select=*&destaque=eq.true&publicar_site=is.true&limit=1').then(function(a){return a[0];}); })
     .then(function(p){
       if(!p){ document.getElementById('state').textContent='Peça não encontrada.'; return; }
       var DEMO3D='https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenChair/glTF-Binary/SheenChair.glb';
@@ -318,5 +318,7 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
 <script defer src="assistente.js"></script>
 <script defer src="busca.js"></script>
 <script defer src="km-track.js"></script>
+<!-- 03/08/2026 — barra social da PDP (compartilhar/curtir/favoritar/comentarios). Arquivo proprio para nao se perder em reescrita da pagina. -->
+<script defer src="km-social.js"></script>
 </body>
 </html>

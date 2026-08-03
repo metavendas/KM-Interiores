@@ -7959,5 +7959,558 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 </script>
 <!-- ===== FIM DO PATCH ABA ATENDIMENTO AO VIVO KM (crm.html) 2026-07-24 ===== -->
 
+<!-- ============================================================================
+     KM Interiores · CRM · PATCH 2026-07-31 — 12 CORREÇÕES DO EDSON
+     (1)  Clientes: caixa de busca preta-no-preto no tema claro → legível
+     (2)  Pedidos: campo DATA DE ENTREGA no lançamento da venda
+     (3)  Pedidos & vendas recentes: filtro por data legível (caixa + opções)
+     (4)  Produtos: chave "PUBLICAR NO SITE" (produto vai ou não para a loja)
+     (5)  Pedidos recentes: nome do cliente sempre visível (+ vincular órfão)
+     (6)  Lançar venda: TODOS os clientes cadastrados aparecem (lista rolável)
+     (7)  Pedidos: botão EXCLUIR destacado em vermelho
+     (8)  Pedidos recentes: letra clara sobre o fundo escuro
+     (9)  Fluxo de caixa: EDITAR SALDO passa a gravar (correção no banco + aqui)
+     (10) Contas a receber: valor bate com o pedido (produtos + FRETE)
+     (11) Recebimentos: EXTRATO POR CLIENTE com todas as baixas parciais
+     (12) Produtos: vídeo liberado em TODOS os produtos (campo + botão 🎬 por linha)
+     Aditivo e reversível: remover este bloco desfaz tudo. Nada é apagado.
+     Governança: IA propõe → Edson aprova.
+     ============================================================================ -->
+<style id="km-fix-2026-07-31">
+  /* ---------- (1)(3) contraste: caixas escuras fixas dentro do tema claro ---------- */
+  html.km-light input[id^="search-"],
+  html.km-light #ped_filtro_data,
+  html.km-light #prodFind,
+  html.km-light #km-tar-search,
+  html.km-light #km-conc-search,
+  html.km-light #km-vcli,
+  html.km-light #kmExtBusca{
+    background:#F7F1E1 !important; color:#080807 !important;
+    border:1px solid rgba(8,8,7,.30) !important;
+  }
+  html.km-light input[id^="search-"]::placeholder,
+  html.km-light #prodFind::placeholder,
+  html.km-light #km-vcli::placeholder,
+  html.km-light #kmExtBusca::placeholder{ color:rgba(8,8,7,.50) !important; }
+  /* opções de qualquer <select> legíveis nos dois temas */
+  select option{ background:#221b10; color:#F1E9D2; }
+  html.km-light select option{ background:#F7F1E1 !important; color:#080807 !important; }
+  html.km-light #ped_filtro_data option{ background:#F7F1E1 !important; color:#080807 !important; }
+
+  /* ---------- (8) Pedidos & vendas recentes: texto legível ---------- */
+  #pedidosBody td{ color:var(--text) !important; }
+  #pedidosBody td .badge{ color:#F1E9D2; }
+  html.km-light #pedidosBody td{ color:#241a09 !important; }
+  html.km-light #pedidosBody td .badge{ color:#080807; }
+  #pedidosBody td:nth-child(3){ font-weight:600; }
+
+  /* ---------- (7) botão EXCLUIR em vermelho ---------- */
+  #pedidosBody button.km-del{
+    border-color:rgba(197,48,48,.65) !important; color:#c53030 !important;
+    background:transparent !important; cursor:pointer;
+  }
+  #pedidosBody button.km-del:hover{ background:rgba(197,48,48,.10) !important; }
+
+  /* ---------- (6) combo de cliente com lista rolável ---------- */
+  .km-combo-wrap{ position:relative; }
+  .km-combo-list{
+    display:none; position:absolute; left:0; right:0; top:100%; z-index:400;
+    max-height:290px; overflow-y:auto; background:var(--bg2,#15130f);
+    border:1px solid var(--line); border-radius:0 0 5px 5px; box-shadow:0 18px 40px rgba(0,0,0,.45);
+  }
+  html.km-light .km-combo-list{ background:#F7F1E1; box-shadow:0 18px 40px rgba(8,8,7,.18); }
+  .km-combo-list .it{ padding:9px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--line); color:var(--text); }
+  .km-combo-list .it small{ display:block; font-size:11px; color:var(--muted); margin-top:2px; }
+  .km-combo-list .it:hover, .km-combo-list .it.on{ background:rgba(203,152,76,.14); }
+  html.km-light .km-combo-list .it:hover, html.km-light .km-combo-list .it.on{ background:rgba(8,8,7,.07); }
+  .km-combo-list .vazio{ padding:12px; font-size:12px; color:var(--muted); }
+  .km-combo-cnt{ font-size:11px; color:var(--ouro); margin-top:3px; display:block; }
+
+  /* ---------- (4)(12) chips na lista de produtos ---------- */
+  button.km-pub, button.km-vid{
+    background:transparent; border:1px solid var(--line); border-radius:4px;
+    padding:4px 9px; font-size:11px; cursor:pointer; margin-right:5px; white-space:nowrap;
+  }
+  button.km-pub.on{ border-color:#2f7d4f; color:#2f7d4f; }
+  button.km-pub.off{ border-color:#c53030; color:#c53030; }
+  button.km-vid.on{ border-color:#CB984C; color:#CB984C; }
+  button.km-vid.off{ border-color:var(--line); color:var(--muted); }
+
+  /* ---------- (11) extrato de recebimentos ---------- */
+  #kmExtrato .cli{ font-size:14px; font-weight:600; color:var(--accent); margin:14px 0 2px; }
+  html.km-light #kmExtrato .cli{ color:#080807; }
+  #kmExtrato table{ width:100%; border-collapse:collapse; }
+  #kmExtrato .bx td{ font-size:12px; color:var(--muted); padding:6px 20px; }
+  #kmExtrato .bx td:first-child{ padding-left:38px; }
+  #kmExtrato tr.tit td{ color:var(--text); }
+  html.km-light #kmExtrato tr.tit td{ color:#241a09; }
+  #kmExtrato .quit{ color:#2f7d4f; }
+  #kmExtrato .aberto{ color:#c9862f; }
+</style>
+
+<script id="km-fix-2026-07-31-js">
+(function(){
+  "use strict";
+  if(window.__kmFix20260731) return; window.__kmFix20260731=true;
+
+  var SB=window.SB||'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  var KEY=window.KEY||'sb_publishable_zhEVk-8dxOCc8Hq5BuIZkA_fR_8gbOE';
+  var TOKKEY=window.TOKKEY||'km_crm_token';
+  function tok(){ try{ return localStorage.getItem(TOKKEY); }catch(e){ return null; } }
+  function H(extra){ var h={apikey:KEY,Authorization:'Bearer '+tok()}; if(extra){ for(var k in extra) h[k]=extra[k]; } return h; }
+  function el(id){ return document.getElementById(id); }
+  function esc(s){ if(window.esc) return window.esc(s);
+    return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function money(v){ if(window.moneyBR) return window.moneyBR(v);
+    return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function dbr(d){ if(!d) return '—'; var s=String(d).slice(0,10); return s.split('-').reverse().join('/'); }
+  function norm(s){ var t=String(s==null?'':s); try{ t=t.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){}
+    return t.toLowerCase().replace(/\s+/g,' ').trim(); }
+  function get(path){ return fetch(SB+'/rest/v1/'+path,{headers:H()}).then(function(r){ return r.ok?r.json():[]; }); }
+  function patch(path, body){
+    return fetch(SB+'/rest/v1/'+path,{method:'PATCH',
+      headers:H({'Content-Type':'application/json',Prefer:'return=minimal'}), body:JSON.stringify(body)});
+  }
+  function rpc(name, body){
+    return fetch(SB+'/rest/v1/rpc/'+name,{method:'POST',
+      headers:H({'Content-Type':'application/json'}), body:JSON.stringify(body||{})}).then(function(r){ return r.json(); });
+  }
+
+  /* =========================================================================
+     (2) DATA DE ENTREGA no lançamento da venda  +  frete na própria RPC
+     A RPC registrar_venda já aceita data_entrega e valor_frete. Aqui o campo é
+     criado e os dois valores entram no corpo da chamada, sem tocar no código antigo.
+     ========================================================================= */
+  function ensureCampoEntrega(){
+    var ref=el('venda_data'); if(!ref) return;
+    if(el('venda_data_entrega')) return;
+    var wrapRef=ref.closest?ref.closest('.f'):ref.parentNode;
+    if(!wrapRef||!wrapRef.parentNode) return;
+    var d=document.createElement('div'); d.className='f';
+    d.innerHTML='<label>Data de entrega (prometida ao cliente)</label>'
+      +'<input id="venda_data_entrega" data-k="data_entrega" type="date" '
+      +'title="Data combinada de entrega. Vai para o pedido e para a Ordem de Serviço.">'
+      +'<span style="display:block;font-size:11px;color:var(--muted);margin-top:4px">'
+      +'Opcional. Fica gravada no pedido e aparece na agenda de entregas.</span>';
+    wrapRef.parentNode.insertBefore(d, wrapRef.nextSibling);
+  }
+
+  // interceptador único de fetch: injeta data_entrega/valor_frete na venda
+  // e publicar_site no cadastro de produto — sem reescrever as funções originais.
+  (function(){
+    if(window.__kmFetchWrap31) return; window.__kmFetchWrap31=true;
+    var _f=window.fetch;
+    window.fetch=function(url, opts){
+      try{
+        var u=(typeof url==='string')?url:((url&&url.url)||'');
+        if(opts && opts.body && typeof opts.body==='string'){
+          // --- (2) venda: data de entrega + frete ---
+          if(u.indexOf('/rest/v1/rpc/registrar_venda')>=0 && String(opts.method||'').toUpperCase()==='POST'){
+            var b=JSON.parse(opts.body);
+            var de=el('venda_data_entrega');
+            if(de && de.value && !b.data_entrega) b.data_entrega=de.value;
+            var fr=Number(window.__kmVendaFrete)||0;
+            if(fr>0 && !b.valor_frete) b.valor_frete=fr;
+            opts=Object.assign({},opts,{body:JSON.stringify(b)});
+          }
+          // --- (4) produto: publicar no site ---
+          else if(u.indexOf('/rest/v1/produtos')>=0 && /^(POST|PATCH)$/i.test(String(opts.method||''))){
+            var sel=document.querySelector('#form-prod [data-k="publicar_site"]');
+            if(sel){
+              var pb=JSON.parse(opts.body);
+              if(pb && !Array.isArray(pb) && typeof pb==='object' && pb.nome!==undefined && pb.publicar_site===undefined){
+                pb.publicar_site=(sel.value==='true');
+                opts=Object.assign({},opts,{body:JSON.stringify(pb)});
+              }
+            }
+          }
+        }
+      }catch(e){}
+      return _f.call(this, url, opts);
+    };
+  })();
+
+  /* =========================================================================
+     (6) LANÇAR VENDA — todos os clientes cadastrados, em lista rolável
+     Problema antigo: a lista vinha de um <datalist>, que só sugere e depende de
+     cache. Cliente cadastrado depois ficava invisível e a venda travava.
+     Agora: lista própria, sempre recarregada do banco, rolável, com telefone e
+     cidade para diferenciar homônimos. O <select> original continua sendo a
+     fonte da verdade — nada do fluxo antigo foi removido.
+     ========================================================================= */
+  var CLI=[], CLI_CARREGADO=0;
+  function cliCarregar(cb){
+    get('clientes?select=id,nome,telefone,cidade&order=nome.asc&limit=5000').then(function(rows){
+      CLI=Array.isArray(rows)?rows:[]; CLI_CARREGADO=Date.now();
+      CLI.forEach(function(c){ c.__n=norm(c.nome); });
+      // mantém o <select> oficial completo (a validação de venda lê dele)
+      var sel=el('venda_cliente');
+      if(sel){
+        var atual=sel.value;
+        sel.innerHTML='<option value="">— selecione —</option>'+CLI.map(function(c){
+          return '<option value="'+c.id+'">'+esc(c.nome||'(sem nome)')+'</option>'; }).join('');
+        if(atual) sel.value=atual;
+      }
+      if(cb) cb();
+    }).catch(function(){ if(cb) cb(); });
+  }
+
+  function comboCliente(){
+    var inp=el('km-vcli'); if(!inp) return;
+    if(inp.__kmCombo31) return; inp.__kmCombo31=true;
+    inp.removeAttribute('list');
+    inp.placeholder='Digite o nome ou clique para ver todos os clientes…';
+    var wrap=document.createElement('span'); wrap.className='km-combo-wrap';
+    wrap.style.display='block';
+    inp.parentNode.insertBefore(wrap, inp); wrap.appendChild(inp);
+    var lista=document.createElement('div'); lista.className='km-combo-list'; wrap.appendChild(lista);
+    var cnt=document.createElement('span'); cnt.className='km-combo-cnt'; wrap.appendChild(cnt);
+
+    function fechar(){ lista.style.display='none'; }
+    function pintar(){
+      var q=norm(inp.value);
+      var arr=q?CLI.filter(function(c){ return c.__n.indexOf(q)>=0; }):CLI.slice();
+      cnt.textContent=CLI.length?(arr.length+' de '+CLI.length+' cliente(s) cadastrado(s)'):'carregando clientes…';
+      if(!arr.length){ lista.innerHTML='<div class="vazio">Nenhum cliente com esse nome. Use “+ Cadastrar cliente”.</div>'; lista.style.display='block'; return; }
+      lista.innerHTML=arr.slice(0,600).map(function(c){
+        var sub=[c.telefone,c.cidade].filter(Boolean).join(' · ');
+        return '<div class="it" data-id="'+c.id+'" data-nome="'+esc(c.nome||'')+'">'+esc(c.nome||'(sem nome)')
+             +(sub?('<small>'+esc(sub)+'</small>'):'')+'</div>';
+      }).join('');
+      lista.style.display='block';
+    }
+    function escolher(id, nome){
+      var sel=el('venda_cliente');
+      if(sel){
+        var achou=false;
+        for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value===id){ achou=true; break; } }
+        if(!achou){ var o=document.createElement('option'); o.value=id; o.textContent=nome; sel.appendChild(o); }
+      }
+      inp.value=nome;
+      try{ inp.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
+      if(sel) sel.value=id;   // vence qualquer casamento por nome (homônimos)
+      var av=el('km-vcli-aviso');
+      if(av) av.innerHTML='<span style="color:#7fbf6a">✓ '+esc(nome)+'</span>';
+      inp.style.borderColor='';
+      fechar();
+    }
+    lista.addEventListener('mousedown', function(e){
+      var it=e.target.closest?e.target.closest('.it'):null; if(!it) return;
+      e.preventDefault(); escolher(it.getAttribute('data-id'), it.getAttribute('data-nome'));
+    });
+    inp.addEventListener('focus', function(){ if(!CLI.length) cliCarregar(pintar); else pintar(); });
+    inp.addEventListener('input', pintar);
+    inp.addEventListener('keydown', function(e){ if(e.key==='Escape') fechar(); });
+    document.addEventListener('mousedown', function(e){ if(!wrap.contains(e.target)) fechar(); });
+  }
+
+  /* =========================================================================
+     (5)(7) PEDIDOS & VENDAS RECENTES — nome do cliente + Excluir em vermelho
+            + (2) data de entrega prometida visível na coluna "Entrega"
+     ========================================================================= */
+  var ENTREGAS=null;
+  function carregarEntregas(cb){
+    get('pedidos?select=id,numero,data_entrega&data_entrega=not.is.null&limit=500').then(function(rows){
+      ENTREGAS={}; (rows||[]).forEach(function(p){ if(p.numero) ENTREGAS[p.numero]=p.data_entrega; });
+      if(cb) cb();
+    }).catch(function(){ ENTREGAS={}; if(cb) cb(); });
+  }
+  function mostrarEntregas(){
+    var tb=el('pedidosBody'); if(!tb || !ENTREGAS) return;
+    tb.querySelectorAll('tr').forEach(function(tr){
+      if(tr.__kmEnt31) return;
+      var tds=tr.children; if(!tds || tds.length<10) return;
+      var num=(tds[0].textContent||'').trim(); var d=ENTREGAS[num];
+      tr.__kmEnt31=true;
+      if(!d) return;
+      var s=document.createElement('div');
+      s.style.cssText='font-size:11px;color:var(--ouro);margin-top:3px;white-space:nowrap';
+      s.textContent='📅 '+dbr(d);
+      s.title='Data de entrega prometida ao cliente';
+      tds[9].appendChild(s);
+    });
+  }
+
+  function decorarPedidos(){
+    var tb=el('pedidosBody'); if(!tb) return;
+    if(ENTREGAS===null){ ENTREGAS={}; carregarEntregas(mostrarEntregas); } else { mostrarEntregas(); }
+    tb.querySelectorAll('button.badge').forEach(function(b){
+      var t=(b.textContent||'').trim().toLowerCase();
+      if(t==='excluir' && !b.classList.contains('km-del')){
+        b.classList.add('km-del'); b.title='Exclui o pedido lançado errado (sai do fechamento e da comissão; reversível pelo suporte).';
+      }
+    });
+    // pedido sem cliente: link direto para vincular (nada some da lista)
+    tb.querySelectorAll('td span[title*="sem cliente"], td span[title*="SEM CLIENTE"]').forEach(function(sp){
+      if(sp.__kmLink31) return; sp.__kmLink31=true;
+      var tr=sp.closest('tr'); if(!tr) return;
+      var m=tr.innerHTML.match(/acaoVenda\('([^']+)'/); var pid=m?m[1]:null; if(!pid) return;
+      var a=document.createElement('a');
+      a.textContent=' vincular';
+      a.style.cssText='color:var(--ouro);cursor:pointer;text-decoration:underline;font-size:11px;margin-left:6px';
+      a.onclick=function(){ vincularCliente(pid, tr.children[0]?tr.children[0].textContent:''); };
+      sp.parentNode.appendChild(a);
+    });
+  }
+  function vincularCliente(pedidoId, numero){
+    if(!CLI.length){ cliCarregar(function(){ vincularCliente(pedidoId, numero); }); return; }
+    var nome=window.prompt('Vincular o pedido '+numero+' a qual cliente?\n\nDigite parte do nome:');
+    if(!nome) return;
+    var q=norm(nome);
+    var achados=CLI.filter(function(c){ return c.__n.indexOf(q)>=0; });
+    if(!achados.length){ alert('Nenhum cliente encontrado com "'+nome+'".'); return; }
+    if(achados.length>1){
+      var lista=achados.slice(0,15).map(function(c,i){ return (i+1)+') '+c.nome; }).join('\n');
+      var esc2=window.prompt('Vários clientes encontrados. Digite o número:\n\n'+lista);
+      var idx=parseInt(esc2,10); if(!idx||!achados[idx-1]) return;
+      achados=[achados[idx-1]];
+    }
+    if(!confirm('Vincular o pedido '+numero+' ao cliente "'+achados[0].nome+'"?')) return;
+    patch('pedidos?id=eq.'+pedidoId, {cliente_id:achados[0].id}).then(function(r){
+      if(r.ok){ if(window.loadPedidos) window.loadPedidos(); }
+      else alert('Não foi possível vincular (entre como gestão).');
+    });
+  }
+
+  /* =========================================================================
+     (4)(12) PRODUTOS — publicar no site + vídeo em todos os produtos
+     ========================================================================= */
+  var PROD={};   // id -> {publicar_site, video_url, nome}
+  function prodCarregar(cb){
+    get('produtos?select=id,nome,publicar_site,video_url&limit=2000').then(function(rows){
+      PROD={}; (rows||[]).forEach(function(p){ PROD[p.id]=p; }); if(cb) cb();
+    }).catch(function(){ if(cb) cb(); });
+  }
+
+  function ensureCampoPublicar(){
+    var form=el('form-prod'); if(!form) return;
+    if(form.querySelector('[data-k="publicar_site"]')) return;
+    var ref=form.querySelector('[data-k="destaque"]');
+    var wrapRef=ref?(ref.closest?ref.closest('.f'):ref.parentNode):null;
+    if(!wrapRef||!wrapRef.parentNode) return;
+    var d=document.createElement('div'); d.className='f';
+    d.innerHTML='<label>🌐 Publicar no site</label>'
+      +'<select data-k="publicar_site">'
+      +'<option value="true">Sim — aparece na loja</option>'
+      +'<option value="false">Não — só no CRM (fora da loja)</option>'
+      +'</select>'
+      +'<span style="display:block;font-size:11px;color:var(--muted);margin-top:4px">'
+      +'“Não” tira a peça do catálogo, da home e da busca do site. O cadastro continua inteiro no CRM.</span>';
+    wrapRef.parentNode.insertBefore(d, wrapRef.nextSibling);
+
+    // (12) destaque no campo de vídeo — ele existe, mas ficava perdido no meio do formulário
+    var vid=form.querySelector('[data-k="video_url"]');
+    if(vid && !vid.__kmDestaque31){
+      vid.__kmDestaque31=true;
+      vid.style.borderColor='#CB984C';
+      var lab=vid.parentNode?vid.parentNode.querySelector('label'):null;
+      if(lab) lab.style.color='#CB984C';
+    }
+  }
+
+  // ao clicar em "editar" na lista de produtos, traz também o estado de publicação
+  function hookEditProduto(){
+    var body=el('body-prod'); if(!body || body.__kmHook31) return; body.__kmHook31=true;
+    body.addEventListener('click', function(e){
+      var b=e.target.closest?e.target.closest('button[data-act="edit"]'):null; if(!b) return;
+      var id=b.getAttribute('data-id');
+      setTimeout(function(){
+        var sel=document.querySelector('#form-prod [data-k="publicar_site"]');
+        var p=PROD[id];
+        if(sel) sel.value=(p && p.publicar_site===false)?'false':'true';
+      }, 60);
+    }, true);
+  }
+
+  function decorarProdutos(){
+    var body=el('body-prod'); if(!body) return;
+    body.querySelectorAll('button[data-act="edit"]').forEach(function(b){
+      var td=b.parentNode; if(!td || td.__kmChips31) return;
+      var id=b.getAttribute('data-id'); var p=PROD[id]; if(!p) return;
+      td.__kmChips31=true;
+      var pub=(p.publicar_site!==false);
+      var temVid=!!(p.video_url && String(p.video_url).trim());
+
+      var bp=document.createElement('button');
+      bp.className='km-pub '+(pub?'on':'off');
+      bp.textContent=pub?'🌐 no site':'🚫 fora do site';
+      bp.title=pub?'Está publicado na loja. Clique para tirar do site.':'Está fora da loja. Clique para publicar.';
+      bp.onclick=function(){ togglePublicar(id, bp); };
+
+      var bv=document.createElement('button');
+      bv.className='km-vid '+(temVid?'on':'off');
+      bv.textContent=temVid?'🎬 vídeo':'🎬 + vídeo';
+      bv.title=temVid?('Vídeo(s) cadastrado(s). Clique para ver/alterar.'):'Clique para colar o link do vídeo (YouTube, Vimeo ou MP4).';
+      bv.onclick=function(){ editarVideo(id, bv); };
+
+      td.insertBefore(bv, td.firstChild);
+      td.insertBefore(bp, td.firstChild);
+    });
+  }
+
+  function togglePublicar(id, btn){
+    var p=PROD[id]; if(!p) return;
+    var novo=!(p.publicar_site!==false);
+    var msg=novo
+      ? 'Publicar "'+(p.nome||'')+'" no site?\n\nA peça volta a aparecer no catálogo, na home e na busca.'
+      : 'Tirar "'+(p.nome||'')+'" do site?\n\nA peça sai da loja mas continua inteira no CRM (nada é apagado).';
+    if(!confirm(msg)) return;
+    btn.disabled=true;
+    patch('produtos?id=eq.'+id, {publicar_site:novo}).then(function(r){
+      btn.disabled=false;
+      if(!r.ok){ alert('Não foi possível salvar (entre como gestão).'); return; }
+      p.publicar_site=novo;
+      btn.className='km-pub '+(novo?'on':'off');
+      btn.textContent=novo?'🌐 no site':'🚫 fora do site';
+    }).catch(function(){ btn.disabled=false; alert('Erro de conexão.'); });
+  }
+
+  function editarVideo(id, btn){
+    var p=PROD[id]; if(!p) return;
+    var atual=p.video_url||'';
+    var txt=window.prompt(
+      'Vídeos de "'+(p.nome||'')+'"\n\n'
+      +'Cole os links (YouTube, Shorts, Vimeo ou .mp4).\n'
+      +'Para mais de um, separe por vírgula.\n'
+      +'Deixe em branco para remover os vídeos deste produto.',
+      atual);
+    if(txt===null) return;
+    var val=String(txt).split(',').map(function(s){ return s.trim(); }).filter(Boolean).join('\n');
+    btn.disabled=true;
+    patch('produtos?id=eq.'+id, {video_url: val||null}).then(function(r){
+      btn.disabled=false;
+      if(!r.ok){ alert('Não foi possível salvar (entre como gestão).'); return; }
+      p.video_url=val||null;
+      var tem=!!val;
+      btn.className='km-vid '+(tem?'on':'off');
+      btn.textContent=tem?'🎬 vídeo':'🎬 + vídeo';
+    }).catch(function(){ btn.disabled=false; alert('Erro de conexão.'); });
+  }
+
+  /* =========================================================================
+     (11) EXTRATO DE RECEBIMENTOS POR CLIENTE
+     Digita o nome e vê, por venda: total, quanto já entrou, o que falta e
+     CADA baixa parcial (data, valor, conta e método).
+     ========================================================================= */
+  function ensureExtrato(){
+    var sec=document.querySelector('.view[data-v="creceber"]'); if(!sec) return;
+    if(el('kmExtratoPanel')) return;
+    var host=el('mod-creceber'); if(!host) return;
+    var p=document.createElement('div');
+    p.id='kmExtratoPanel'; p.className='panel'; p.style.marginBottom='14px';
+    p.innerHTML='<div class="modbar"><h3>🔎 Extrato de recebimentos por cliente</h3>'
+      +'<span class="modmsg" id="kmExtMsg"></span></div>'
+      +'<div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      +'<input id="kmExtBusca" placeholder="Digite o nome do cliente ou o número da venda…" autocomplete="off" '
+      +'style="flex:1;min-width:240px;background:#221b10;border:1px solid var(--line);border-radius:4px;color:var(--text);padding:9px 12px;font-size:13px">'
+      +'<button class="btn" id="kmExtGo">Ver recebimentos</button></div>'
+      +'<div style="padding:0 16px 6px;color:var(--muted);font-size:12px">'
+      +'Mostra <b style="color:var(--text)">todas as entradas parciais</b> de cada venda — inclusive as já quitadas. '
+      +'Ex.: sofá de R$ 5.000 com entrada de R$ 3.000, depois R$ 500 e depois R$ 1.200.</div>'
+      +'<div id="kmExtrato" style="padding:6px 16px 18px"></div>';
+    host.parentNode.insertBefore(p, host);
+    el('kmExtGo').addEventListener('click', extratoBuscar);
+    el('kmExtBusca').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); extratoBuscar(); } });
+  }
+
+  function extratoBuscar(){
+    var q=(el('kmExtBusca')||{}).value||'';
+    var box=el('kmExtrato'), msg=el('kmExtMsg');
+    if(!box) return;
+    if(!q.trim()){ box.innerHTML='<div class="empty" style="padding:14px;color:var(--muted)">Digite o nome do cliente para ver o extrato.</div>'; return; }
+    box.innerHTML='<div style="padding:14px;color:var(--muted)">Buscando…</div>';
+    if(msg) msg.textContent='';
+    rpc('extrato_recebimentos',{p_busca:q}).then(function(d){
+      if(!d || d.erro){ box.innerHTML='<div style="padding:14px;color:var(--muted)">Sem permissão (acesso de gestão).</div>'; return; }
+      var itens=Array.isArray(d.itens)?d.itens:[];
+      if(!itens.length){ box.innerHTML='<div style="padding:14px;color:var(--muted)">Nenhuma venda encontrada para “'+esc(q)+'”.</div>'; return; }
+      var h='', cliAtual='', totG=0, recG=0;
+      itens.forEach(function(it){
+        if(it.cliente!==cliAtual){
+          if(cliAtual) h+='</tbody></table>';
+          cliAtual=it.cliente;
+          h+='<div class="cli">'+esc(cliAtual)+(it.telefone?(' <span style="font-size:12px;font-weight:400;color:var(--muted)">· '+esc(it.telefone)+'</span>'):'')+'</div>'
+            +'<table><thead><tr><th>Venda</th><th>Data</th><th style="text-align:right">Total</th>'
+            +'<th style="text-align:right">Recebido</th><th style="text-align:right">Falta</th><th>Situação</th></tr></thead><tbody>';
+        }
+        totG+=Number(it.total)||0; recG+=Number(it.recebido)||0;
+        var sit=it.pago?'<span class="quit">✅ quitado</span>':'<span class="aberto">🕒 em aberto</span>';
+        h+='<tr class="tit"><td><b>'+esc(it.numero||'—')+'</b></td><td>'+dbr(it.data_venda)+'</td>'
+          +'<td style="text-align:right">'+money(it.total)+'</td>'
+          +'<td style="text-align:right">'+money(it.recebido)+'</td>'
+          +'<td style="text-align:right"><b style="color:var(--accent)">'+money(it.saldo)+'</b></td>'
+          +'<td>'+sit+'</td></tr>';
+        var bx=Array.isArray(it.baixas)?it.baixas:[];
+        if(!bx.length){
+          h+='<tr class="bx"><td colspan="6">— nenhum recebimento lançado ainda'
+            +(Number(it.frete)>0?(' · produtos '+money(it.valor_produtos)+' + frete '+money(it.frete)):'')+'</td></tr>';
+        } else {
+          bx.forEach(function(b, i){
+            h+='<tr class="bx"><td colspan="6">↳ '+(i+1)+'ª entrada · <b style="color:var(--text)">'+money(b.valor)+'</b>'
+              +' em '+dbr(b.data)
+              +(b.metodo?(' · '+esc(b.metodo)):'')
+              +(b.conta?(' · '+esc(b.conta)):'')
+              +(b.obs?(' · '+esc(b.obs)):'')+'</td></tr>';
+          });
+          if(Number(it.frete)>0){
+            h+='<tr class="bx"><td colspan="6">composição do total: produtos '+money(it.valor_produtos)+' + frete '+money(it.frete)+'</td></tr>';
+          }
+        }
+      });
+      if(cliAtual) h+='</tbody></table>';
+      h+='<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line);font-size:13px">'
+        +'<b>Consolidado do filtro:</b> total '+money(totG)+' · recebido '+money(recG)
+        +' · <b style="color:var(--accent)">falta '+money(totG-recG)+'</b></div>';
+      box.innerHTML=h;
+      if(msg) msg.textContent=itens.length+' venda(s)';
+    }).catch(function(){ box.innerHTML='<div style="padding:14px;color:var(--muted)">Erro de conexão.</div>'; });
+  }
+
+  /* =========================================================================
+     GATILHOS — roda quando cada tela abre; nunca antes (economiza requisição)
+     ========================================================================= */
+  var obsPed=null, obsProd=null;
+  function bootPedidos(){
+    ensureCampoEntrega();
+    comboCliente();
+    if(!CLI.length || (Date.now()-CLI_CARREGADO)>60000) cliCarregar();
+    decorarPedidos();
+    var tb=el('pedidosBody');
+    if(tb && !obsPed){ obsPed=new MutationObserver(function(){ decorarPedidos(); }); obsPed.observe(tb,{childList:true}); }
+  }
+  function bootProdutos(){
+    prodCarregar(function(){ ensureCampoPublicar(); hookEditProduto(); decorarProdutos(); });
+    var body=el('body-prod');
+    if(body && !obsProd){ obsProd=new MutationObserver(function(){ decorarProdutos(); }); obsProd.observe(body,{childList:true}); }
+  }
+  function bootCReceber(){ ensureExtrato(); }
+
+  function bootView(v){
+    setTimeout(function(){
+      if(v==='pedidos')  bootPedidos();
+      if(v==='produtos') bootProdutos();
+      if(v==='creceber') bootCReceber();
+    }, 140);
+  }
+  if(typeof window.showView==='function'){
+    var _sv=window.showView;
+    window.showView=function(v){ var r=_sv.apply(this, arguments); try{ bootView(v); }catch(e){} return r; };
+  }
+  // se a tela já estiver aberta quando o patch carregar
+  setTimeout(function(){
+    ['pedidos','produtos','creceber'].forEach(function(v){
+      var s=document.querySelector('.view[data-v="'+v+'"]'); if(s && !s.hidden) bootView(v);
+    });
+  }, 700);
+  // rede de segurança: tenta de novo depois que os módulos terminam de montar
+  setTimeout(function(){
+    ['pedidos','produtos','creceber'].forEach(function(v){
+      var s=document.querySelector('.view[data-v="'+v+'"]'); if(s && !s.hidden) bootView(v);
+    });
+  }, 2500);
+})();
+</script>
+<!-- ===== FIM DO PATCH 12 CORREÇÕES KM (crm.html) 2026-07-31 ===== -->
+
 </body>
 </html>

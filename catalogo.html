@@ -212,7 +212,7 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
       });
     });
   }
-  fetch(SB+'/rest/v1/produtos?select=id,sku,nome,categoria,colecao,foto_url,trilha,destaque,preco,estoque_disponivel,itens&ativo=eq.true&order=ranking.asc.nullslast,destaque.desc,categoria.asc,nome.asc',
+  fetch(SB+'/rest/v1/produtos?select=id,sku,nome,categoria,colecao,foto_url,trilha,destaque,preco,estoque_disponivel,itens,publicar_site&ativo=eq.true&publicar_site=is.true&order=ranking.asc.nullslast,destaque.desc,categoria.asc,nome.asc',
     {headers:{apikey:KEY, Authorization:'Bearer '+KEY}})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(data){ produtos = (data||[]).filter(function(p){ return catPublica(p.categoria); }); buildFilters(); render(); updateCartBadge(); })

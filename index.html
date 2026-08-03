@@ -296,7 +296,7 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
   function catNorm(s){ var t=String(s||''); try{ t=t.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){} return t.toLowerCase().trim(); }
   function catPublica(c){ return CAT_OCULTAS.indexOf(catNorm(c))<0; }
   // Peças em destaque (o dono escolhe no CRM)
-  fetch(SB+'/rest/v1/produtos?select=nome,categoria,foto_url,preco&ativo=eq.true&destaque=eq.true&order=ranking.asc.nullslast,nome.asc&limit=8',{headers:{apikey:KEY}})
+  fetch(SB+'/rest/v1/produtos?select=nome,categoria,foto_url,preco&ativo=eq.true&publicar_site=is.true&destaque=eq.true&order=ranking.asc.nullslast,nome.asc&limit=8',{headers:{apikey:KEY}})
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
     rows=(rows||[]).filter(function(p){return p.foto_url && catPublica(p.categoria);});
@@ -307,7 +307,7 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
     }).join('');
   }).catch(function(){});
   // Fotos dos 6 ambientes por categoria (prefere itens em destaque)
-  fetch(SB+'/rest/v1/produtos?select=categoria,foto_url,destaque,ranking&ativo=eq.true&order=destaque.desc,ranking.asc.nullslast&limit=400',{headers:{apikey:KEY}})
+  fetch(SB+'/rest/v1/produtos?select=categoria,foto_url,destaque,ranking&ativo=eq.true&publicar_site=is.true&order=destaque.desc,ranking.asc.nullslast&limit=400',{headers:{apikey:KEY}})
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
     rows=rows||[]; var byCat={};
@@ -431,6 +431,9 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
 
 <!-- Chat de atendimento ao vivo (equipe) — canto inferior esquerdo, não colide com a Concierge -->
 <script defer src="chat-widget.js"></script>
+
+<!-- 03/08/2026 — a HOME estava SEM o km-track.js: a tag nunca foi colada, so havia a instrucao num comentario. Sem ela, a UTM de quem chega do anuncio pela home nao era capturada. -->
+<script defer src="km-track.js"></script>
 
 </body>
 </html>
