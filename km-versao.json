@@ -1,0 +1,27 @@
+{
+  "build": "20260803b",
+  "gerado_em": "2026-08-03T13:04:05Z",
+  "arquivos": {
+    "crm.html": 691829,
+    "index.html": 29559,
+    "catalogo.html": 17530,
+    "produto.html": 28633,
+    "carrinho.html": 15667,
+    "curadoria.html": 13234,
+    "institucional.html": 12773,
+    "kmcare.html": 12133,
+    "designer.html": 13776,
+    "captura.html": 10596,
+    "rastreio.html": 9686,
+    "km-track.js": 9456,
+    "km-social.js": 18716,
+    "km-campanha.js": 18436,
+    "km-entrega.js": 5257,
+    "km-pedidos-acao.js": 5560,
+    "km-atendimento-fix.js": 3675,
+    "chat-widget.js": 14625,
+    "busca.js": 7416,
+    "assistente.js": 15457,
+    "frete.js": 17809
+  }
+}
