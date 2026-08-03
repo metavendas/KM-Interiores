@@ -442,6 +442,7 @@
         <div style="display:flex;gap:8px;margin:2px 0 14px;align-items:center;flex-wrap:wrap">
           <button id="funilTabCli" class="ia-btn funil-tab sug" data-pipe="projeto">Clientes</button>
           <button id="funilTabPar" class="ia-btn funil-tab" data-pipe="parceiros">Parceiros</button>
+          <button id="funilTabIg" class="ia-btn funil-tab" data-pipe="instagram">Instagram</button>
           <select id="funilCons" class="funil-consfiltro" title="Filtrar por consultor"><option value="">Todos os consultores</option></select>
         </div>
         <div class="funil-resumo-lab">Leads na carteira por consultor · clique para filtrar o funil</div>
@@ -2184,7 +2185,17 @@
     .catch(function(e){ alert('Não foi possível deletar (sem permissão de equipe ou erro de conexão).'); console.error(e); });
   }
   // ===== Kanban arrastável (funil) =====
-  var ESTAGIOS=[{k:'novo_lead',t:'Novo lead'},{k:'curadoria',t:'Curadoria'},{k:'proposta',t:'Proposta'},{k:'negociacao',t:'Negociação'},{k:'ganho',t:'Ganho'},{k:'perdido',t:'Arquivando'}];
+  // 03/08/2026 — km-patch-funil2-instagram: CADA PIPELINE TEM SEUS PROPRIOS ESTAGIOS.
+  // Por que aqui e nao num .js proprio: ESTAGIOS e local do IIFE e e lido por
+  // initFunil (colunas do kanban) e pelo modal do card (select de estagio).
+  // Trocar o CONTEUDO da variavel em initFunil faz os dois consumidores acertarem
+  // sozinhos — 2 linhas de patch em vez de reescrever o funil inteiro.
+  var ESTAGIOS_PIPE={
+    projeto:   [{k:'novo_lead',t:'Novo lead'},{k:'curadoria',t:'Curadoria'},{k:'proposta',t:'Proposta'},{k:'negociacao',t:'Negociação'},{k:'ganho',t:'Ganho'},{k:'perdido',t:'Arquivando'}],
+    parceiros: [{k:'novo_lead',t:'Novo lead'},{k:'curadoria',t:'Curadoria'},{k:'proposta',t:'Proposta'},{k:'negociacao',t:'Negociação'},{k:'ganho',t:'Ganho'},{k:'perdido',t:'Arquivando'}],
+    instagram: [{k:'dm_recebida',t:'DM recebida'},{k:'respondido',t:'Respondido'},{k:'qualificado',t:'Qualificado'},{k:'orcamento',t:'Orçamento enviado'},{k:'visita',t:'Visita / Showroom'},{k:'ganho',t:'Ganho'},{k:'perdido',t:'Perdido'}]
+  };
+  var ESTAGIOS=ESTAGIOS_PIPE.projeto;
   function funilCounts(k){ k.querySelectorAll('.col').forEach(function(c){ var s=c.querySelector('h4 span'); if(s) s.textContent=c.querySelectorAll('.lead').length; }); }
   function funilDnD(k){
     var cols=[].slice.call(k.querySelectorAll('.col'));
@@ -2236,7 +2247,11 @@
   }
   var FUNIL_PIPE='projeto';
   function initFunil(pipe){ if(pipe) FUNIL_PIPE=pipe;
-    var _bc=$('funilTabCli'), _bp=$('funilTabPar'); if(_bc&&_bp){ _bc.className='ia-btn funil-tab'+(FUNIL_PIPE==='projeto'?' sug':''); _bp.className='ia-btn funil-tab'+(FUNIL_PIPE==='parceiros'?' sug':''); }
+    // 03/08/2026 — km-patch-funil2-instagram
+    ESTAGIOS = ESTAGIOS_PIPE[FUNIL_PIPE] || ESTAGIOS_PIPE.projeto;
+    // realca a aba ativa percorrendo TODOS os botoes (antes so tratava os 2 fixos)
+    var _tabs=document.querySelectorAll('.funil-tab');
+    for(var _i=0;_i<_tabs.length;_i++){ _tabs[_i].className='ia-btn funil-tab'+(_tabs[_i].getAttribute('data-pipe')===FUNIL_PIPE?' sug':''); }
     var k=$('funilKanban'); if(!k) return;
     var tok=localStorage.getItem(TOKKEY);
     populateFunilCons();
@@ -2250,7 +2265,10 @@
       k.innerHTML=ESTAGIOS.map(function(s){ return '<div class="col" data-estagio="'+s.k+'"><h4>'+s.t+' <span>0</span></h4></div>'; }).join('');
       var by={}; ESTAGIOS.forEach(function(s){ by[s.k]=k.querySelector('.col[data-estagio="'+s.k+'"]'); });
       rows.forEach(function(o){
-        var col=by[o.estagio]||by['novo_lead']; if(!col) return;
+        // km-patch-funil2-instagram: o fallback passa a ser o PRIMEIRO estagio do pipeline
+        // atual. Com 'novo_lead' fixo, um card do funil do Instagram com estagio
+        // desconhecido sumia da tela em silencio. Nenhum card pode desaparecer.
+        var col=by[o.estagio]||by[(ESTAGIOS[0]||{}).k]; if(!col) return;
         var val=(o.valor&&Number(o.valor)>0)?'<div class="val">R$ '+Number(o.valor).toLocaleString('pt-BR')+'</div>':'';
         var ts=o.updated_at||o.created_at; var sem='neutro';
         if(o.estagio!=='ganho'&&o.estagio!=='perdido'&&ts){ var dias=(Date.now()-new Date(ts).getTime())/86400000; sem=dias>7?'vermelho':(dias>3?'amarelo':'verde'); }
@@ -3215,7 +3233,15 @@
   window.kmEndCliente=kmEndCliente;
   // Item 7: busca o endereço do cliente e então gera o PDF do pedido (fluxo da venda)
   function kmPdfPedidoComEndereco(cliente_id, _pdf, j){
-    function go(){ try{ gerarPdfPedido(j, _pdf); }catch(e){ console.error('PDF pedido:', e); } }
+    function emitir(){ try{ gerarPdfPedido(j, _pdf); }catch(e){ console.error('PDF pedido:', e); } }
+    // 03/08/2026 — km-patch-entrega-pdf: busca a data de entrega do pedido antes de gerar.
+    function go(){
+      if(!_pdf || _pdf.entrega || !(j&&j.pedido_id)){ emitir(); return; }
+      fetch(SB+'/rest/v1/pedidos?id=eq.'+j.pedido_id+'&select=data_entrega&limit=1',{headers:authHeaders(localStorage.getItem(TOKKEY))})
+        .then(function(r){ return r.ok?r.json():[]; })
+        .then(function(rr){ var pp=(rr&&rr[0])||null; if(pp&&pp.data_entrega) _pdf.entrega=pp.data_entrega; emitir(); })
+        .catch(emitir);
+    }
     if(!cliente_id){ go(); return; }
     var tok=localStorage.getItem(TOKKEY);
     fetch(SB+'/rest/v1/clientes?id=eq.'+cliente_id+'&select=logradouro,numero,complemento,bairro,cidade,uf,cep&limit=1',{headers:authHeaders(tok)})
@@ -3239,6 +3265,9 @@
     linha('Pilar / Linha:', d.pilar||'—'); linha('Canal:', d.canal||'—'); linha('Pagamento:', d.forma||'—');
     // Item 7: Endereço de entrega no PDF do pedido
     if(d.endereco){ linha('Entrega:', d.endereco); }
+    // 03/08/2026 — km-patch-entrega-pdf: a DATA DE ENTREGA combinada tambem sai na copia
+    // do pedido. Estava so no editar pedido (km-entrega.js) e o cliente recebia o PDF sem ela.
+    if(d.entrega){ var _de; try{ _de=new Date(d.entrega+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ _de=d.entrega; } linha('Data de entrega:', _de); }
     y+=8; if(y>792){ doc.addPage(); y=54; } doc.setDrawColor(203,152,76); doc.line(x,y,W-x,y); y+=20;
     doc.setFont('helvetica','bold'); doc.text('Item', x, y); doc.text('Qtd', 380, y, {align:'right'}); doc.text('Subtotal', W-x, y, {align:'right'}); y+=6;
     doc.line(x,y,W-x,y); y+=16; doc.setFont('helvetica','normal');
@@ -3267,7 +3296,7 @@
   // ===== Abrir pedido na TELA (visualização, sem download) =====
   window.abrirPedidoView=function(id){
     var tok=localStorage.getItem(TOKKEY);
-    var selP='numero,valor,valor_bruto,desconto_valor,valor_frete,canal,pilar,forma_pagamento,data_venda,observacao,vendedor_id,clientes(nome,logradouro,numero,complemento,bairro,cidade,uf,cep)';
+    var selP='numero,valor,valor_bruto,desconto_valor,valor_frete,canal,pilar,forma_pagamento,data_venda,data_entrega,observacao,vendedor_id,clientes(nome,logradouro,numero,complemento,bairro,cidade,uf,cep)';
     Promise.all([
       fetch(SB+'/rest/v1/pedidos?id=eq.'+id+'&select='+encodeURIComponent(selP)+'&limit=1',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];}),
       fetch(SB+'/rest/v1/pedido_itens?pedido_id=eq.'+id+'&select=qtd,preco_unit,acabamento,produtos(nome)&order=id.asc',{headers:authHeaders(tok)}).then(function(r){return r.ok?r.json():[];})
@@ -3277,7 +3306,7 @@
       var j={ numero:p.numero, valor:Number(p.valor||0), valor_bruto:(p.valor_bruto!=null?Number(p.valor_bruto):null), desconto:Number(p.desconto_valor||0), frete:Number(p.valor_frete||0), pedido_id:id };
       var d={ cliente:(p.clientes&&p.clientes.nome)||'—', vendedor:vendNome(p.vendedor_id)||'—',
         pilar:(PILAR_LABEL[p.pilar]||p.pilar||'—'), canal:p.canal||'—', forma:p.forma_pagamento||'—',
-        data:p.data_venda||'', obs:p.observacao||'', frete:Number(p.valor_frete||0), endereco:kmEndCliente(p.clientes),
+        data:p.data_venda||'', entrega:p.data_entrega||'', obs:p.observacao||'', frete:Number(p.valor_frete||0), endereco:kmEndCliente(p.clientes),
         itens:its.map(function(it){ var q=Number(it.qtd||1); return { desc:(it.produtos&&it.produtos.nome)||it.acabamento||'Item', qtd:q, sub:Number(it.preco_unit||0)*q }; }) };
       try{ gerarPdfPedido(j, d, 'open'); }catch(e){ console.error('Abrir pedido:', e); alert('Não foi possível abrir o pedido.'); }
     }).catch(function(e){ console.error(e); alert('Erro ao carregar o pedido.'); });
@@ -8520,5 +8549,11 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 <script defer src="km-pedidos-acao.js?v=20260803b"></script>
 <!-- 03/08/2026 — Conserta a aba Atendimento ao Vivo (a secao so era criada se ja existisse). Arquivo proprio. -->
 <script defer src="km-atendimento-fix.js?v=20260803b"></script>
+<!-- 03/08/2026 (6a sessao) — Busca de cards no Funil de Vendas. Arquivo proprio. -->
+<script defer src="km-funil-busca.js?v=20260803d"></script>
+<!-- 03/08/2026 (6a sessao) — Financeiro: erro visivel ao excluir + estorno de quitacao indevida. -->
+<script defer src="km-financeiro-fix.js?v=20260803d"></script>
+<!-- 03/08/2026 (6a sessao) — Funil 2 · Instagram: largura por no de colunas + contexto da aba. -->
+<script defer src="km-funil2-instagram.js?v=20260803d"></script>
 </body>
 </html>
