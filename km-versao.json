@@ -1,8 +1,8 @@
 {
-  "build": "20260803b",
-  "gerado_em": "2026-08-03T13:04:05Z",
+  "build": "20260803d",
+  "gerado_em": "2026-08-03T19:30:00Z",
   "arquivos": {
-    "crm.html": 691829,
+    "crm.html": 694684,
     "index.html": 29559,
     "catalogo.html": 17530,
     "produto.html": 28633,
@@ -22,6 +22,9 @@
     "chat-widget.js": 14625,
     "busca.js": 7416,
     "assistente.js": 15457,
-    "frete.js": 17809
+    "frete.js": 17809,
+    "km-funil-busca.js": 5784,
+    "km-financeiro-fix.js": 7618,
+    "km-funil2-instagram.js": 4048
   }
 }
