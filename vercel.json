@@ -1,5 +1,22 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/produto.html",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Ww]hats[Aa]pp|facebookexternalhit|[Ff]acebot|[Tt]witterbot|[Ll]inked[Ii]n[Bb]ot|[Ss]lackbot|Slack-ImgProxy|[Tt]elegram[Bb]ot|[Dd]iscordbot|[Pp]interest|[Rr]edditbot|Googlebot|bingbot|Applebot|SkypeUriPreview|vkShare|[Ee]mbedly|[Ii]framely|Baiduspider|YandexBot|Mastodon|WordPress|Viber|Line).*"
+        }
+      ],
+      "destination": "/api/og"
+    },
+    {
+      "source": "/p/:sku",
+      "destination": "/api/og?sku=:sku"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -42,8 +42,29 @@
   .foot{text-align:center;font-size:10.5px;color:#6f6552;margin-top:22px;line-height:1.6}
   .foot a{color:#8a7d63}
 </style>
-</head>
+<!-- Meta Pixel Code — KM Interiores — Tráfego Pago Meta Ads 2026-07-29 -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1546077119714760');
+fbq('track', 'PageView');
+</script>
+<!-- End Meta Pixel Code -->
+
+
+
 <body>
+
+<!-- Meta Pixel (noscript fallback) -->
+<noscript><img height="1" width="1" style="display:none" alt=""
+src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
+></noscript>
   <div class="wrap">
     <div class="brand">
       <div class="logo">KM INTERIORES</div>
@@ -101,10 +122,11 @@
 
     <div class="foot">
       KM Interiores · Ubá/MG · Fabricação de móveis de alto padrão<br>
-      Seus dados são usados apenas para contato comercial (LGPD). <a href="mailto:kminterioresmarketing@gmail.com">Solicitar exclusão</a>.
+      Seus dados são usados apenas para contato comercial (LGPD). <a href="privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a> · Exclusão de dados: <a href="https://wa.me/5532999974419?text=Ol%C3%A1%2C%20gostaria%20de%20solicitar%20a%20exclus%C3%A3o%20dos%20meus%20dados%20do%20cadastro%20da%20KM%20Interiores." target="_blank" rel="noopener">WhatsApp</a> ou <a href="mailto:kminterioresmarketing@gmail.com">e-mail</a>.
     </div>
   </div>
 
+<script defer src="km-track.js"></script>
 <script>
   // Config pública (anon key do Supabase — pode ficar no cliente)
   var SB = 'https://hpbtnlfihbwwawgtesvm.supabase.co';
@@ -125,8 +147,13 @@
     if(!cidade){ setMsg('Informe sua cidade.',true); return; }
     if(!consent){ setMsg('É preciso autorizar o contato para enviarmos.',true); return; }
     $('btn').disabled=true; setMsg('Enviando…');
+    var atr = (typeof window.kmUTM==='function') ? (window.kmUTM()||{}) : {};
     var payload={ p:{ nome:nome, whatsapp:wpp, email:email, cidade:cidade, interesse:interesse,
-      origem:'lp_bio', consent:true, consent_texto:CONSENT_TXT, hp:hp } };
+      origem:'lp_bio', consent:true, consent_texto:CONSENT_TXT, hp:hp,
+      utm_source:atr.utm_source||'', utm_medium:atr.utm_medium||'', utm_campaign:atr.utm_campaign||'',
+      utm_content:atr.utm_content||'', utm_term:atr.utm_term||'',
+      fbclid:atr.fbclid||'', gclid:atr.gclid||'',
+      landing_page:location.pathname, referrer:document.referrer||'' } };
     fetch(SB+'/rest/v1/rpc/captar_lead_publico', {
       method:'POST',
       headers:{ 'apikey':ANON, 'Authorization':'Bearer '+ANON, 'Content-Type':'application/json' },
@@ -136,7 +163,7 @@
         $('btn').disabled=false;
         var d=res.d||{};
         if(res.status>=200 && res.status<300 && (d.ok || d.dedupe)){
-          var t='Olá! Vim pelo Instagram e quero um projeto da KM Interiores. Meu nome é '+encodeURIComponent(nome)+'.';
+          var t=encodeURIComponent('Olá! Vim pelo Instagram e quero um projeto da KM Interiores. Meu nome é '+nome+'.');
           $('wa-link').href='https://wa.me/'+WA_NUMERO+'?text='+t;
           $('form-view').style.display='none'; $('ok-view').style.display='block';
           window.scrollTo(0,0);
@@ -145,5 +172,6 @@
       }).catch(function(){ $('btn').disabled=false; setMsg('Sem conexão. Tente novamente.',true); });
   });
 </script>
+<script defer src="km-redes.js?v=20260806a"></script>
 </body>
 </html>

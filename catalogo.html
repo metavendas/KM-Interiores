@@ -120,7 +120,7 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
 <div class="announce">Design que inspira · Sofisticação que permanece · Atendimento sob medida em todo o Brasil</div>
 <header><div class="wrap nav">
   <a class="brand" href="index.html"><img class="brand-logo" src="logo-dourado.png" alt="KM Interiores"></a>
-  <nav class="menu"><a href="institucional.html">A Marca</a><a href="catalogo.html">Ambientes</a><a href="catalogo.html">Catálogo</a><a href="kmcare.html">KM Care</a><a href="entrar.html">Entrar</a></nav>
+  <nav class="menu"><a href="quem-somos.html">Quem Somos</a><a href="institucional.html">A Marca</a><a href="catalogo.html">Ambientes</a><a href="catalogo.html">Catálogo</a><a href="kmcare.html">KM Care</a><a href="entrar.html">Entrar</a></nav>
   <div class="icons">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
@@ -155,7 +155,30 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
      Continua normal no CRM. Base já normalizada (uma categoria por nicho, sem duplicidade de grafia). */
   var CAT_OCULTAS = ['terceirizacao','terceirizaçao','tercerizacao','terceirização','tercerização'];
   function catNorm(s){ var t=String(s||''); try{ t=t.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){} return t.toLowerCase().trim(); }
-  function catPublica(c){ return CAT_OCULTAS.indexOf(catNorm(c))<0; }
+
+  /* ===== km-patch-cat-unica-2026-08-06 =====================================
+     PROBLEMA: o chip "SOFÁS" voltou a aparecer 3 vezes (SOFÁS · SOFA · SOFA).
+     CAUSA: categoria é texto livre no cadastro; cada grafia nova virava um chip.
+     O banco agora canoniza na gravação (trigger trg_km_produtos_categoria_canon),
+     mas o site NÃO PODE DEPENDER SÓ DISSO — se um dia a trava do banco for
+     desligada, ou vier categoria de outra origem, o chip duplicado volta.
+     Aqui a duplicidade morre por CHAVE: sem acento, minúscula, hífen vira espaço
+     e o 's' final cai. "SOFÁS", "Sofa", "sofas" e " sofa " viram a MESMA chave.
+     ====================================================================== */
+  function catSlug(c){
+    var t=catNorm(c).replace(/[-_\/]+/g,' ').replace(/\s+/g,' ').trim();
+    return t.replace(/s$/,'');
+  }
+  var CAT_ALIAS = { 'roupeiro':'guarda roupa' };           // sinônimos comerciais
+  function catChave(c){ var s=catSlug(c); return CAT_ALIAS[s]||s; }
+  var CAT_ROTULO = {};
+  ORDEM.forEach(function(r){ CAT_ROTULO[catChave(r)]=r; }); // rótulo oficial = o da lista ORDEM
+  function catCanon(c){
+    if(!c) return c;
+    var k=catChave(c);
+    return CAT_ROTULO[k] || String(c).trim();               // categoria nova: mantém como veio
+  }
+  function catPublica(c){ return catChave(c)!=='terceirizacao'; }
   function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function ord(c){var i=ORDEM.indexOf(c);return i<0?99:i;}
   function nl(v){ try{return 'R$ '+Number(v).toLocaleString('pt-BR');}catch(e){return 'R$ '+v;} }
@@ -195,13 +218,20 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
     var old=b.textContent; b.textContent='✓ Adicionado'; setTimeout(function(){b.textContent=old;},1200);
   });
   function render(){
-    var lista = filtro==='Todos' ? produtos : produtos.filter(function(p){return p.categoria===filtro;});
+    var lista = filtro==='Todos' ? produtos : produtos.filter(function(p){return catChave(p.categoria)===catChave(filtro);});
     grid.innerHTML = lista.map(card).join('');
     state.style.display = lista.length ? 'none' : 'block';
     if(!lista.length) state.textContent = 'Nenhuma peça nesta categoria.';
   }
   function buildFilters(){
-    var cats = Array.from(new Set(produtos.map(function(p){return p.categoria;}).filter(Boolean)));
+    /* km-patch-cat-unica-2026-08-06: dedupe pela CHAVE, não pelo texto.
+       Set de texto deixava passar 'Sofás' e 'Sofa' como dois chips distintos. */
+    var vistos = {}, cats = [];
+    produtos.forEach(function(p){
+      var c = p.categoria; if(!c) return;
+      var k = catChave(c); if(!k || vistos[k]) return;
+      vistos[k] = 1; cats.push(catCanon(c));
+    });
     cats.sort(function(a,b){return ord(a)-ord(b);});
     var all = ['Todos'].concat(cats);
     filtersEl.innerHTML = all.map(function(c){return '<button class="chip'+(c==='Todos'?' active':'')+'" data-c="'+esc(c)+'">'+esc(c)+'</button>';}).join('');
@@ -215,7 +245,7 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
   fetch(SB+'/rest/v1/produtos?select=id,sku,nome,categoria,colecao,foto_url,trilha,destaque,preco,estoque_disponivel,itens,publicar_site&ativo=eq.true&publicar_site=is.true&order=ranking.asc.nullslast,destaque.desc,categoria.asc,nome.asc',
     {headers:{apikey:KEY, Authorization:'Bearer '+KEY}})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-    .then(function(data){ produtos = (data||[]).filter(function(p){ return catPublica(p.categoria); }); buildFilters(); render(); updateCartBadge(); })
+    .then(function(data){ produtos = (data||[]).filter(function(p){ return catPublica(p.categoria); }).map(function(p){ p.categoria = catCanon(p.categoria); return p; }); buildFilters(); render(); updateCartBadge(); })
     .catch(function(e){ state.textContent='Não foi possível carregar o catálogo agora.'; console.error(e); });
 </script>
 <script defer src="assistente.js"></script>
@@ -223,5 +253,6 @@ src="https://www.facebook.com/tr?id=1546077119714760&ev=PageView&noscript=1"
 <!-- Chat de atendimento ao vivo (equipe) — canto inferior esquerdo, não colide com a Concierge -->
 <script defer src="chat-widget.js"></script>
 <script defer src="km-track.js?v=20260803b"></script>
+<script defer src="km-redes.js?v=20260806a"></script>
 </body>
 </html>
