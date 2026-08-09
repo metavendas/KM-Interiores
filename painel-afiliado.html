@@ -142,6 +142,20 @@ footer{padding:34px 0;border-top:1px solid var(--linha);text-align:center;font-s
         <p class="hint" style="margin:16px 0 0">
           Cliques no seu link: <b id="kCliques" style="color:var(--champagne)">0</b> ·
           Contatos gerados: <b id="kLeads" style="color:var(--champagne)">0</b></p>
+
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--linha)">
+          <h3 style="font-family:'Playfair Display',serif;font-size:1.02rem;color:var(--champagne)">Link de um produto específico</h3>
+          <p class="hint" style="margin:6px 0 12px">
+            Abra qualquer produto no site da KM, copie o endereço da página e cole aqui.
+            Devolvemos o mesmo link com o seu código — a comissão fica sua.</p>
+          <input id="urlProduto" placeholder="https://www.kminteriores.com.br/produto.html?sku=...">
+          <div class="link-box" style="margin-top:10px">
+            <input id="linkProduto" readonly placeholder="Seu link do produto aparece aqui">
+            <button class="copiar" id="btnCopiarProduto" type="button">Copiar</button>
+          </div>
+          <a class="btn btn-sm" id="btnWppProduto" target="_blank" rel="noopener" style="margin-top:10px;display:none">Enviar este produto no WhatsApp</a>
+          <p class="hint" id="avisoProduto" style="margin:10px 0 0;display:none"></p>
+        </div>
       </div>
 
       <div class="bloco">
@@ -222,14 +236,40 @@ footer{padding:34px 0;border-top:1px solid var(--linha);text-align:center;font-s
   async function iniciar(){
     const { data:{ session } } = await sb.auth.getSession();
     if (!session) return;
+
+    // sessão existe: a partir daqui, NUNCA voltar em silêncio para a tela de e-mail
+    const email = (session.user && session.user.email) || '';
     const { data, error } = await sb.rpc('afiliado_meu_painel');
-    if (error || !data || data.ok !== true){
-      if (data && data.erro === 'nao_cadastrado'){
-        aviso($('msgLogin'),'Este e-mail não está no Círculo KM. Cadastre-se primeiro.','erro');
-        await sb.auth.signOut();
+
+    if (error){
+      console.error('[CirculoKM] afiliado_meu_painel', error);
+      const cod = error.code || '';
+      if (cod === 'PGRST202' || /Could not find the function/i.test(error.message || '')){
+        aviso($('msgLogin'), 'Seu acesso funcionou, mas o painel ainda não foi ativado no sistema. '
+          + 'Avise a KM: falta aplicar a migration do Círculo KM.', 'erro');
+      } else if (cod === '42501' || /permission denied/i.test(error.message || '')){
+        aviso($('msgLogin'), 'Seu acesso funcionou, mas o servidor negou a leitura do painel. Avise a KM.', 'erro');
+      } else {
+        aviso($('msgLogin'), 'Seu acesso funcionou, mas houve um erro ao carregar o painel: '
+          + (error.message || 'erro desconhecido'), 'erro');
       }
+      $('loginEmail').value = email;
+      $('btnSair').style.display = 'inline-block';
       return;
     }
+
+    if (!data || data.ok !== true){
+      if (data && data.erro === 'nao_cadastrado'){
+        aviso($('msgLogin'), 'O e-mail ' + email + ' entrou, mas ainda não tem cadastro no Círculo KM. '
+          + 'Faça o cadastro gratuito (leva 40 segundos) e depois volte aqui.', 'erro');
+        await sb.auth.signOut();
+      } else {
+        aviso($('msgLogin'), 'Não foi possível carregar o painel agora. Tente novamente em instantes.', 'erro');
+      }
+      $('loginEmail').value = email;
+      return;
+    }
+
     PAINEL = data;
     render(data);
   }
@@ -272,6 +312,13 @@ footer{padding:34px 0;border-top:1px solid var(--linha);text-align:center;font-s
     $('meuLink').value = link;
     $('btnWpp').href = 'https://wa.me/?text=' + encodeURIComponent(
       `Conheça a KM Interiores — móveis autorais feitos em Ubá/MG. Use o meu link: ${link}`);
+    gerarLinkProduto();
+
+    /* pedido de Trilha PRO em análise */
+    if (a.pro_solicitado === true){
+      $('nProx').innerHTML += ' <br><span style="color:var(--dourado)">Seu pedido de Trilha PRO '
+        + '(8% desde a primeira venda) está em análise pela KM. Enquanto isso, você já indica e já recebe.</span>';
+    }
 
     /* extrato */
     const tb = $('tbExtrato');
@@ -325,6 +372,52 @@ footer{padding:34px 0;border-top:1px solid var(--linha);text-align:center;font-s
     box.innerHTML = `<img alt="QR Code do seu link" src="https://api.qrserver.com/v1/create-qr-code/?size=340x340&margin=10&data=${url}">`
       + `<p style="color:#080807;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;margin-top:8px">Círculo KM</p>`;
     box.style.display = 'block';
+  });
+
+  /* ---------- GERADOR DE LINK POR PRODUTO ---------- */
+  function gerarLinkProduto(){
+    const bruto = $('urlProduto').value.trim();
+    const cod = PAINEL && PAINEL.afiliado ? PAINEL.afiliado.codigo : '';
+    const aviso = $('avisoProduto');
+    if (!bruto || !cod){
+      $('linkProduto').value = '';
+      $('btnWppProduto').style.display = 'none';
+      aviso.style.display = 'none';
+      return;
+    }
+    let u;
+    try { u = new URL(bruto.startsWith('http') ? bruto : 'https://' + bruto); }
+    catch(_) {
+      aviso.textContent = 'Esse endereço não parece válido. Copie a barra de endereços do navegador.';
+      aviso.style.display = 'block';
+      $('linkProduto').value = '';
+      $('btnWppProduto').style.display = 'none';
+      return;
+    }
+    if (!/kminteriores\.com\.br$/i.test(u.hostname)){
+      aviso.textContent = 'Use um endereço do site da KM Interiores.';
+      aviso.style.display = 'block';
+      $('linkProduto').value = '';
+      $('btnWppProduto').style.display = 'none';
+      return;
+    }
+    u.searchParams.set('ref', cod);
+    const final = u.toString();
+    $('linkProduto').value = final;
+    $('btnWppProduto').style.display = 'inline-block';
+    $('btnWppProduto').href = 'https://wa.me/?text=' + encodeURIComponent(
+      `Olha esse móvel da KM Interiores — achei a sua cara: ${final}`);
+    aviso.style.display = 'none';
+  }
+  $('urlProduto').addEventListener('input', gerarLinkProduto);
+
+  $('btnCopiarProduto').addEventListener('click', async () => {
+    const el = $('linkProduto');
+    if (!el.value) return;
+    try { await navigator.clipboard.writeText(el.value); }
+    catch(_) { el.select(); document.execCommand('copy'); }
+    $('btnCopiarProduto').textContent = 'Copiado';
+    setTimeout(()=> $('btnCopiarProduto').textContent = 'Copiar', 1800);
   });
 
   $('btnSalvarPix').addEventListener('click', async () => {

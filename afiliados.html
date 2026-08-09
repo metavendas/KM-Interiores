@@ -229,7 +229,7 @@ footer a{color:var(--dourado)}
     </div>
     <div class="passos">
       <div class="passo"><b>01</b><h3>Cadastre-se</h3><p>Nome, e-mail e WhatsApp. Seu código e seu link nascem na hora, de graça.</p></div>
-      <div class="passo"><b>02</b><h3>Compartilhe</h3><p>Mande o link no WhatsApp, poste no Instagram ou entregue o QR Code impresso. A KM te dá as imagens prontas.</p></div>
+      <div class="passo"><b>02</b><h3>Compartilhe</h3><p>Mais de 100 produtos com foto e preço no site. Escolha um, gere o link do produto no seu painel e mande no WhatsApp ou no Instagram.</p></div>
       <div class="passo"><b>03</b><h3>A KM atende</h3><p>Nosso consultor conversa, tira medidas, faz o orçamento e fecha. Você acompanha tudo pelo painel.</p></div>
       <div class="passo"><b>04</b><h3>Receba em PIX</h3><p>Móvel entregue e pago, comissão liberada. Fechamento dia 10, pagamento até o dia 20.</p></div>
     </div>
@@ -262,8 +262,9 @@ footer a{color:var(--dourado)}
       </div>
     </div>
     <p style="text-align:center;margin-top:30px;font-size:.86rem;color:rgba(241,233,210,.55)">
-      Arquitetos, designers, corretores e empresas entram na <b style="color:var(--dourado)">Trilha PRO</b>,
-      com 8% desde a primeira especificação e até 10% como Embaixador PRO. Cadastro sujeito a aprovação.</p>
+      Todo cadastro é aprovado na hora e o link já sai funcionando. Arquitetos, designers, corretores e empresas
+      podem pedir a <b style="color:var(--dourado)">Trilha PRO</b> — 8% desde a primeira venda e até 10% como
+      Embaixador PRO — declarando o perfil no cadastro. Até a KM confirmar, você já indica e já recebe.</p>
   </div>
 </section>
 
@@ -377,11 +378,24 @@ footer a{color:var(--dourado)}
         p_indicado_por: (localStorage.getItem('km_ref') || null),
         p_instagram: null, p_consent: true
       });
-      if (error) throw error;
+      if (error) {
+        // mostra a causa real em vez de "falha de conexão" genérica
+        console.error('[CirculoKM] afiliado_cadastrar', error);
+        const cod = error.code || '';
+        if (cod === 'PGRST202' || /Could not find the function/i.test(error.message || '')) {
+          aviso('O cadastro ainda não foi ativado no sistema. Avise a KM: falta aplicar a migration do Círculo KM.','erro');
+        } else if (cod === '42501' || /permission denied/i.test(error.message || '')) {
+          aviso('Permissão negada pelo servidor. Avise a KM (falta liberar a função de cadastro).','erro');
+        } else {
+          aviso('Não foi possível concluir: ' + (error.message || 'erro desconhecido'),'erro');
+        }
+        return;
+      }
       if (!data || data.ok !== true) { aviso(data && data.erro ? data.erro : 'Não foi possível concluir agora.','erro'); return; }
       mostrarSucesso(nome, data.codigo, data.novo === false);
     } catch (e) {
-      aviso('Falha de conexão. Tente novamente em instantes.','erro');
+      console.error('[CirculoKM]', e);
+      aviso('Falha de conexão com o servidor. Verifique sua internet e tente novamente.','erro');
     } finally {
       btn.disabled = false; btn.textContent = 'Criar meu link de indicação';
     }
