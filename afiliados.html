@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Círculo KM — Indique. Receba. | KM Interiores</title>
+<meta name="description" content="Indique os móveis da KM Interiores para quem você conhece e receba comissão em PIX depois da entrega. Cadastro gratuito em 40 segundos.">
+<meta property="og:title" content="Círculo KM — Indique. Receba.">
+<meta property="og:description" content="Cadastre-se grátis, receba seu link e ganhe comissão a cada venda indicada. Pagamento em PIX.">
+<meta property="og:image" content="https://www.kminteriores.com.br/img/og-circulo-km.jpg">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://www.kminteriores.com.br/afiliados.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ebano:#080807; --dourado:#CB984C; --marfim:#F1E9D2; --madeira:#5E3D12;
+  --champagne:#F1E4C9; --ouro-antigo:#9D7D31; --grafite:#141412; --linha:rgba(203,152,76,.22);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ebano);color:var(--marfim);font-family:'Inter',system-ui,sans-serif;font-weight:300;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3,.serif{font-family:'Playfair Display',Georgia,serif;font-weight:600;line-height:1.18;letter-spacing:-.01em}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(1120px,92vw);margin:0 auto}
+.eyebrow{font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;color:var(--dourado);font-weight:500}
+
+/* header */
+header{position:sticky;top:0;z-index:50;background:rgba(8,8,7,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--linha)}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+.logo{font-family:'Playfair Display',serif;font-size:1.35rem;letter-spacing:.16em;color:var(--marfim)}
+.logo span{color:var(--dourado)}
+.btn{display:inline-block;padding:13px 26px;border-radius:2px;font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;font-weight:500;cursor:pointer;transition:.25s;border:1px solid var(--dourado)}
+.btn-primary{background:var(--dourado);color:var(--ebano)}
+.btn-primary:hover{background:var(--champagne);border-color:var(--champagne)}
+.btn-ghost{background:transparent;color:var(--dourado)}
+.btn-ghost:hover{background:rgba(203,152,76,.12)}
+
+/* hero */
+.hero{padding:96px 0 80px;position:relative}
+.hero:before{content:'';position:absolute;inset:0;background:radial-gradient(900px 420px at 78% 8%,rgba(203,152,76,.16),transparent 62%);pointer-events:none}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;position:relative}
+.hero h1{font-size:clamp(2.3rem,5vw,3.7rem);margin:18px 0 22px}
+.hero h1 em{font-style:normal;color:var(--dourado)}
+.lead{font-size:1.08rem;color:rgba(241,233,210,.78);max-width:52ch}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:32px}
+.trust{display:flex;gap:28px;flex-wrap:wrap;margin-top:38px;padding-top:26px;border-top:1px solid var(--linha)}
+.trust div b{display:block;font-family:'Playfair Display',serif;font-size:1.55rem;color:var(--dourado);font-weight:600}
+.trust div span{font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(241,233,210,.55)}
+
+/* card form */
+.card{background:linear-gradient(160deg,#12120f,#0b0b09);border:1px solid var(--linha);padding:34px;border-radius:3px;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.card h2{font-size:1.5rem;margin-bottom:6px}
+.card .sub{font-size:.88rem;color:rgba(241,233,210,.6);margin-bottom:24px}
+label{display:block;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(241,233,210,.6);margin:16px 0 7px}
+input,select{width:100%;padding:13px 14px;background:rgba(241,233,210,.05);border:1px solid rgba(241,233,210,.16);color:var(--marfim);font-family:inherit;font-size:.95rem;border-radius:2px;transition:.2s}
+input:focus,select:focus{outline:none;border-color:var(--dourado);background:rgba(203,152,76,.07)}
+select option{background:#12120f;color:var(--marfim)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.consent{display:flex;gap:11px;align-items:flex-start;margin:22px 0 6px;font-size:.8rem;color:rgba(241,233,210,.7)}
+.consent input{width:17px;height:17px;flex:0 0 17px;margin-top:2px;accent-color:var(--dourado)}
+.card .btn{width:100%;margin-top:18px;border:none}
+.msg{margin-top:16px;padding:13px 15px;font-size:.87rem;border-radius:2px;display:none}
+.msg.erro{display:block;background:rgba(190,60,50,.14);border:1px solid rgba(190,60,50,.42);color:#f0b8b2}
+.msg.ok{display:block;background:rgba(203,152,76,.12);border:1px solid var(--dourado);color:var(--champagne)}
+
+/* sucesso */
+.codigo-box{text-align:center;padding:26px;border:1px dashed var(--dourado);margin:20px 0;background:rgba(203,152,76,.06)}
+.codigo-box .cod{font-family:'Playfair Display',serif;font-size:2.1rem;color:var(--dourado);letter-spacing:.16em}
+.link-box{display:flex;gap:8px;margin-top:14px}
+.link-box input{font-size:.8rem}
+.copiar{flex:0 0 auto;padding:13px 18px;background:var(--dourado);color:var(--ebano);border:none;cursor:pointer;font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+
+/* secoes */
+section{padding:82px 0;border-top:1px solid rgba(203,152,76,.1)}
+.sec-head{text-align:center;max-width:660px;margin:0 auto 52px}
+.sec-head h2{font-size:clamp(1.8rem,3.6vw,2.6rem);margin:14px 0 14px}
+.sec-head p{color:rgba(241,233,210,.7)}
+.passos{display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+.passo{padding:28px 22px;border:1px solid var(--linha);background:rgba(241,233,210,.02);position:relative}
+.passo b{font-family:'Playfair Display',serif;font-size:2.6rem;color:rgba(203,152,76,.28);display:block;line-height:1;margin-bottom:12px}
+.passo h3{font-size:1.05rem;margin-bottom:8px;color:var(--champagne)}
+.passo p{font-size:.87rem;color:rgba(241,233,210,.66)}
+
+.niveis{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.nivel{padding:32px 26px;border:1px solid var(--linha);background:linear-gradient(170deg,rgba(241,233,210,.03),transparent)}
+.nivel.destaque{border-color:var(--dourado);box-shadow:0 0 0 1px rgba(203,152,76,.25) inset}
+.nivel .pct{font-family:'Playfair Display',serif;font-size:3rem;color:var(--dourado);line-height:1}
+.nivel h3{font-size:1.15rem;margin:6px 0 4px}
+.nivel .req{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(241,233,210,.5);margin-bottom:16px}
+.nivel ul{list-style:none;font-size:.87rem;color:rgba(241,233,210,.72)}
+.nivel li{padding:6px 0 6px 18px;position:relative}
+.nivel li:before{content:'—';position:absolute;left:0;color:var(--dourado)}
+
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.calc-box{border:1px solid var(--linha);padding:32px;background:rgba(241,233,210,.02)}
+.calc-out{font-family:'Playfair Display',serif;font-size:2.8rem;color:var(--dourado);margin-top:8px}
+input[type=range]{accent-color:var(--dourado);padding:0;background:transparent;border:none}
+
+.faq details{border-bottom:1px solid var(--linha);padding:20px 0}
+.faq summary{cursor:pointer;font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--champagne);list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:after{content:'+';color:var(--dourado);font-size:1.4rem;line-height:1}
+.faq details[open] summary:after{content:'–'}
+.faq p{margin-top:12px;font-size:.92rem;color:rgba(241,233,210,.72);max-width:78ch}
+
+footer{padding:52px 0;border-top:1px solid var(--linha);font-size:.82rem;color:rgba(241,233,210,.5);text-align:center}
+footer a{color:var(--dourado)}
+
+@media(max-width:900px){
+  .hero-grid,.calc{grid-template-columns:1fr;gap:44px}
+  .passos{grid-template-columns:1fr 1fr}
+  .niveis{grid-template-columns:1fr}
+  .hero{padding:56px 0 44px}
+  section{padding:60px 0}
+  .row{grid-template-columns:1fr}
+  .hd .btn{padding:10px 16px;font-size:.72rem}
+}
+@media(max-width:520px){ .passos{grid-template-columns:1fr} .trust{gap:20px} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <a class="logo" href="/">KM <span>INTERIORES</span></a>
+    <a class="btn btn-ghost" href="/painel-afiliado.html">Área do afiliado</a>
+  </div>
+</header>
+
+<!-- ================= HERO + CADASTRO ================= -->
+<div class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Círculo KM · Programa de Indicação</p>
+      <h1>Você indica.<br>A KM entrega.<br><em>Vocês dois ganham.</em></h1>
+      <p class="lead">Todo mundo conhece alguém montando casa, reformando um escritório ou trocando os móveis.
+      No Círculo KM, essa conversa vira comissão no seu PIX — sem estoque, sem investimento e sem meta obrigatória.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#cadastro">Quero meu link gratuito</a>
+        <a class="btn btn-ghost" href="#como">Como funciona</a>
+      </div>
+      <div class="trust">
+        <div><b>3% a 8%</b><span>de comissão por venda</span></div>
+        <div><b>R$ 0</b><span>para entrar e permanecer</span></div>
+        <div><b>PIX</b><span>pagamento até o dia 20</span></div>
+      </div>
+    </div>
+
+    <div class="card" id="cadastro">
+      <div id="formArea">
+        <h2>Entre para o Círculo</h2>
+        <p class="sub">Nome, e-mail e WhatsApp. Leva 40 segundos e seu link já sai pronto.</p>
+        <form id="fAfiliado" autocomplete="on" novalidate>
+          <label for="nome">Nome completo</label>
+          <input id="nome" name="nome" type="text" required placeholder="Como você quer ser chamado">
+
+          <div class="row">
+            <div>
+              <label for="email">E-mail</label>
+              <input id="email" name="email" type="email" required placeholder="voce@email.com">
+            </div>
+            <div>
+              <label for="whatsapp">WhatsApp</label>
+              <input id="whatsapp" name="whatsapp" type="tel" required placeholder="(32) 99999-9999" maxlength="16">
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="cidade">Cidade</label>
+              <input id="cidade" name="cidade" type="text" placeholder="Ubá">
+            </div>
+            <div>
+              <label for="categoria">Seu perfil</label>
+              <select id="categoria" name="categoria">
+                <option value="divulgador">Indico para conhecidos</option>
+                <option value="cliente">Sou cliente da KM</option>
+                <option value="arquiteto">Arquiteto / Designer</option>
+                <option value="corretor">Corretor / Imobiliária</option>
+                <option value="obra">Montador / Marceneiro / Obra</option>
+                <option value="criador">Criador de conteúdo</option>
+                <option value="b2b">Empresa / Incorporadora</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="consent" for="consent">
+            <input type="checkbox" id="consent" required>
+            <span>Li e aceito o <a href="/termos-circulo-km.html" target="_blank" style="color:var(--dourado)">regulamento do Círculo KM</a>
+            e a política de privacidade. Autorizo a KM a me contatar por e-mail e WhatsApp.</span>
+          </label>
+
+          <button class="btn btn-primary" type="submit" id="btnEnviar">Criar meu link de indicação</button>
+          <div class="msg" id="msg"></div>
+        </form>
+      </div>
+
+      <!-- estado de sucesso -->
+      <div id="sucessoArea" style="display:none">
+        <p class="eyebrow">Bem-vindo ao Círculo</p>
+        <h2 id="oiNome">Seu código está pronto</h2>
+        <div class="codigo-box">
+          <div class="cod" id="meuCodigo">—</div>
+          <p style="font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(241,233,210,.55);margin-top:8px">seu código de indicação</p>
+        </div>
+        <label>Seu link exclusivo</label>
+        <div class="link-box">
+          <input id="meuLink" readonly>
+          <button class="copiar" id="btnCopiar" type="button">Copiar</button>
+        </div>
+        <a class="btn btn-primary" id="btnWpp" style="margin-top:14px;text-align:center" target="_blank" rel="noopener">Enviar meu link no WhatsApp</a>
+        <a class="btn btn-ghost" href="/painel-afiliado.html" style="margin-top:10px;text-align:center;display:block">Acessar meu painel</a>
+        <p style="font-size:.8rem;color:rgba(241,233,210,.6);margin-top:18px">
+          Enviamos um e-mail com o seu link e o passo a passo. Guarde o código: ele é a sua identidade dentro da KM.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= COMO FUNCIONA ================= -->
+<section id="como">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Simples de propósito</p>
+      <h2>Quatro passos. Nenhum risco.</h2>
+      <p>Você não compra nada, não guarda estoque, não entrega e não faz pós-venda. Seu trabalho é apresentar — o resto é da KM.</p>
+    </div>
+    <div class="passos">
+      <div class="passo"><b>01</b><h3>Cadastre-se</h3><p>Nome, e-mail e WhatsApp. Seu código e seu link nascem na hora, de graça.</p></div>
+      <div class="passo"><b>02</b><h3>Compartilhe</h3><p>Mande o link no WhatsApp, poste no Instagram ou entregue o QR Code impresso. A KM te dá as imagens prontas.</p></div>
+      <div class="passo"><b>03</b><h3>A KM atende</h3><p>Nosso consultor conversa, tira medidas, faz o orçamento e fecha. Você acompanha tudo pelo painel.</p></div>
+      <div class="passo"><b>04</b><h3>Receba em PIX</h3><p>Móvel entregue e pago, comissão liberada. Fechamento dia 10, pagamento até o dia 20.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= NIVEIS ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Quanto você ganha</p>
+      <h2>A comissão sobe com você</h2>
+      <p>Todo mundo entra no mesmo degrau. Quem indica mais, ganha mais — por desempenho, não por convite.</p>
+    </div>
+    <div class="niveis" id="niveisBox">
+      <div class="nivel">
+        <div class="pct">3%</div><h3>Convidado</h3>
+        <p class="req">Entrada · imediata</p>
+        <ul><li>Link exclusivo e QR Code</li><li>Kit digital de imagens da marca</li><li>Painel com comissões em tempo real</li><li>Bônus de R$ 150 na primeira venda</li></ul>
+      </div>
+      <div class="nivel destaque">
+        <div class="pct">5%</div><h3>Parceiro</h3>
+        <p class="req">2 vendas ou R$ 8 mil em 12 meses</p>
+        <ul><li>Tudo do nível anterior</li><li>Amostrário físico de tecidos</li><li>Consultor dedicado no WhatsApp</li><li>+1,5 p.p. no bônus da Rota KM</li></ul>
+      </div>
+      <div class="nivel">
+        <div class="pct">8%</div><h3>Embaixador</h3>
+        <p class="req">6 vendas ou R$ 30 mil em 12 meses</p>
+        <ul><li>Tudo dos níveis anteriores</li><li>Antecipação parcial da comissão</li><li>Seu perfil publicado no site da KM</li><li>Prioridade na fila de produção</li></ul>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:30px;font-size:.86rem;color:rgba(241,233,210,.55)">
+      Arquitetos, designers, corretores e empresas entram na <b style="color:var(--dourado)">Trilha PRO</b>,
+      com 8% desde a primeira especificação e até 10% como Embaixador PRO. Cadastro sujeito a aprovação.</p>
+  </div>
+</section>
+
+<!-- ================= SIMULADOR ================= -->
+<section>
+  <div class="wrap calc">
+    <div>
+      <p class="eyebrow">Faça a conta</p>
+      <h2 style="font-size:clamp(1.7rem,3.4vw,2.4rem);margin:12px 0 16px">Quanto rende indicar?</h2>
+      <p class="lead">O pedido médio da KM é de R$ 2.382 em móveis. Uma indicação por mês, no nível Parceiro,
+      já paga a conta de luz do ano. Cinco indicações no nível Embaixador pagam bem mais que isso.</p>
+      <p style="font-size:.82rem;color:rgba(241,233,210,.5);margin-top:18px">
+        Simulação sobre o valor dos produtos, sem frete. Valores reais dependem do pedido fechado.</p>
+    </div>
+    <div class="calc-box">
+      <label for="rVendas">Indicações fechadas por mês: <b id="lblVendas" style="color:var(--dourado)">2</b></label>
+      <input type="range" id="rVendas" min="1" max="10" value="2">
+      <label for="rTicket" style="margin-top:22px">Valor médio do pedido: <b id="lblTicket" style="color:var(--dourado)">R$ 2.382</b></label>
+      <input type="range" id="rTicket" min="800" max="12000" step="100" value="2382">
+      <label for="selNivel" style="margin-top:22px">Seu nível</label>
+      <select id="selNivel">
+        <option value="3">Convidado — 3%</option>
+        <option value="5" selected>Parceiro — 5%</option>
+        <option value="8">Embaixador — 8%</option>
+      </select>
+      <p style="margin-top:26px;font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(241,233,210,.55)">Sua comissão por mês</p>
+      <div class="calc-out" id="outMes">R$ 238</div>
+      <p style="font-size:.86rem;color:rgba(241,233,210,.6)">Em 12 meses: <b id="outAno" style="color:var(--champagne)">R$ 2.859</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section class="faq">
+  <div class="wrap" style="max-width:860px">
+    <div class="sec-head"><p class="eyebrow">Sem letras miúdas</p><h2>Perguntas diretas</h2></div>
+    <details open><summary>Preciso pagar alguma coisa para entrar?</summary><p>Não. A entrada e a permanência no Círculo KM são gratuitas. Você não compra kit, não paga mensalidade e não tem meta obrigatória.</p></details>
+    <details><summary>Preciso ter CNPJ?</summary><p>Para indicações eventuais, não — pagamos em PIX na pessoa física. Se a indicação virar atividade frequente, a KM orienta a formalização, porque a legislação exige nota fiscal para pagamento recorrente. Clientes da casa também podem escolher receber em crédito para a próxima compra, com valor maior.</p></details>
+    <details><summary>Quando eu recebo?</summary><p>A comissão fica "prevista" assim que o pedido é lançado, "liberada" 7 dias após a entrega concluída e paga no fechamento seguinte: apuração no dia 10, pagamento até o dia 20. Resgate mínimo de R$ 50.</p></details>
+    <details><summary>E se a pessoa demorar para decidir?</summary><p>Sua indicação vale por 90 dias a partir do primeiro contato. Móvel sob medida se decide com calma — o prazo foi feito para isso.</p></details>
+    <details><summary>E se duas pessoas indicarem o mesmo cliente?</summary><p>Vale quem foi registrado primeiro no sistema. Por isso o link e o código importam: eles carimbam a hora.</p></details>
+    <details><summary>Posso anunciar como se eu fosse a KM?</summary><p>Não. Você se apresenta como parceiro do Círculo KM, usa as imagens do kit oficial e não promete prazo, desconto ou preço diferente do praticado. Também não é permitido comprar anúncio sobre a marca "KM Interiores".</p></details>
+    <details><summary>Sou obrigado a vender um mínimo?</summary><p>Não. Metas existem apenas para subir de nível e ganhar mais. Ninguém é desligado por não indicar.</p></details>
+    <details><summary>Quem cuida do cliente depois?</summary><p>A KM, do começo ao fim: orçamento, produção, entrega, montagem e pós-venda. Você não carrega problema nenhum.</p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="serif" style="font-size:1.1rem;color:var(--champagne)">Design que inspira. Sofisticação que permanece.</p>
+    <p style="margin-top:14px">KM Interiores · Ubá, Minas Gerais · <a href="/">www.kminteriores.com.br</a></p>
+    <p style="margin-top:8px"><a href="/termos-circulo-km.html">Regulamento do Círculo KM</a> · <a href="/privacidade.html">Privacidade</a></p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+  'use strict';
+  const SB_URL = 'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwYnRubGZpaGJ3d2F3Z3Rlc3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjUwNjEsImV4cCI6MjA5NzU0MTA2MX0.7_ArXcKpEzZtB-MZr5kk4FTczhO2DB_agduNigVUFns';
+  const SITE = 'https://www.kminteriores.com.br';
+  const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+  /* ---- máscara de WhatsApp (BR) ---- */
+  const wpp = document.getElementById('whatsapp');
+  wpp.addEventListener('input', e => {
+    let v = e.target.value.replace(/\D/g,'').slice(0,11);
+    if (v.length > 6)      v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+    else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+    else if (v.length > 0) v = `(${v}`;
+    e.target.value = v;
+  });
+
+  /* ---- afiliado que indicou outro afiliado (viral interno) ---- */
+  const params = new URLSearchParams(location.search);
+  const refIndicador = (params.get('ref') || '').toUpperCase().slice(0,16);
+  if (refIndicador) {
+    try { localStorage.setItem('km_ref', refIndicador); } catch(_) {}
+    sb.rpc('afiliado_registrar_clique', {
+      p_codigo: refIndicador, p_pagina: 'afiliados', p_sku: null,
+      p_utm: { utm_source: params.get('utm_source'), utm_medium: params.get('utm_medium'), utm_campaign: params.get('utm_campaign') },
+      p_referrer: document.referrer || null
+    }).then(()=>{}).catch(()=>{});
+  }
+
+  const msg = document.getElementById('msg');
+  function aviso(txt, tipo){ msg.textContent = txt; msg.className = 'msg ' + tipo; }
+
+  document.getElementById('fAfiliado').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const btn = document.getElementById('btnEnviar');
+    const nome = document.getElementById('nome').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const zap = document.getElementById('whatsapp').value.replace(/\D/g,'');
+    const consent = document.getElementById('consent').checked;
+
+    if (nome.length < 3)  return aviso('Informe seu nome completo.','erro');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return aviso('E-mail inválido.','erro');
+    if (zap.length < 10)  return aviso('WhatsApp inválido. Inclua o DDD.','erro');
+    if (!consent)         return aviso('É preciso aceitar o regulamento para continuar.','erro');
+
+    btn.disabled = true; btn.textContent = 'Criando seu link...';
+    aviso('','');
+    try {
+      const { data, error } = await sb.rpc('afiliado_cadastrar', {
+        p_nome: nome, p_email: email, p_whatsapp: zap,
+        p_cidade: document.getElementById('cidade').value.trim() || null,
+        p_uf: null,
+        p_categoria: document.getElementById('categoria').value,
+        p_indicado_por: (localStorage.getItem('km_ref') || null),
+        p_instagram: null, p_consent: true
+      });
+      if (error) throw error;
+      if (!data || data.ok !== true) { aviso(data && data.erro ? data.erro : 'Não foi possível concluir agora.','erro'); return; }
+      mostrarSucesso(nome, data.codigo, data.novo === false);
+    } catch (e) {
+      aviso('Falha de conexão. Tente novamente em instantes.','erro');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Criar meu link de indicação';
+    }
+  });
+
+  function mostrarSucesso(nome, codigo, jaExistia){
+    const link = `${SITE}/?ref=${codigo}`;
+    document.getElementById('formArea').style.display = 'none';
+    const area = document.getElementById('sucessoArea');
+    area.style.display = 'block';
+    document.getElementById('oiNome').textContent = jaExistia
+      ? 'Você já está no Círculo' : `Pronto, ${nome.split(' ')[0]}`;
+    document.getElementById('meuCodigo').textContent = codigo;
+    document.getElementById('meuLink').value = link;
+    const texto = encodeURIComponent(
+      `Conheça a KM Interiores — móveis autorais feitos em Ubá/MG. Use o meu link: ${link}`);
+    document.getElementById('btnWpp').href = `https://wa.me/?text=${texto}`;
+    area.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+
+  document.getElementById('btnCopiar').addEventListener('click', async () => {
+    const el = document.getElementById('meuLink');
+    try { await navigator.clipboard.writeText(el.value); }
+    catch(_) { el.select(); document.execCommand('copy'); }
+    const b = document.getElementById('btnCopiar');
+    b.textContent = 'Copiado'; setTimeout(()=> b.textContent = 'Copiar', 1800);
+  });
+
+  /* ---- simulador ---- */
+  const brl = n => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+  const rV = document.getElementById('rVendas'), rT = document.getElementById('rTicket'), sN = document.getElementById('selNivel');
+  function calcular(){
+    const v = +rV.value, t = +rT.value, p = +sN.value;
+    document.getElementById('lblVendas').textContent = v;
+    document.getElementById('lblTicket').textContent = brl(t);
+    const mes = v * t * p / 100;
+    document.getElementById('outMes').textContent = brl(mes);
+    document.getElementById('outAno').textContent = brl(mes * 12);
+  }
+  [rV, rT, sN].forEach(el => el.addEventListener('input', calcular));
+  calcular();
+})();
+</script>
+</body>
+</html>

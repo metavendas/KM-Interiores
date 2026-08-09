@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Painel do Afiliado — Círculo KM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ebano:#080807;--dourado:#CB984C;--marfim:#F1E9D2;--champagne:#F1E4C9;--linha:rgba(203,152,76,.22)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ebano);color:var(--marfim);font-family:'Inter',system-ui,sans-serif;font-weight:300;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,.serif{font-family:'Playfair Display',Georgia,serif;font-weight:600;line-height:1.2}
+a{color:var(--dourado);text-decoration:none}
+.wrap{width:min(1080px,93vw);margin:0 auto}
+.eyebrow{font-size:.7rem;letter-spacing:.26em;text-transform:uppercase;color:var(--dourado);font-weight:500}
+header{border-bottom:1px solid var(--linha);position:sticky;top:0;background:rgba(8,8,7,.94);backdrop-filter:blur(12px);z-index:20}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:15px 0}
+.logo{font-family:'Playfair Display',serif;font-size:1.2rem;letter-spacing:.16em;color:var(--marfim)}
+.logo span{color:var(--dourado)}
+.btn{display:inline-block;padding:12px 22px;border-radius:2px;font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;font-weight:500;cursor:pointer;transition:.22s;border:1px solid var(--dourado);background:transparent;color:var(--dourado);font-family:inherit}
+.btn-primary{background:var(--dourado);color:var(--ebano)}
+.btn-primary:hover{background:var(--champagne);border-color:var(--champagne)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-sm{padding:8px 14px;font-size:.7rem}
+input,select{width:100%;padding:12px 13px;background:rgba(241,233,210,.05);border:1px solid rgba(241,233,210,.16);color:var(--marfim);font-family:inherit;font-size:.94rem;border-radius:2px}
+input:focus,select:focus{outline:none;border-color:var(--dourado)}
+select option{background:#12120f}
+label{display:block;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(241,233,210,.6);margin:14px 0 6px}
+.card{background:linear-gradient(160deg,#12120f,#0b0b09);border:1px solid var(--linha);padding:28px;border-radius:3px}
+.msg{margin-top:14px;padding:12px 14px;font-size:.86rem;border-radius:2px;display:none}
+.msg.erro{display:block;background:rgba(190,60,50,.14);border:1px solid rgba(190,60,50,.4);color:#f0b8b2}
+.msg.ok{display:block;background:rgba(203,152,76,.12);border:1px solid var(--dourado);color:var(--champagne)}
+
+/* login */
+.login{min-height:76vh;display:flex;align-items:center;justify-content:center;padding:40px 0}
+.login .card{width:min(440px,92vw)}
+
+/* painel */
+.painel{padding:34px 0 70px;display:none}
+.saudacao{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:26px}
+.saudacao h1{font-size:clamp(1.6rem,3.4vw,2.2rem)}
+.selo{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--dourado);padding:7px 15px;font-size:.74rem;letter-spacing:.13em;text-transform:uppercase;color:var(--dourado)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px}
+.kpi{border:1px solid var(--linha);padding:20px;background:rgba(241,233,210,.02)}
+.kpi span{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(241,233,210,.55);display:block;margin-bottom:8px}
+.kpi b{font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--dourado);font-weight:600}
+.kpi small{display:block;font-size:.72rem;color:rgba(241,233,210,.45);margin-top:4px}
+.grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:22px}
+.bloco{border:1px solid var(--linha);padding:26px;background:rgba(241,233,210,.02);margin-bottom:22px}
+.bloco h2{font-size:1.15rem;margin-bottom:5px}
+.bloco .hint{font-size:.83rem;color:rgba(241,233,210,.55);margin-bottom:18px}
+.link-box{display:flex;gap:8px}
+.link-box input{font-size:.82rem}
+.copiar{flex:0 0 auto;padding:12px 16px;background:var(--dourado);color:var(--ebano);border:none;cursor:pointer;font-size:.7rem;letter-spacing:.11em;text-transform:uppercase;font-weight:600;font-family:inherit}
+#qr{margin-top:16px;text-align:center;padding:16px;background:var(--marfim);display:none}
+#qr img{max-width:170px}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th{text-align:left;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(241,233,210,.5);font-weight:500;padding:9px 8px;border-bottom:1px solid var(--linha)}
+td{padding:11px 8px;border-bottom:1px solid rgba(241,233,210,.07)}
+.tag{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border:1px solid;border-radius:99px;white-space:nowrap}
+.t-prevista{color:#c8b98f;border-color:rgba(200,185,143,.4)}
+.t-vencida,.t-aprovada{color:var(--dourado);border-color:var(--dourado)}
+.t-paga{color:#7fc98f;border-color:rgba(127,201,143,.45)}
+.t-estornada{color:#d08b84;border-color:rgba(208,139,132,.4)}
+.progresso{height:6px;background:rgba(241,233,210,.1);margin:12px 0 8px;border-radius:99px;overflow:hidden}
+.progresso i{display:block;height:100%;background:var(--dourado);width:0}
+.vazio{padding:24px 0;text-align:center;color:rgba(241,233,210,.45);font-size:.88rem}
+.rota{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid rgba(241,233,210,.07);font-size:.86rem}
+.rota b{color:var(--champagne);font-weight:500}
+footer{padding:34px 0;border-top:1px solid var(--linha);text-align:center;font-size:.8rem;color:rgba(241,233,210,.45)}
+@media(max-width:900px){.kpis{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <a class="logo" href="/">KM <span>INTERIORES</span></a>
+    <button class="btn btn-sm" id="btnSair" style="display:none">Sair</button>
+  </div>
+</header>
+
+<!-- ============ LOGIN POR LINK MÁGICO ============ -->
+<div class="login" id="loginArea">
+  <div class="card">
+    <p class="eyebrow">Círculo KM</p>
+    <h2 style="font-size:1.6rem;margin:10px 0 6px">Painel do Afiliado</h2>
+    <p style="font-size:.88rem;color:rgba(241,233,210,.62)">Sem senha. Digite o e-mail do seu cadastro e enviamos um link de acesso.</p>
+    <form id="fLogin">
+      <label for="loginEmail">Seu e-mail</label>
+      <input id="loginEmail" type="email" required placeholder="voce@email.com" autocomplete="email">
+      <button class="btn btn-primary" type="submit" id="btnLogin" style="width:100%;margin-top:18px">Receber link de acesso</button>
+      <div class="msg" id="msgLogin"></div>
+    </form>
+    <p style="font-size:.82rem;color:rgba(241,233,210,.5);margin-top:20px;text-align:center">
+      Ainda não faz parte? <a href="/afiliados.html">Cadastre-se gratuitamente</a>
+    </p>
+  </div>
+</div>
+
+<!-- ============ PAINEL ============ -->
+<div class="painel wrap" id="painelArea">
+
+  <div class="saudacao">
+    <div>
+      <p class="eyebrow">Bem-vindo de volta</p>
+      <h1 id="pNome">—</h1>
+    </div>
+    <div class="selo" id="pSelo">—</div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>Comissão prevista</span><b id="kPrevista">R$ 0</b><small>aguardando entrega</small></div>
+    <div class="kpi"><span>Liberada para saque</span><b id="kVencida">R$ 0</b><small>já pode resgatar</small></div>
+    <div class="kpi"><span>Já recebido</span><b id="kPaga">R$ 0</b><small>pago em PIX</small></div>
+    <div class="kpi"><span>Indicações fechadas</span><b id="kVendas">0</b><small id="kVolume">R$ 0 em pedidos</small></div>
+  </div>
+
+  <div class="bloco" id="blocoNivel">
+    <h2>Seu nível: <span id="nNivel" style="color:var(--dourado)">—</span> · <span id="nPct">—</span> de comissão</h2>
+    <p class="hint" id="nProx">—</p>
+    <div class="progresso"><i id="nBarra"></i></div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div class="bloco">
+        <h2>Seu link de indicação</h2>
+        <p class="hint">Quem entrar por aqui fica vinculado a você por 90 dias.</p>
+        <div class="link-box">
+          <input id="meuLink" readonly>
+          <button class="copiar" id="btnCopiar" type="button">Copiar</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <a class="btn btn-sm" id="btnWpp" target="_blank" rel="noopener">Enviar no WhatsApp</a>
+          <button class="btn btn-sm" id="btnQR" type="button">Gerar QR Code</button>
+        </div>
+        <div id="qr"></div>
+        <p class="hint" style="margin:16px 0 0">
+          Cliques no seu link: <b id="kCliques" style="color:var(--champagne)">0</b> ·
+          Contatos gerados: <b id="kLeads" style="color:var(--champagne)">0</b></p>
+      </div>
+
+      <div class="bloco">
+        <h2>Extrato de comissões</h2>
+        <p class="hint">Prevista → liberada 7 dias após a entrega → paga no fechamento.</p>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Data</th><th>Pedido</th><th>Base</th><th>%</th><th>Comissão</th><th>Situação</th></tr></thead>
+          <tbody id="tbExtrato"></tbody></table>
+        </div>
+        <div class="vazio" id="extratoVazio">Ainda não há comissões lançadas. Compartilhe seu link para começar.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="bloco">
+        <h2>Receber por PIX</h2>
+        <p class="hint">Resgate mínimo de R$ 50 sobre o valor liberado.</p>
+        <label for="pixTipo">Tipo de chave</label>
+        <select id="pixTipo">
+          <option value="cpf">CPF</option><option value="cnpj">CNPJ</option>
+          <option value="email">E-mail</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option>
+        </select>
+        <label for="pixChave">Chave PIX</label>
+        <input id="pixChave" placeholder="Sua chave">
+        <label for="pixDoc">CPF ou CNPJ (para o recibo)</label>
+        <input id="pixDoc" placeholder="Somente números">
+        <button class="btn btn-sm" id="btnSalvarPix" style="margin-top:16px">Salvar dados</button>
+        <button class="btn btn-primary btn-sm" id="btnResgatar" style="margin-top:16px">Solicitar resgate</button>
+        <div class="msg" id="msgPix"></div>
+        <div id="listaResgates" style="margin-top:18px"></div>
+      </div>
+
+      <div class="bloco">
+        <h2>Rota KM</h2>
+        <p class="hint">Feche até a data de corte e o frete do seu cliente cai. Use isso para fechar mais rápido.</p>
+        <div id="listaRotas"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer><div class="wrap">KM Interiores · Círculo KM · Ubá/MG · <a href="/afiliados.html">Regras do programa</a></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+  'use strict';
+  const SB_URL = 'https://hpbtnlfihbwwawgtesvm.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwYnRubGZpaGJ3d2F3Z3Rlc3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjUwNjEsImV4cCI6MjA5NzU0MTA2MX0.7_ArXcKpEzZtB-MZr5kk4FTczhO2DB_agduNigVUFns';
+  const SITE = 'https://www.kminteriores.com.br';
+  const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+  const $ = id => document.getElementById(id);
+  const brl = n => (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+  const brl2 = n => (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  function aviso(el, txt, tipo){ el.textContent = txt; el.className = 'msg ' + (tipo||''); }
+
+  /* ---------- LOGIN POR LINK MÁGICO ---------- */
+  $('fLogin').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const email = $('loginEmail').value.trim().toLowerCase();
+    const btn = $('btnLogin');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return aviso($('msgLogin'),'E-mail inválido.','erro');
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    const { error } = await sb.auth.signInWithOtp({
+      email, options:{ emailRedirectTo: SITE + '/painel-afiliado.html', shouldCreateUser: true }
+    });
+    btn.disabled = false; btn.textContent = 'Receber link de acesso';
+    if (error) return aviso($('msgLogin'),'Não conseguimos enviar agora. Tente em instantes.','erro');
+    aviso($('msgLogin'),'Link enviado. Confira seu e-mail (verifique também o spam).','ok');
+  });
+
+  $('btnSair').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+  /* ---------- CARGA DO PAINEL ---------- */
+  let PAINEL = null;
+
+  async function iniciar(){
+    const { data:{ session } } = await sb.auth.getSession();
+    if (!session) return;
+    const { data, error } = await sb.rpc('afiliado_meu_painel');
+    if (error || !data || data.ok !== true){
+      if (data && data.erro === 'nao_cadastrado'){
+        aviso($('msgLogin'),'Este e-mail não está no Círculo KM. Cadastre-se primeiro.','erro');
+        await sb.auth.signOut();
+      }
+      return;
+    }
+    PAINEL = data;
+    render(data);
+  }
+
+  function render(d){
+    $('loginArea').style.display = 'none';
+    $('painelArea').style.display = 'block';
+    $('btnSair').style.display = 'inline-block';
+
+    const a = d.afiliado, k = d.kpi;
+    $('pNome').textContent = a.nome.split(' ').slice(0,2).join(' ');
+    $('pSelo').textContent = (a.rotulo || a.nivel) + ' · ' + Number(a.pct).toFixed(0) + '%';
+    $('kPrevista').textContent = brl(k.prevista);
+    $('kVencida').textContent  = brl(k.vencida);
+    $('kPaga').textContent     = brl(k.paga);
+    $('kVendas').textContent   = k.vendas;
+    $('kVolume').textContent   = brl(k.volume) + ' em pedidos';
+    $('kCliques').textContent  = d.cliques;
+    $('kLeads').textContent    = d.leads;
+
+    /* nível e próximo degrau */
+    $('nNivel').textContent = a.rotulo || a.nivel;
+    $('nPct').textContent   = Number(a.pct).toFixed(0) + '%';
+    const prox = d.proximo_nivel;
+    if (prox){
+      const fV = prox.min_vendas ? (k.vendas / prox.min_vendas) : 0;
+      const fR = prox.min_valor  ? (k.volume / prox.min_valor)  : 0;
+      const pct = Math.min(100, Math.round(Math.max(fV, fR) * 100));
+      $('nBarra').style.width = pct + '%';
+      $('nProx').innerHTML = `Faltam <b style="color:var(--champagne)">${Math.max(0, prox.min_vendas - k.vendas)}</b> `
+        + `indicações (ou ${brl(Math.max(0, prox.min_valor - k.volume))} em pedidos) para chegar a `
+        + `<b style="color:var(--dourado)">${prox.rotulo} — ${Number(prox.pct).toFixed(0)}%</b>.`;
+    } else {
+      $('nProx').textContent = 'Você está no nível máximo da sua trilha. Obrigado por representar a KM.';
+      $('nBarra').style.width = '100%';
+    }
+
+    /* link */
+    const link = `${SITE}/?ref=${a.codigo}`;
+    $('meuLink').value = link;
+    $('btnWpp').href = 'https://wa.me/?text=' + encodeURIComponent(
+      `Conheça a KM Interiores — móveis autorais feitos em Ubá/MG. Use o meu link: ${link}`);
+
+    /* extrato */
+    const tb = $('tbExtrato');
+    tb.innerHTML = '';
+    if (!d.extrato || !d.extrato.length){ $('extratoVazio').style.display = 'block'; }
+    else {
+      $('extratoVazio').style.display = 'none';
+      d.extrato.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${(r.data||'').split('-').reverse().join('/')}</td>`
+          + `<td>${r.pedido || '—'}</td><td>${brl(r.base)}</td><td>${Number(r.pct).toFixed(1)}%</td>`
+          + `<td style="color:var(--champagne)">${brl2(r.valor)}</td>`
+          + `<td><span class="tag t-${r.status}">${r.status}</span></td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    /* pix */
+    if (a.pix_tipo)  $('pixTipo').value  = a.pix_tipo;
+    if (a.pix_chave) $('pixChave').value = a.pix_chave;
+
+    /* resgates */
+    const lr = $('listaResgates');
+    lr.innerHTML = (d.resgates && d.resgates.length)
+      ? '<p class="hint" style="margin:0 0 8px">Seus resgates</p>' + d.resgates.map(r =>
+          `<div class="rota"><b>${(r.data||'').split('-').reverse().join('/')}</b>`
+          + `<span>${brl2(r.valor)} <span class="tag t-${r.status==='pago'?'paga':'prevista'}">${r.status}</span></span></div>`).join('')
+      : '';
+
+    /* rotas */
+    const lrt = $('listaRotas');
+    lrt.innerHTML = (d.rotas && d.rotas.length)
+      ? d.rotas.map(r => `<div class="rota"><b>${r.regiao}</b>`
+          + `<span>sai ${r.saida} · fecha ${r.cutoff} · frete ${brl(r.frete)} · ${r.vagas} vagas</span></div>`).join('')
+      : '<div class="vazio">Nenhuma rota publicada no momento.</div>';
+  }
+
+  /* ---------- AÇÕES ---------- */
+  $('btnCopiar').addEventListener('click', async () => {
+    const el = $('meuLink');
+    try { await navigator.clipboard.writeText(el.value); }
+    catch(_) { el.select(); document.execCommand('copy'); }
+    $('btnCopiar').textContent = 'Copiado';
+    setTimeout(()=> $('btnCopiar').textContent = 'Copiar', 1800);
+  });
+
+  $('btnQR').addEventListener('click', () => {
+    const box = $('qr');
+    if (box.style.display === 'block'){ box.style.display = 'none'; return; }
+    const url = encodeURIComponent($('meuLink').value);
+    box.innerHTML = `<img alt="QR Code do seu link" src="https://api.qrserver.com/v1/create-qr-code/?size=340x340&margin=10&data=${url}">`
+      + `<p style="color:#080807;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;margin-top:8px">Círculo KM</p>`;
+    box.style.display = 'block';
+  });
+
+  $('btnSalvarPix').addEventListener('click', async () => {
+    const chave = $('pixChave').value.trim();
+    if (chave.length < 5) return aviso($('msgPix'),'Informe uma chave PIX válida.','erro');
+    const { data, error } = await sb.rpc('afiliado_salvar_pix', {
+      p_tipo: $('pixTipo').value, p_chave: chave,
+      p_documento: $('pixDoc').value.replace(/\D/g,'') || null,
+      p_tipo_pessoa: null
+    });
+    if (error || !data || data.ok !== true) return aviso($('msgPix'),'Não foi possível salvar agora.','erro');
+    aviso($('msgPix'),'Dados de pagamento salvos.','ok');
+  });
+
+  $('btnResgatar').addEventListener('click', async () => {
+    const btn = $('btnResgatar');
+    btn.disabled = true;
+    const { data, error } = await sb.rpc('afiliado_solicitar_resgate');
+    btn.disabled = false;
+    if (error) return aviso($('msgPix'),'Falha de conexão. Tente novamente.','erro');
+    if (!data || data.ok !== true) return aviso($('msgPix'), (data && data.erro) || 'Não foi possível solicitar.','erro');
+    aviso($('msgPix'),`Resgate de ${brl2(data.valor)} solicitado. O pagamento sai no próximo fechamento.`,'ok');
+    setTimeout(iniciar, 1200);
+  });
+
+  sb.auth.onAuthStateChange((evt) => { if (evt === 'SIGNED_IN') iniciar(); });
+  iniciar();
+})();
+</script>
+</body>
+</html>
