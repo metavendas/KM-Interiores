@@ -94,6 +94,8 @@ footer{padding:34px 0;border-top:1px solid var(--linha);text-align:center;font-s
       <input id="loginEmail" type="email" required placeholder="voce@email.com" autocomplete="email">
       <button class="btn btn-primary" type="submit" id="btnLogin" style="width:100%;margin-top:18px">Receber link de acesso</button>
       <div class="msg" id="msgLogin"></div>
+      <a class="btn btn-primary" id="ctaCadastro" href="/afiliados.html"
+         style="display:none;width:100%;margin-top:12px;text-align:center;box-sizing:border-box">Fazer meu cadastro agora</a>
     </form>
     <p style="font-size:.82rem;color:rgba(241,233,210,.5);margin-top:20px;text-align:center">
       Ainda não faz parte? <a href="/afiliados.html">Cadastre-se gratuitamente</a>
@@ -219,7 +221,25 @@ footer{padding:34px 0;border-top:1px solid var(--linha);text-align:center;font-s
     const email = $('loginEmail').value.trim().toLowerCase();
     const btn = $('btnLogin');
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return aviso($('msgLogin'),'E-mail inválido.','erro');
-    btn.disabled = true; btn.textContent = 'Enviando...';
+
+    btn.disabled = true; btn.textContent = 'Verificando...';
+
+    // 1) CONFERE ANTES DE ENVIAR: este e-mail é de um afiliado?
+    // Sem isso, quem digita um e-mail qualquer recebe um link que não leva a lugar nenhum.
+    try {
+      const { data: chk, error: errChk } = await sb.rpc('afiliado_pode_entrar', { p_email: email });
+      if (!errChk && chk && chk.existe === false) {
+        btn.disabled = false; btn.textContent = 'Receber link de acesso';
+        aviso($('msgLogin'),
+          'O e-mail ' + email + ' não está cadastrado no Círculo KM — por isso não enviamos o link. '
+          + 'O cadastro é gratuito e leva 40 segundos.', 'erro');
+        $('ctaCadastro').style.display = 'block';
+        return;
+      }
+    } catch(_) { /* se a verificação falhar, segue o fluxo normal */ }
+
+    $('ctaCadastro').style.display = 'none';
+    btn.textContent = 'Enviando...';
     const { error } = await sb.auth.signInWithOtp({
       email, options:{ emailRedirectTo: SITE + '/painel-afiliado.html', shouldCreateUser: true }
     });
