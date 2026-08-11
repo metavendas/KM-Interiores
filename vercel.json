@@ -1,17 +1,26 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
+  "redirects": [
     {
       "source": "/produto.html",
       "has": [
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*([Ww]hats[Aa]pp|facebookexternalhit|[Ff]acebot|[Tt]witterbot|[Ll]inked[Ii]n[Bb]ot|[Ss]lackbot|Slack-ImgProxy|[Tt]elegram[Bb]ot|[Dd]iscordbot|[Pp]interest|[Rr]edditbot|Googlebot|bingbot|Applebot|SkypeUriPreview|vkShare|[Ee]mbedly|[Ii]framely|Baiduspider|YandexBot|Mastodon|WordPress|Viber|Line).*"
+          "value": ".*([Ww]hats[Aa]pp|facebookexternalhit|[Ff]acebot|[Ii]nstagram|[Tt]hreads|[Tt]witterbot|[Ll]inked[Ii]n[Bb]ot|[Ss]lackbot|Slack-ImgProxy|[Tt]elegram[Bb]ot|[Dd]iscordbot|[Pp]interest|[Rr]edditbot|SkypeUriPreview|vkShare|[Ee]mbedly|[Ii]framely|Mastodon|WordPress|Viber|Line|Snapchat|Bluesky|Cardyb).*"
         }
       ],
-      "destination": "/api/og"
+      "destination": "/api/og",
+      "permanent": false
     },
+    {
+      "source": "/produto.html",
+      "has": [{ "type": "query", "key": "ogtest", "value": "1" }],
+      "destination": "/api/og",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
     {
       "source": "/p/:sku",
       "destination": "/api/og?sku=:sku"

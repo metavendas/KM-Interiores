@@ -1,6 +1,6 @@
 {
-  "build": "20260807a",
-  "gerado_em": "2026-08-07T00:00:00Z",
+  "build": "20260811a",
+  "gerado_em": "2026-08-11T00:00:00Z",
   "arquivos": {
     "api/og.js": 7078,
     "area-cliente.html": 18876,
@@ -26,14 +26,14 @@
     "km-pedidos-acao.js": 5560,
     "km-produtos-venda.js": 15763,
     "km-redes.js": 6614,
-    "km-social.js": 18716,
+    "km-social.js": 18694,
     "km-track.js": 9456,
     "kmcare.html": 12227,
     "privacidade.html": 9335,
     "produto.html": 28727,
     "quem-somos.html": 15568,
     "rastreio.html": 9740,
-    "vercel.json": 1146
+    "vercel.json": 1362
   },
   "sessao_7_2026-08-06": [
     "1 · api/og.js + vercel.json — preview do link mostra o produto",
@@ -48,5 +48,12 @@
     "og.js: removido og:image:width/height fixo 1200x630 (dimensao falsa derruba a imagem no WhatsApp)",
     "og.js: header Vary: User-Agent (Cloudflare na frente, desvio depende do user-agent)",
     "manifesto corrigido: index.html 29768 (estava 29693) e api/og.js 7078"
+  ],
+  "sessao_9_2026-08-11": [
+    "CAUSA RAIZ do preview: na Vercel os REWRITES so rodam DEPOIS do filesystem. Como produto.html EXISTE como arquivo estatico, o rewrite por user-agent nunca era aplicado (por isso /p/SKU funcionava e /produto.html?sku= nao).",
+    "vercel.json: o desvio do robo virou REDIRECT (roda ANTES do filesystem) em /produto.html -> /api/og",
+    "vercel.json: removidos Googlebot/bingbot/Applebot/Yandex/Baidu do regex (buscador deve ver a pagina real, nao a pagina de OG) e incluidos Instagram/Threads/Snapchat/Bluesky",
+    "vercel.json: redirect de diagnostico /produto.html?sku=X&ogtest=1 -> /api/og (permite provar a rota sem forjar user-agent)",
+    "km-social.js: botao de compartilhar agora gera o link curto /p/<SKU> (imune a user-agent e a cache de CDN)"
   ]
 }

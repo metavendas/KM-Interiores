@@ -103,7 +103,7 @@
     var st = document.createElement('style'); st.textContent = CSS;
     document.head.appendChild(st);
 
-    var url   = location.origin + location.pathname + '?sku=' + encodeURIComponent(p.sku || '');
+    var url   = location.origin + '/p/' + encodeURIComponent(p.sku || '');
     var texto = (p.nome || 'KM Interiores') + ' — KM Interiores';
     var eu    = visitante();
 
