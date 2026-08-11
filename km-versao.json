@@ -1,6 +1,6 @@
 {
-  "build": "20260811a",
-  "gerado_em": "2026-08-11T00:00:00Z",
+  "build": "20260811b",
+  "gerado_em": "2026-08-11T18:30:00Z",
   "arquivos": {
     "api/og.js": 7078,
     "area-cliente.html": 18876,
@@ -8,15 +8,15 @@
     "busca.js": 7416,
     "captura.html": 10650,
     "carrinho.html": 15761,
-    "catalogo.html": 19285,
+    "catalogo.html": 19433,
     "chat-widget.js": 14625,
     "crm.html": 694936,
-    "curadoria.html": 13328,
+    "curadoria.html": 13476,
     "designer.html": 13830,
     "entrar.html": 8902,
     "frete.js": 17809,
-    "index.html": 29768,
-    "institucional.html": 12867,
+    "index.html": 29914,
+    "institucional.html": 13015,
     "km-atendimento-fix.js": 3675,
     "km-campanha.js": 18436,
     "km-entrega.js": 5257,
@@ -28,12 +28,13 @@
     "km-redes.js": 6614,
     "km-social.js": 18694,
     "km-track.js": 9456,
-    "kmcare.html": 12227,
+    "kmcare.html": 12375,
     "privacidade.html": 9335,
     "produto.html": 28727,
-    "quem-somos.html": 15568,
+    "quem-somos.html": 15208,
     "rastreio.html": 9740,
-    "vercel.json": 1362
+    "vercel.json": 1362,
+    "og-logo.jpg": 32408
   },
   "sessao_7_2026-08-06": [
     "1 · api/og.js + vercel.json — preview do link mostra o produto",
@@ -55,5 +56,13 @@
     "vercel.json: removidos Googlebot/bingbot/Applebot/Yandex/Baidu do regex (buscador deve ver a pagina real, nao a pagina de OG) e incluidos Instagram/Threads/Snapchat/Bluesky",
     "vercel.json: redirect de diagnostico /produto.html?sku=X&ogtest=1 -> /api/og (permite provar a rota sem forjar user-agent)",
     "km-social.js: botao de compartilhar agora gera o link curto /p/<SKU> (imune a user-agent e a cache de CDN)"
+  ],
+  "sessao_10_2026-08-11": [
+    "og-logo.jpg (1200x630, 32KB): logo KM dourada sobre o preto da marca, gerada a partir de logo.png",
+    "index.html, catalogo.html, curadoria.html, institucional.html, kmcare.html, quem-somos.html: og:image, twitter:image e JSON-LD image apontam para og-logo.jpg",
+    "URL NOVA de proposito: o WhatsApp/Telegram cacheiam preview por URL - arquivo novo aparece certo de primeira, sem depender de Scrape Again",
+    "og-image.jpg preservado no lugar (fallback do api/og.js para produto sem foto) - nada apagado",
+    "backup em _backups/20260811_og_logo/",
+    "og:image:width/height/type declarados (1200x630 REAIS - dimensao verdadeira faz o WhatsApp renderizar o card grande)"
   ]
 }
