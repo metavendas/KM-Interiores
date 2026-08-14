@@ -112,7 +112,10 @@ h1 em{font-style:normal;color:var(--ouro)}
 .barra i{display:block;height:100%;background:linear-gradient(90deg,var(--ouro),var(--ouro-claro));border-radius:99px}
 
 /* ---- seções ---- */
-section{padding:72px 0;border-top:1px solid var(--linha)}
+section{padding:96px 0;border-top:1px solid var(--linha)}
+/* .wrap é classe e vencia o seletor de elemento acima — sem isto o padding vertical vira 0 */
+section.wrap{padding:96px 20px}
+@media(max-width:720px){section,section.wrap{padding-top:64px;padding-bottom:64px}}
 section:first-of-type{border-top:0}
 h2{font-size:clamp(24px,3.4vw,38px);font-weight:800;color:var(--branco);
    letter-spacing:-.6px;margin:0 0 14px;line-height:1.15}
@@ -122,10 +125,7 @@ h2 em{font-style:normal;color:var(--ouro)}
 .p{color:var(--mudo);max-width:700px}
 
 /* ---- galeria ---- */
-.galeria{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px;margin-bottom:24px}
-/* respiro extra: a oferta não pode encostar nas fotos */
-#reservar{padding-top:104px}
-@media(max-width:720px){#reservar{padding-top:72px}}
+.galeria{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:32px}
 .foto{position:relative;border-radius:var(--raio);overflow:hidden;border:1px solid var(--linha);
       background:var(--bg2);text-decoration:none;display:block}
 .foto img{aspect-ratio:4/3;object-fit:cover;width:100%;transition:.45s}
@@ -165,7 +165,7 @@ h2 em{font-style:normal;color:var(--ouro)}
 .microcopy{font-size:12.5px;color:var(--mudo);margin-top:14px}
 
 /* ---- ficha ---- */
-.ficha{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:28px}
+.ficha{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:36px}
 .item{background:var(--bg2);border:1px solid var(--linha);border-radius:12px;padding:16px 18px;
       display:flex;gap:12px;align-items:flex-start}
 .item .k{color:var(--ouro);font-weight:800;flex:0 0 auto}
@@ -173,13 +173,13 @@ h2 em{font-style:normal;color:var(--ouro)}
 .item .t s{display:block;color:var(--mudo);font-size:13px;text-decoration:none;margin-top:2px}
 
 /* ---- razões ---- */
-.razoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin-top:30px}
+.razoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin-top:36px}
 .razao{background:var(--bg2);border:1px solid var(--linha);border-radius:14px;padding:24px}
 .razao h4{margin:0 0 8px;color:var(--branco);font-size:17px;font-weight:700}
 .razao p{margin:0;color:var(--mudo);font-size:14.5px}
 
 /* ---- formulário ---- */
-.form{max-width:520px;margin:30px auto 0;text-align:left}
+.form{max-width:520px;margin:36px auto 0;text-align:left}
 .form label{display:block;font-size:12px;letter-spacing:1px;text-transform:uppercase;
       color:var(--mudo);margin:16px 0 7px;font-weight:600}
 .form input,.form select{width:100%;background:var(--bg2);border:1px solid var(--linha);
